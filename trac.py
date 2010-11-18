@@ -19,8 +19,11 @@ def get_url(url):
     handle.close()
     return data
 
-def get_patch_url(ticket, patch):
-    return "%s/raw-attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
+def get_patch_url(ticket, patch, raw=True):
+    if raw:
+        return "%s/raw-attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
+    else:
+        return "%s/attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
 
 def get_patch(ticket, patch):
     return get_url(get_patch_url(ticket, patch))
@@ -96,6 +99,7 @@ def extract_priority(html):
     return extract_tag(html, '<td headers="h_priority">')
     
 def extract_title(rss):
+    # TODO: strip "Sage: Ticket #...:"
     return extract_tag(rss, '<title>')
 
 folded_regex = re.compile('all.*(folded|combined|merged)')

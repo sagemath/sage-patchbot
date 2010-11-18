@@ -28,7 +28,7 @@ def get_ticket(**conf):
 
 def compare_machines(a, b):
     return tuple(a[key] != b[key] for key in ['os', 'distro', 'version', 'id'])
- 
+
 def rate_ticket(ticket, **conf):
     rating = 0
     if ticket['spkgs']:
@@ -51,7 +51,8 @@ def rate_ticket(ticket, **conf):
 def report_ticket(ticket_id, status, **conf):
     print ticket_id, status
     report = {'ticket': ticket_id, 'status': status}
-    report.update(conf)
+    report['base'] = conf['base']
+    report['machine'] = conf['machine']
     db.reports.save(report)
 
 if False:
