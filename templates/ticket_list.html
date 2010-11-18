@@ -5,6 +5,8 @@
 <table>
 {% for ticket in tickets: %}
 <tr>
+<td>{{ticket.report_count}}</td>
+<td><img src='/blob/{{ticket.report_status}}' height=16></td>
 <td align='right'>
     <a href="/ticket/{{ticket.id}}">{{ticket.id}}</a>
 </td>

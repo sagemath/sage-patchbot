@@ -1,3 +1,5 @@
+import re, os, sys, subprocess, time
+
 import pymongo
 import db
 from trac import scrape, do_or_die, pull_from_trac
@@ -42,17 +44,29 @@ def rate_ticket(ticket, **conf):
     rating += len(ticket['participants'])
     # TODO: component bonuses
     redundancy = (100,)
-    for reports in db.reports.find({'ticket': ticket['id'], 'base': conf['base']}):
+    query = {
+        'ticket': ticket['id'],
+        'base': conf['base'],
+        'patches': ticket['patches'],
+        'spkgs': ticket['spkgs'],
+    }
+    for reports in db.reports.find(query):
         redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
 
-def report_ticket(ticket_id, status, **conf):
-    print ticket_id, status
-    report = {'ticket': ticket_id, 'status': status}
-    report['base'] = conf['base']
-    report['machine'] = conf['machine']
+def report_ticket(ticket, status, base, machine):
+    print ticket['id'], status
+    report = {
+        'ticket': ticket['id'],
+        'status': status,
+        'patches': ticket['patches'],
+        'spkgs': ticket['spkgs'],
+        'base': base,
+        'machine': machine,
+        'time': time.strftime('%Y-%m-%d %H:%M:%S %z'),
+    }
     db.reports.save(report)
 
 if False:
@@ -72,26 +86,38 @@ machine = {
 }
 conf = {
     'trusted_authors': ['robertwb', 'was', 'cremona', 'burcin', 'mhansen'], 
-    'base': '4.5.3',
     'machine': machine,
     'bonus': {
         'robertwb': 50,
         'was': 10,
     }
 }
-#print get_ticket(trusted_authors=['robertwb', 'was', 'cremona', 'burcin'], base='4.6', machine=machine, bonus={'robertwb': 10})
-while True:
+
+def test_a_ticket(sage_root):
+    p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
+    if p.wait():
+        raise ValueError, "Invalid sage_root='%s'" % sage_root
+    version_info = p.stdout.read()
+    base = re.match(r'Sage Version ([\d.]+)', version_info).groups()[0]
+    ticket = get_ticket(base=base, **conf)
     status = 'started'
-    ticket = get_ticket(**conf)
     try:
-        pull_from_trac('/Users/robertwb/sage/current', ticket['id'], force=True)
+        pull_from_trac(sage_root, ticket['id'], force=True)
         status = 'applied'
         do_or_die('sage -b %s' % ticket['id'])
         status = 'built'
-        do_or_die('sage -t /Users/robertwb/sage/current/devel/sage/sage/rings/integer.pyx')
+        do_or_die('sage -t %s/devel/sage/sage/rings/integer.pyx' % sage_root)
         #do_or_die('sage -testall')
         status = 'tested'
     except Exception:
         import traceback
         traceback.print_exc()
-    report_ticket(ticket['id'], status=status, **conf)
+    report_ticket(ticket, status=status, base=base, machine=conf['machine'])
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        count = int(sys.argv[1])
+    else:
+        count = sys.max_int
+    for _ in range(count):
+        test_a_ticket('/Users/robertwb/sage/sage-4.6')

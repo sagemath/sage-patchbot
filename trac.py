@@ -32,6 +32,7 @@ def scrape(ticket_id):
     """
     Scrapes the trac page for ticket_id, updating the database if needed.
     """
+    ticket_id = int(ticket_id)
     # TODO: perhaps the db caching should be extracted outside of this function...
     db_info = db.lookup_ticket(ticket_id)
     rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
@@ -99,8 +100,8 @@ def extract_priority(html):
     return extract_tag(html, '<td headers="h_priority">')
     
 def extract_title(rss):
-    # TODO: strip "Sage: Ticket #...:"
-    return extract_tag(rss, '<title>')
+    title = extract_tag(rss, '<title>')
+    return re.sub(r'.*#\d+:', '', title).strip()
 
 folded_regex = re.compile('all.*(folded|combined|merged)')
 subsequent_regex = re.compile('second|third|fourth|next|on top|after')
@@ -204,7 +205,7 @@ def do_or_die(cmd):
     if res:
         raise Exception, "%s %s" % (res, cmd)
 
-safe = re.compile('[A-Za-z0-9.-_]*')
+safe = re.compile('[-+A-Za-z0-9._]*')
 def ensure_safe(items):
     """
     Raise an error if item has any spaces in it.

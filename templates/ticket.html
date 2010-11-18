@@ -3,6 +3,7 @@
 {% block body %}
 
 <h2>
+<img src="/blob/{{status}}">
 {{ticket}}
 </h2>
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">
@@ -19,17 +20,24 @@
 {% endfor %}
 </table>
 <br>
-
+<hr>
 <table>
 {% for report in reports: %}
 <tr>
 <td><img src="/blob/{{report.status}}"></td>
 <td><b>{{report.status}}</b></td>
-<td>{{report.base}}</td>
+<td>{{report.base|safe}}</td>
 <td>{{report.machine}}</td>
 <td align='right'>
     <a href="/machine/{{report.machine.id}}">{{report.machine.id}}</a>
 </td>
+<td>{{report.time}}</td>
+</tr>
+<tr>
+<td colspan=2><td>
+<td colspan=2>
+{{report.patch_list|safe}}
+<td>
 </tr>
 {% endfor %}
 </table>
