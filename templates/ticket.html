@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<h2>
+{{ticket}}
+</h2>
+<a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">
+{{info.title}}
+</a>
+<br><br>
+
+<table>
+{% for key, value in info.items(): %}
+<tr>
+<td align='right'>{{key}}:</td>
+<td>{{value|safe}}</td>
+</tr>
+{% endfor %}
+</table>
+<br>
+
+<table>
+{% for report in reports: %}
+<tr>
+<td><img src="/blob/{{report.status}}"></td>
+<td><b>{{report.status}}</b></td>
+<td>{{report.base}}</td>
+<td>{{report.machine}}</td>
+<td align='right'>
+    <a href="/machine/{{report.machine.id}}">{{report.machine.id}}</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+{% endblock %}
