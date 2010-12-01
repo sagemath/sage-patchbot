@@ -1,32 +1,43 @@
 import re, os, sys, subprocess, time, traceback
-import bz2
+import bz2, urllib2, json
+from optparse import OptionParser
 
-import pymongo
-import db
+from http_post_file import post_multipart
+
 from trac import scrape, do_or_die, pull_from_trac
 
-def update_database(ticket_id):
-    scrape(ticket_id)
+def filter_on_authors(tickets, authors):
+    if authors is not None:
+        authors = set(authors)
+    for ticket in tickets:
+        if authors is not None:
+            print ticket['authors'], authors, set(ticket['authors']).issubset(authors)
+        if authors is None or set(ticket['authors']).issubset(authors):
+            yield ticket
+
+def current_reports(ticket, base=None):
+    if 'reports' not in ticket:
+        return []
+    return filter(lambda report: (ticket['patches'] == report['patches'] and
+                                  ticket['spkgs'] == report['spkgs'] and
+                                  (base is None or base == report['base'])),
+                  ticket['reports'])
 
 def contains_any(key, values):
     clauses = [{'key': value} for value in values]
     return {'$or': clauses}
 
-def get_ticket(**conf):
-    query = {
-        'status': 'needs_review',
-        'patches': {'$ne': []},
-        'spkgs': [],
-    }
-    if conf['trusted_authors']:
-        query['authors'] = {'$in': conf['trusted_authors']}
-#    print query
-    all = filter(lambda x: x[0], ((rate_ticket(t, **conf), t) for t in db.tickets.find(query)))
+def get_ticket(server, **conf):
+    query = "raw"
+    if 'trusted_authors' in conf:
+        query += "&authors=" + ':'.join(conf['trusted_authors'])
+    handle = urllib2.urlopen(server + "/ticket/?" + query)
+    all = json.load(handle)
+    handle.close()
+    all = filter(lambda x: x[0], ((rate_ticket(t, **conf), t) for t in all))
     all.sort()
-#    for data in all:
-#        print data
-#    print all[-1]
-    return all[-1][1]
+    if all:
+        return all[-1][1]
 
 def compare_machines(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
@@ -54,13 +65,13 @@ def rate_ticket(ticket, **conf):
         rating += conf['bonus'].get(ticket['component'], 0)
     rating += conf['bonus'].get(ticket['priority'], 0)
     redundancy = (100,)
-    for reports in db.current_reports(ticket):
+    for reports in current_reports(ticket):
         redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
 
-def report_ticket(ticket, status, base, machine, log):
+def report_ticket(server, ticket, status, base, machine, log):
     print ticket['id'], status
     report = {
         'status': status,
@@ -70,36 +81,9 @@ def report_ticket(ticket, status, base, machine, log):
         'machine': machine,
         'time': time.strftime('%Y-%m-%d %H:%M:%S %z'),
     }
-    if 'reports' not in ticket:
-        ticket['reports'] = []
-    ticket['reports'].append(report)
-    db.save_ticket(ticket)
-    post_log(ticket['id'] ,report, log)
-
-def log_name(ticket_id, report):
-    return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
-
-def post_log(ticket_id, report, log):
-    data = bz2.compress(open(log).read())
-    db.logs.put(data, _id=log_name(ticket_id, report))
-
-if False:
-    for id in range(8000, 9000):
-        print id
-        try:
-            update_database(id)
-        except:
-            import traceback
-            traceback.print_exc()
-
-conf = {
-    'trusted_authors': ['robertwb', 'was', 'cremona', 'burcin', 'mhansen'], 
-    'machine': ('os-x', '10.6', '10.6.3', 'my-mac5'),
-    'bonus': {
-        'robertwb': 50,
-        'was': 10,
-    }
-}
+    fields = {'report': json.dumps(report)}
+    files = [('log', 'log', bz2.compress(open(log).read()))]
+    print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
 
 class Tee:
     def __init__(self, filepath):
@@ -120,19 +104,27 @@ class Tee:
         self.tee.wait()
         return False
 
-def test_a_ticket(sage_root):
+def test_a_ticket(sage_root, server, idle):
+    
     p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
     if p.wait():
         raise ValueError, "Invalid sage_root='%s'" % sage_root
     version_info = p.stdout.read()
     base = re.match(r'Sage Version ([\d.]+)', version_info).groups()[0]
-    ticket = get_ticket(base=base, **conf)
+    ticket = get_ticket(base=base, server=server, **conf)
+    if not ticket:
+        print "No more tickets."
+        time.sleep(idle)
+        return
     print "\n" * 2
     print "=" * 30, ticket['id'], "=" * 30
     print ticket['title']
     print "\n" * 2
     status = 'started'
-    log = '%s/devel/sage-%s/log.txt' % (sage_root, ticket['id'])
+    log_dir = sage_root + "/logs"
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    log = '%s/%s-log.txt' % (log_dir, ticket['id'])
     try:
         with Tee(log):
             pull_from_trac(sage_root, ticket['id'], force=True)
@@ -144,13 +136,26 @@ def test_a_ticket(sage_root):
             status = 'tested'
     except Exception:
         traceback.print_exc()
-    report_ticket(ticket, status=status, base=base, machine=conf['machine'], log=log)
+    report_ticket(server, ticket, status=status, base=base, machine=conf['machine'], log=log)
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 1:
-        count = int(sys.argv[1])
+    parser = OptionParser()
+    parser.add_option("--config", dest="config")
+    parser.add_option("--server", dest="server")
+    parser.add_option("--sage", dest="sage_root")
+    parser.add_option("--idle", dest="idle", default=300)
+    (options, args) = parser.parse_args()
+    
+    unicode_conf = json.load(open(options.config))
+    conf = {}
+    for key, value in unicode_conf.items():
+        conf[str(key)] = value
+    del options.config
+
+    if len(args) > 0:
+        count = int(args[0])
     else:
         count = 1000000
     for _ in range(count):
-        test_a_ticket('/Users/robertwb/sage/sage-4.6')
+        test_a_ticket(**options.__dict__)

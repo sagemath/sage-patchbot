@@ -294,6 +294,12 @@ def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
 
 
 if __name__ == '__main__':
+    for ticket in range(7100, 11000):
+        try:
+            print ticket
+            print scrape(ticket)
+        except urllib2.HTTPError, exn:
+            print exn
     for ticket in sys.argv[1:]:
         print ticket, scrape(ticket)
-    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)
+#    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)

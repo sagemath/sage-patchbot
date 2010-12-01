@@ -1,16 +1,33 @@
-import sys, bz2
-from flask import Flask, render_template, make_response
+import sys, bz2, json, traceback
+from flask import Flask, render_template, make_response, request
 import pymongo
 import trac
 import buildbot
+import db
 
-from db import tickets, logs, current_reports
+from db import tickets, logs
+from buildbot import current_reports
 
 app = Flask(__name__)
 
-@app.route("/")
-def main():
-    all = tickets.find({'status': 'needs_review'}).sort('id')
+@app.route("/ticket")
+@app.route("/ticket/")
+def ticket_list():
+    query = {'status': 'needs_review'}
+    if 'authors' in request.args:
+        authors = request.args.get('authors').split(':')
+        query['authors'] = {'$in': authors}
+    else:
+        authors = None
+    all = buildbot.filter_on_authors(tickets.find(query).sort('id'), authors)
+    if 'raw' in request.args:
+        if 'pretty' in request.args:
+            indent = 4
+        else:
+            indent = None
+        response = make_response(json.dumps(list(all), default=lambda x: None, indent=indent))
+        response.headers['Content-type'] = 'text/plain'
+        return response
     def preprocess(all):
         for ticket in all:
             ticket['report_count'], ticket['report_status'] = get_ticket_status(ticket, base)
@@ -59,9 +76,31 @@ def render_ticket(ticket):
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
-                item['log'] = buildbot.log_name(info['id'], item)
+                item['log'] = log_name(info['id'], item)
             yield item
     return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
+
+@app.route("/report/<int:ticket_id>", methods=['POST'])
+def post_report(ticket_id):
+    try:
+        ticket = db.lookup_ticket(ticket_id)
+        if 'reports' not in ticket:
+            ticket['reports'] = []
+        report = json.loads(request.form.get('report'))
+        assert isinstance(report, dict)
+        for fld in ['status', 'patches', 'spkgs', 'base', 'machine', 'time']:
+            assert fld in report
+        ticket['reports'].append(report)
+        db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        db.save_ticket(ticket)
+        return "done"
+    except:
+        traceback.print_exc()
+        return "bad"
+
+def log_name(ticket_id, report):
+    return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
+
 
 @app.route("/log/<path:log>")
 def get_log(log):

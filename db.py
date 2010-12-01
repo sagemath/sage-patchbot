@@ -25,11 +25,3 @@ def save_ticket(ticket_data):
         old.update(ticket_data)
         ticket_data = old
     tickets.save(ticket_data)
-
-def current_reports(ticket, base=None):
-    if 'reports' not in ticket:
-        return []
-    return filter(lambda report: (ticket['patches'] == report['patches'] and
-                                  ticket['spkgs'] == report['spkgs'] and
-                                  (base is None or base == report['base'])),
-                  ticket['reports'])
