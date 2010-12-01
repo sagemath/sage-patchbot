@@ -4,7 +4,7 @@ import pymongo
 import trac
 import buildbot
 
-from db import tickets, reports, logs
+from db import tickets, logs, current_reports
 
 app = Flask(__name__)
 
@@ -36,12 +36,17 @@ def render_ticket(ticket):
         info = trac.scrape(ticket)
     except:
         info = tickets.find_one({'id': ticket})
-    all = reports.find({'ticket': ticket}).sort([('time', pymongo.DESCENDING)])
+    if 'reports' in info:
+        info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
+    else:
+        info['reports'] = []
     def format_info(info):
         new_info = {}
         for key, value in info.items():
             if key == 'patches':
                 new_info['patches'] = format_patches(ticket, value)
+            elif key == 'reports':
+                pass
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
             elif key not in ('id', '_id'):
@@ -54,9 +59,9 @@ def render_ticket(ticket):
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
-                item['log'] = buildbot.log_name(item)
+                item['log'] = buildbot.log_name(info['id'], item)
             yield item
-    return render_template("ticket.html", reports=preprocess_reports(all), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
+    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
 
 @app.route("/log/<path:log>")
 def get_log(log):
@@ -86,14 +91,7 @@ def status_image(status):
     return response
 
 def get_ticket_status(ticket, base=None):
-    query = {
-        'ticket': ticket['id'],
-        'patches': ticket['patches'],
-        'spkgs': ticket['spkgs'],
-    }
-    if base:
-        query['base'] = base
-    all = list(reports.find(query))
+    all = current_reports(ticket)
     if len(all):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]

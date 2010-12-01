@@ -11,10 +11,8 @@ tickets.ensure_index('id')
 tickets.ensure_index('status')
 tickets.ensure_index('authors')
 tickets.ensure_index('participants')
-
-reports = mongodb.reports
-reports.ensure_index([('ticket', pymongo.ASCENDING), ('base', pymongo.DESCENDING)])
-reports.ensure_index('machine')
+tickets.ensure_index('reports.base')
+tickets.ensure_index('reports.machine')
 
 logs = gridfs.GridFS(mongodb, 'logs')
 
@@ -27,3 +25,11 @@ def save_ticket(ticket_data):
         old.update(ticket_data)
         ticket_data = old
     tickets.save(ticket_data)
+
+def current_reports(ticket, base=None):
+    if 'reports' not in ticket:
+        return []
+    return filter(lambda report: (ticket['patches'] == report['patches'] and
+                                  ticket['spkgs'] == report['spkgs'] and
+                                  (base is None or base == report['base'])),
+                  ticket['reports'])

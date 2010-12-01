@@ -21,14 +21,11 @@ def get_ticket(**conf):
     if conf['trusted_authors']:
         query['authors'] = {'$in': conf['trusted_authors']}
 #    print query
-    all = [(rate_ticket(t, **conf), t) for t in db.tickets.find(query)]
-    all = filter(lambda x: x[0], all)
+    all = filter(lambda x: x[0], ((rate_ticket(t, **conf), t) for t in db.tickets.find(query)))
     all.sort()
-    for data in all:
-        print data
-    sys.exit(1)
-    
-    print all[-1]
+#    for data in all:
+#        print data
+#    print all[-1]
     return all[-1][1]
 
 def compare_machines(a, b):
@@ -57,13 +54,7 @@ def rate_ticket(ticket, **conf):
         rating += conf['bonus'].get(ticket['component'], 0)
     rating += conf['bonus'].get(ticket['priority'], 0)
     redundancy = (100,)
-    query = {
-        'ticket': ticket['id'],
-        'base': conf['base'],
-        'patches': ticket['patches'],
-        'spkgs': ticket['spkgs'],
-    }
-    for reports in db.reports.find(query):
+    for reports in db.current_reports(ticket):
         redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
     if not redundancy[-1]:
         return # already did this one
@@ -72,7 +63,6 @@ def rate_ticket(ticket, **conf):
 def report_ticket(ticket, status, base, machine, log):
     print ticket['id'], status
     report = {
-        'ticket': ticket['id'],
         'status': status,
         'patches': ticket['patches'],
         'spkgs': ticket['spkgs'],
@@ -80,15 +70,18 @@ def report_ticket(ticket, status, base, machine, log):
         'machine': machine,
         'time': time.strftime('%Y-%m-%d %H:%M:%S %z'),
     }
-    db.reports.save(report)
-    post_log(report, log)
+    if 'reports' not in ticket:
+        ticket['reports'] = []
+    ticket['reports'].append(report)
+    db.save_ticket(ticket)
+    post_log(ticket['id'] ,report, log)
 
-def log_name(report):
-    return "/log/%s/%s/%s" % (report['ticket'], '/'.join(report['machine']), report['time'])
+def log_name(ticket_id, report):
+    return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
 
-def post_log(report, log):
+def post_log(ticket_id, report, log):
     data = bz2.compress(open(log).read())
-    db.logs.put(data, _id=log_name(report))
+    db.logs.put(data, _id=log_name(ticket_id, report))
 
 if False:
     for id in range(8000, 9000):
@@ -101,7 +94,7 @@ if False:
 
 conf = {
     'trusted_authors': ['robertwb', 'was', 'cremona', 'burcin', 'mhansen'], 
-    'machine': ('os-x', '10.6', '10.6.3', 'my-mac3'),
+    'machine': ('os-x', '10.6', '10.6.3', 'my-mac5'),
     'bonus': {
         'robertwb': 50,
         'was': 10,
