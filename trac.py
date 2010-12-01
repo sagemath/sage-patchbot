@@ -53,6 +53,7 @@ def scrape(ticket_id):
         'page_hash'     : page_hash,
         'status'        : extract_status(html),
         'priority'      : extract_priority(html),
+        'component'     : extract_component(html),
         'depends_on'    : extract_depends_on(rss),
         'spkgs'         : extract_spkgs(html),
         'patches'       : patches,
@@ -98,6 +99,9 @@ def extract_priority(html):
     Extracts any spkgs for a ticket from the html page.
     """
     return extract_tag(html, '<td headers="h_priority">')
+
+def extract_component(html):
+    return extract_tag(html, '<td headers="h_component">')
     
 def extract_title(rss):
     title = extract_tag(rss, '<title>')

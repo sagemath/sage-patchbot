@@ -24,8 +24,10 @@ def get_ticket(**conf):
     all = [(rate_ticket(t, **conf), t) for t in db.tickets.find(query)]
     all = filter(lambda x: x[0], all)
     all.sort()
-#    for data in all:
-#        print data
+    for data in all:
+        print data
+    sys.exit(1)
+    
     print all[-1]
     return all[-1][1]
 
@@ -50,7 +52,10 @@ def rate_ticket(ticket, **conf):
     for participant in ticket['participants']:
         rating += conf['bonus'].get(participant, 0) # doubled for authors
     rating += len(ticket['participants'])
-    # TODO: component bonuses
+    # TODO: remove condition
+    if 'component' in ticket:
+        rating += conf['bonus'].get(ticket['component'], 0)
+    rating += conf['bonus'].get(ticket['priority'], 0)
     redundancy = (100,)
     query = {
         'ticket': ticket['id'],
@@ -96,7 +101,7 @@ if False:
 
 conf = {
     'trusted_authors': ['robertwb', 'was', 'cremona', 'burcin', 'mhansen'], 
-    'machine': ('os-x', '10.6', '10.6.3', 'my-mac2'),
+    'machine': ('os-x', '10.6', '10.6.3', 'my-mac3'),
     'bonus': {
         'robertwb': 50,
         'was': 10,
