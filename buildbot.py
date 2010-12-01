@@ -104,7 +104,11 @@ class Tee:
         self.tee.wait()
         return False
 
-def test_a_ticket(sage_root, server, idle):
+
+# The sage test scripts could really use some cleanup...
+all_test_dirs = ["doc/common", "doc/en", "doc/fr", "sage"]
+
+def test_a_ticket(sage_root, server, idle, parallelism):
     
     p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
     if p.wait():
@@ -127,11 +131,13 @@ def test_a_ticket(sage_root, server, idle):
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
     try:
         with Tee(log):
+            os.environ['MAKE'] = "make -j%s" % parallelism
             pull_from_trac(sage_root, ticket['id'], force=True)
             status = 'applied'
             do_or_die('sage -b %s' % ticket['id'])
             status = 'built'
-            do_or_die('sage -t %s/devel/sage-%s/sage/rings/integer.pyx' % (sage_root, ticket['id']))
+            test_dirs = ["%s/devel/sage-%s/%s" % (sage_root, ticket['id'], dir) for dir in all_test_dirs]
+            do_or_die("sage -tp %s -sagenb %s" % (parallelism, ' '.join(test_dirs)))
             #do_or_die('sage -testall')
             status = 'tested'
     except Exception:
@@ -145,6 +151,7 @@ if __name__ == '__main__':
     parser.add_option("--server", dest="server")
     parser.add_option("--sage", dest="sage_root")
     parser.add_option("--idle", dest="idle", default=300)
+    parser.add_option("--parallelism", dest="parallelism", default=3)
     (options, args) = parser.parse_args()
     
     unicode_conf = json.load(open(options.config))

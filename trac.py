@@ -287,7 +287,6 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
         do_or_die('hg qapplied')
     except:
         os.system('hg qpop -a')
-        print "BAD"
         raise
 
 
@@ -296,12 +295,12 @@ def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
 
 
 if __name__ == '__main__':
-    for ticket in range(7100, 11000):
-        try:
-            print ticket
-            print scrape(ticket)
-        except urllib2.HTTPError, exn:
-            print exn
     for ticket in sys.argv[1:]:
-        print ticket, scrape(ticket)
+        if '-' in ticket:
+            start, end = ticket.split('-')
+            tickets = range(int(start), int(end) + 1)
+        else:
+            tickets = [int(ticket)]
+        for ticket in tickets:
+            print ticket, scrape(ticket)
 #    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)

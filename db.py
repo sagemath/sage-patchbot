@@ -7,7 +7,7 @@ mongo_port = 21000
 
 mongodb = Connection(port=mongo_port).buildbot
 tickets = mongodb.tickets
-tickets.ensure_index('id')
+tickets.ensure_index('id', unique=True)
 tickets.ensure_index('status')
 tickets.ensure_index('authors')
 tickets.ensure_index('participants')

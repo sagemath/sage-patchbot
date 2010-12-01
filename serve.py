@@ -1,4 +1,5 @@
 import sys, bz2, json, traceback
+from optparse import OptionParser
 from flask import Flask, render_template, make_response, request
 import pymongo
 import trac
@@ -137,6 +138,12 @@ def get_ticket_status(ticket, base=None):
     else:
         return 0, 'new'
     
+if __name__ == '__main__':
 
-base = sys.argv[1]
-app.run(debug=True, host="0.0.0.0", port=21100)
+    parser = OptionParser()
+    parser.add_option("-b", "--base", dest="base")
+    parser.add_option("-p", "--port", dest="port")
+    (options, args) = parser.parse_args()
+
+    base = options.base
+    app.run(debug=True, host="0.0.0.0", port=int(options.port))
