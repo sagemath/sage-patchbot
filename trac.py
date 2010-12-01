@@ -283,9 +283,11 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
                 while old_patch in series:
                     old_patch += '-old'
                 do_or_die('hg qrename %s %s' % (patch, old_patch))
-                do_or_die('hg qimport %s && hg qpush' % url)
+            do_or_die('hg qimport %s && hg qpush' % url)
+        do_or_die('hg qapplied')
     except:
         os.system('hg qpop -a')
+        print "BAD"
         raise
 
 

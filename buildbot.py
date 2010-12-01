@@ -10,8 +10,6 @@ def filter_on_authors(tickets, authors):
     if authors is not None:
         authors = set(authors)
     for ticket in tickets:
-        if authors is not None:
-            print ticket['authors'], authors, set(ticket['authors']).issubset(authors)
         if authors is None or set(ticket['authors']).issubset(authors):
             yield ticket
 
@@ -34,6 +32,8 @@ def get_ticket(server, **conf):
     handle = urllib2.urlopen(server + "/ticket/?" + query)
     all = json.load(handle)
     handle.close()
+    if 'trusted_authors' in conf:
+        all = filter_on_authors(all, conf['trusted_authors'])
     all = filter(lambda x: x[0], ((rate_ticket(t, **conf), t) for t in all))
     all.sort()
     if all:
