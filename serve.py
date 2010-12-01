@@ -1,9 +1,10 @@
-import sys
+import sys, bz2
 from flask import Flask, render_template, make_response
 import pymongo
 import trac
+import buildbot
 
-from db import tickets, reports
+from db import tickets, reports, logs
 
 app = Flask(__name__)
 
@@ -29,7 +30,6 @@ def format_patches(ticket, patches, good_patches=None):
         + ("" if (good_patches is None or len(patches) >= len(good_patches)) else "<li><span style='color: red'>(missing)</span>")
         + "</ol>")
 
-@app.route("/ticket/<int:ticket>")
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
     try:
@@ -53,8 +53,21 @@ def render_ticket(ticket):
                 item['patch_list'] = format_patches(ticket, item['patches'], info['patches'])
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
+            if 'time' in item:
+                item['log'] = buildbot.log_name(item)
             yield item
     return render_template("ticket.html", reports=preprocess_reports(all), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
+
+@app.route("/log/<path:log>")
+def get_log(log):
+    path = "/log/" + log
+    if not logs.exists(path):
+        data = "No such log!"
+    else:
+        data = bz2.decompress(logs.get(path).read())
+    response = make_response(data)
+    response.headers['Content-type'] = 'text/plain'
+    return response
 
 status_order = ['new', 'applied', 'started', 'built', 'tested']
 

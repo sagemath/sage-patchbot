@@ -1,7 +1,7 @@
 import os
 
 # mongod --port=21000 --dbpath=data
-import pymongo
+import pymongo, gridfs
 from pymongo import Connection
 mongo_port = 21000
 
@@ -15,6 +15,8 @@ tickets.ensure_index('participants')
 reports = mongodb.reports
 reports.ensure_index([('ticket', pymongo.ASCENDING), ('base', pymongo.DESCENDING)])
 reports.ensure_index('machine')
+
+logs = gridfs.GridFS(mongodb, 'logs')
 
 def lookup_ticket(ticket_id):
     return tickets.find_one({'id': ticket_id})
