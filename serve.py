@@ -11,6 +11,7 @@ from buildbot import current_reports
 
 app = Flask(__name__)
 
+@app.route("/")
 @app.route("/ticket")
 @app.route("/ticket/")
 def ticket_list():

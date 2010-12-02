@@ -71,6 +71,9 @@ def rate_ticket(ticket, **conf):
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
 
+def datetime():
+    return time.strftime('%Y-%m-%d %H:%M:%S %z')
+
 def report_ticket(server, ticket, status, base, machine, log):
     print ticket['id'], status
     report = {
@@ -79,25 +82,32 @@ def report_ticket(server, ticket, status, base, machine, log):
         'spkgs': ticket['spkgs'],
         'base': base,
         'machine': machine,
-        'time': time.strftime('%Y-%m-%d %H:%M:%S %z'),
+        'time': datetime(),
     }
     fields = {'report': json.dumps(report)}
     files = [('log', 'log', bz2.compress(open(log).read()))]
     print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
 
 class Tee:
-    def __init__(self, filepath):
+    def __init__(self, filepath, time=False):
         self.filepath = filepath
+        self.time = time
         
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
         self.tee = subprocess.Popen(["tee", self.filepath], stdin=subprocess.PIPE)
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
+        if self.time:
+            print datetime()
+            self.start_time = time.time()
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             traceback.print_exc()
+        if self.time:
+            print datetime()
+            print int(time.time() - self.start_time), "seconds"
         self.tee.stdin.close()
         os.dup2(self._saved[0], sys.stdout.fileno())
         os.dup2(self._saved[1], sys.stderr.fileno())
@@ -114,7 +124,8 @@ def test_a_ticket(sage_root, server, idle, parallelism):
     if p.wait():
         raise ValueError, "Invalid sage_root='%s'" % sage_root
     version_info = p.stdout.read()
-    base = re.match(r'Sage Version ([\d.]+)', version_info).groups()[0]
+    print version_info
+    base = re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
     ticket = get_ticket(base=base, server=server, **conf)
     if not ticket:
         print "No more tickets."
@@ -130,7 +141,7 @@ def test_a_ticket(sage_root, server, idle, parallelism):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
     try:
-        with Tee(log):
+        with Tee(log, time=True):
             os.environ['MAKE'] = "make -j%s" % parallelism
             pull_from_trac(sage_root, ticket['id'], force=True)
             status = 'applied'

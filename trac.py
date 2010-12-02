@@ -1,6 +1,6 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
-import re, hashlib, urllib2, os, sys
+import re, hashlib, urllib2, os, sys, traceback, time
 import db
 
 
@@ -302,5 +302,10 @@ if __name__ == '__main__':
         else:
             tickets = [int(ticket)]
         for ticket in tickets:
-            print ticket, scrape(ticket)
+            try:
+                print ticket, scrape(ticket)
+                time.sleep(1)
+            except Exception:
+                print "Error for", ticket
+                traceback.print_exc()
 #    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)
