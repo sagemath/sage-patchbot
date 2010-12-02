@@ -128,14 +128,14 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
-status_order = ['new', 'applied', 'started', 'built', 'tested']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed']
 
 status_colors = {
-    'new': 'white',
-    'started': 'red',
-    'applied': 'red',
-    'built': 'yellow',
-    'tested': 'green',
+    'New': 'white',
+    'ApplyFailed': 'red',
+    'BuildFailed': 'red',
+    'TestsFailed': 'yellow',
+    'TestsPassed': 'green',
 }
 
 @app.route("/blob/<status>")
@@ -150,7 +150,7 @@ def get_ticket_status(ticket, base=None):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]
     else:
-        return 0, 'new'
+        return 0, 'New'
     
 if __name__ == '__main__':
 

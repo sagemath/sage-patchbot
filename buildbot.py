@@ -118,6 +118,13 @@ class Tee:
 # The sage test scripts could really use some cleanup...
 all_test_dirs = ["doc/common", "doc/en", "doc/fr", "sage"]
 
+status = {
+    'started': 'ApplyFailed',
+    'applied': 'BuildFailed',
+    'built'  : 'TestsFailed',
+    'tested' : 'TestsPassed',
+}
+
 def test_a_ticket(sage_root, server, idle, parallelism):
     
     p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
@@ -135,25 +142,25 @@ def test_a_ticket(sage_root, server, idle, parallelism):
     print "=" * 30, ticket['id'], "=" * 30
     print ticket['title']
     print "\n" * 2
-    status = 'started'
     log_dir = sage_root + "/logs"
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
     try:
         with Tee(log, time=True):
+            state = 'started'
             os.environ['MAKE'] = "make -j%s" % parallelism
             pull_from_trac(sage_root, ticket['id'], force=True)
-            status = 'applied'
+            state = 'applied'
             do_or_die('sage -b %s' % ticket['id'])
-            status = 'built'
+            state = 'built'
             test_dirs = ["%s/devel/sage-%s/%s" % (sage_root, ticket['id'], dir) for dir in all_test_dirs]
             do_or_die("sage -tp %s -sagenb %s" % (parallelism, ' '.join(test_dirs)))
             #do_or_die('sage -testall')
-            status = 'tested'
+            state = 'tested'
     except Exception:
         traceback.print_exc()
-    report_ticket(server, ticket, status=status, base=base, machine=conf['machine'], log=log)
+    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log)
 
 if __name__ == '__main__':
 

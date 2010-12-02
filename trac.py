@@ -61,7 +61,8 @@ def scrape(ticket_id):
         'participants'  : extract_participants(rss),
     }
     db.save_ticket(data)
-    return data
+    db_info = db.lookup_ticket(ticket_id)
+    return db_info
 
 def extract_tag(sgml, tag):
     """
