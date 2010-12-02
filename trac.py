@@ -28,7 +28,7 @@ def get_patch_url(ticket, patch, raw=True):
 def get_patch(ticket, patch):
     return get_url(get_patch_url(ticket, patch))
 
-def scrape(ticket_id):
+def scrape(ticket_id, force=False):
     """
     Scrapes the trac page for ticket_id, updating the database if needed.
     """
@@ -37,7 +37,7 @@ def scrape(ticket_id):
     db_info = db.lookup_ticket(ticket_id)
     rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
     page_hash = digest(rss) # rss isn't as brittle
-    if db_info is not None and db_info['page_hash'] == page_hash:
+    if not force and db_info is not None and db_info['page_hash'] == page_hash:
         return db_info
     # TODO: Is there a better format that still has all the information?
     html = get_url("%s/ticket/%s" % (TRAC_URL, ticket_id))
@@ -111,7 +111,7 @@ def extract_title(rss):
 folded_regex = re.compile('all.*(folded|combined|merged)')
 subsequent_regex = re.compile('second|third|fourth|next|on top|after')
 attachment_regex = re.compile(r"<strong>attachment</strong>\s*set to <em>(.*)</em>", re.M)
-rebased_regex = re.compile(r"[-.]?rebased?")
+rebased_regex = re.compile(r"([-.]?rebased?)|(-v\d)")
 def extract_patches(rss):
     """
     Extracts the list of patches for a ticket from the rss feed.
@@ -295,8 +295,13 @@ def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
     raise NotImplementedError
 
 
+
 if __name__ == '__main__':
+    force = False
     for ticket in sys.argv[1:]:
+        if ticket == '-f':
+            force = True
+            continue
         if '-' in ticket:
             start, end = ticket.split('-')
             tickets = range(int(start), int(end) + 1)
@@ -304,7 +309,7 @@ if __name__ == '__main__':
             tickets = [int(ticket)]
         for ticket in tickets:
             try:
-                print ticket, scrape(ticket)
+                print ticket, scrape(ticket, force=force)
                 time.sleep(1)
             except Exception:
                 print "Error for", ticket
