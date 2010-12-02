@@ -16,4 +16,16 @@
 {% endfor %}
 </table>
 
+<hr>
+
+<table>
+{% for status, count in summary.items() %}
+<tr>
+<td><img src='/blob/{{status}}' height=16></td>
+<td>{{status}}</td>
+<td>{{count}}</td>
+</tr>
+{% endfor %}
+</table>
+
 {% endblock %}

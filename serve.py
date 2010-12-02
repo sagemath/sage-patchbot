@@ -30,11 +30,13 @@ def ticket_list():
         response = make_response(json.dumps(list(all), default=lambda x: None, indent=indent))
         response.headers['Content-type'] = 'text/plain'
         return response
+    summary = dict((key, 0) for key in status_order)
     def preprocess(all):
         for ticket in all:
             ticket['report_count'], ticket['report_status'] = get_ticket_status(ticket, base)
+            summary[ticket['report_status']] += 1
             yield ticket
-    return render_template("ticket_list.html", tickets=preprocess(all))
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary)
 
 def format_patches(ticket, patches, good_patches=None):
     if good_patches is not None:
@@ -81,6 +83,17 @@ def render_ticket(ticket):
                 item['log'] = log_name(info['id'], item)
             yield item
     return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
+
+@app.route("/ticket/<int:ticket>/status.png")
+def render_ticket_status(ticket):
+    try:
+        info = trac.scrape(ticket)
+    except:
+        info = tickets.find_one({'id': ticket})
+    status = get_ticket_status(info, base=base)[1]
+    response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
+    response.headers['Content-type'] = 'image/png'
+    return response
 
 @app.route("/report/<int:ticket_id>", methods=['POST'])
 def post_report(ticket_id):
