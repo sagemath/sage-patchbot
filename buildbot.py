@@ -152,6 +152,7 @@ def test_a_ticket(sage_root, server, idle, parallelism):
             os.environ['MAKE'] = "make -j%s" % parallelism
             pull_from_trac(sage_root, ticket['id'], force=True)
             state = 'applied'
+            os.system('%s/sage -coverageall' % sage_root)
             do_or_die('sage -b %s' % ticket['id'])
             state = 'built'
             test_dirs = ["%s/devel/sage-%s/%s" % (sage_root, ticket['id'], dir) for dir in all_test_dirs]
