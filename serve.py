@@ -36,11 +36,9 @@ def ticket_list():
             ticket['report_count'], ticket['report_status'] = get_ticket_status(ticket, base)
             summary[ticket['report_status']] += 1
             yield ticket
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary)
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base)
 
 def format_patches(ticket, patches, good_patches=None):
-    if good_patches is not None:
-        print "len(patches) >= len(good_patches)", len(patches) , len(good_patches)
     def note(patch):
         if good_patches is None or patch in good_patches:
             return ""
@@ -66,7 +64,7 @@ def render_ticket(ticket):
         for key, value in info.items():
             if key == 'patches':
                 new_info['patches'] = format_patches(ticket, value)
-            elif key == 'reports':
+            elif key == 'reports' or key == 'pending':
                 pass
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
@@ -95,6 +93,13 @@ def render_ticket_status(ticket):
     response.headers['Content-type'] = 'image/png'
     return response
 
+def get_or_set(ticket, key, default):
+    if key in ticket:
+        value = ticket[key]
+    else:
+        value = ticket[key] = default
+    return value
+
 @app.route("/report/<int:ticket_id>", methods=['POST'])
 def post_report(ticket_id):
     try:
@@ -105,13 +110,15 @@ def post_report(ticket_id):
         assert isinstance(report, dict)
         for fld in ['status', 'patches', 'spkgs', 'base', 'machine', 'time']:
             assert fld in report
+        buildbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
-        db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        if report['status'] != 'Pending':
+            db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
         db.save_ticket(ticket)
-        return "done"
+        return "ok"
     except:
         traceback.print_exc()
-        return "bad"
+        return "error"
 
 def log_name(ticket_id, report):
     return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
@@ -128,14 +135,16 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed', 'Pending', 'Spkg']
 
 status_colors = {
-    'New': 'white',
+    'New'        : 'white',
     'ApplyFailed': 'red',
     'BuildFailed': 'red',
     'TestsFailed': 'yellow',
     'TestsPassed': 'green',
+    'Pending'    : 'white',
+    'Spkg'    : 'purple',
 }
 
 @app.route("/blob/<status>")
@@ -149,6 +158,8 @@ def get_ticket_status(ticket, base=None):
     if len(all):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]
+    elif ticket['spkgs']:
+        return 0, 'Spkg'
     else:
         return 0, 'New'
     

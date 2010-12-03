@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SAGE=/scratch/robertwb/buildbot/sage-4.6/sage
+SAGE=/levi/scratch/robertwb/buildbot/sage-4.6/sage
 PYTHON="$SAGE -python"
 
 mongod --port=21000 --dbpath=../data &> mongod.log &

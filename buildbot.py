@@ -65,14 +65,36 @@ def rate_ticket(ticket, **conf):
         rating += conf['bonus'].get(ticket['component'], 0)
     rating += conf['bonus'].get(ticket['priority'], 0)
     redundancy = (100,)
+    prune_pending(ticket, machine=conf['machine'])
     for reports in current_reports(ticket):
         redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
 
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 def datetime():
-    return time.strftime('%Y-%m-%d %H:%M:%S %z')
+    return time.strftime(DATE_FORMAT)
+
+def parse_datetime(s):
+    # The one thing Python can't do is parse dates...
+    return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60*int(s[-5:].strip())
+
+def prune_pending(ticket, machine=None):
+    if 'reports' in ticket:
+        reports = ticket['reports']
+    else:
+        return []
+    # TODO: is there a better way to handle time zones?
+    now = time.time() + 60 * int(time.strftime('%z'))
+    for report in list(reports):
+        if report['status'] == 'Pending':
+            t = parse_datetime(report['time'])
+            if report['machine'] == machine:
+                reports.remove(report)
+            elif now - t > 24 * 60 * 60:
+                reports.remove(report)
+    return reports
 
 def report_ticket(server, ticket, status, base, machine, log):
     print ticket['id'], status
@@ -85,7 +107,10 @@ def report_ticket(server, ticket, status, base, machine, log):
         'time': datetime(),
     }
     fields = {'report': json.dumps(report)}
-    files = [('log', 'log', bz2.compress(open(log).read()))]
+    if status != 'Pending':
+        files = [('log', 'log', bz2.compress(open(log).read()))]
+    else:
+        files = []
     print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
 
 class Tee:
@@ -146,6 +171,7 @@ def test_a_ticket(sage_root, server, idle, parallelism):
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
+    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
     try:
         with Tee(log, time=True):
             state = 'started'
@@ -163,6 +189,13 @@ def test_a_ticket(sage_root, server, idle, parallelism):
         traceback.print_exc()
     report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log)
 
+def get_conf(path):
+    unicode_conf = json.load(open(path))
+    conf = {}
+    for key, value in unicode_conf.items():
+        conf[str(key)] = value
+    return conf
+
 if __name__ == '__main__':
 
     parser = OptionParser()
@@ -172,11 +205,8 @@ if __name__ == '__main__':
     parser.add_option("--idle", dest="idle", default=300)
     parser.add_option("--parallelism", dest="parallelism", default=3)
     (options, args) = parser.parse_args()
-    
-    unicode_conf = json.load(open(options.config))
-    conf = {}
-    for key, value in unicode_conf.items():
-        conf[str(key)] = value
+
+    conf_path = os.path.abspath(options.config)
     del options.config
 
     if len(args) > 0:
@@ -184,4 +214,5 @@ if __name__ == '__main__':
     else:
         count = 1000000
     for _ in range(count):
+        conf = get_conf(conf_path)
         test_a_ticket(**options.__dict__)
