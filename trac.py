@@ -137,8 +137,8 @@ def extract_patches(rss):
                 new_patches = []
                 for p in line[line.index('apply'):].split(','):
                     for pp in p.strip().split():
-                        if p in all_patches:
-                            new_patches.append(p)
+                        if pp in all_patches:
+                            new_patches.append(pp)
                 if new_patches or (m and not subsequent_regex.search(line)):
                     patches = new_patches
             elif m and folded_regex.search(line):
