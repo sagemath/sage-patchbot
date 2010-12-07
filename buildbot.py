@@ -176,13 +176,15 @@ def test_a_ticket(sage_root, server, idle, parallelism):
         with Tee(log, time=True):
             state = 'started'
             os.environ['MAKE'] = "make -j%s" % parallelism
+            os.environ['SAGE_ROOT'] = sage_root
             pull_from_trac(sage_root, ticket['id'], force=True)
             state = 'applied'
-            os.system('%s/sage -coverageall' % sage_root)
-            do_or_die('sage -b %s' % ticket['id'])
+            os.system('$SAGE_ROOT/sage -coverageall')
+            do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
+            do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
             state = 'built'
-            test_dirs = ["%s/devel/sage-%s/%s" % (sage_root, ticket['id'], dir) for dir in all_test_dirs]
-            do_or_die("sage -tp %s -sagenb %s" % (parallelism, ' '.join(test_dirs)))
+            test_dirs = ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+            do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (parallelism, ' '.join(test_dirs)))
             #do_or_die('sage -testall')
             state = 'tested'
     except Exception:
