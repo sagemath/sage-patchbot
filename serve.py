@@ -168,7 +168,7 @@ def get_log(log):
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed', 'Pending', 'Spkg']
 # TODO: cleanup old records
-status_order += ['started', 'applied', 'built', 'tested']
+# status_order += ['started', 'applied', 'built', 'tested']
 
 status_colors = {
     'New'        : 'white',
