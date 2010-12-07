@@ -1,6 +1,7 @@
-import sys, bz2, json, traceback
+import sys, bz2, json, traceback, re
+from cStringIO import StringIO
 from optparse import OptionParser
-from flask import Flask, render_template, make_response, request
+from flask import Flask, render_template, make_response, request, Response
 import pymongo
 import trac
 import buildbot
@@ -128,6 +129,29 @@ def log_name(ticket_id, report):
     return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
 
 
+def shorten(lines):
+    timing = re.compile(r'\s*\[\d+\.\d* s\]\s*$')
+    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\))$')
+    gcc = re.compile('(gcc)|(g\+\+)')
+    prev = None
+    for line in StringIO(lines):
+        if skip.match(line):
+            pass
+        elif prev is None:
+            prev = line
+        elif prev.startswith('sage -t') and timing.match(line):
+            prev = None
+        elif prev.startswith('python `which cython`') and '-->' in line:
+            prev = None
+        elif gcc.match(prev) and (gcc.match(line) or line.startswith('Time to execute')):
+            prev = line
+        else:
+            yield prev
+            prev = line
+
+    if prev is not None:
+        yield prev
+
 @app.route("/log/<path:log>")
 def get_log(log):
     path = "/log/" + log
@@ -135,7 +159,10 @@ def get_log(log):
         data = "No such log!"
     else:
         data = bz2.decompress(logs.get(path).read())
-    response = make_response(data)
+    if 'short' in request.args:
+        response = Response(shorten(data), direct_passthrough=True)
+    else:
+        response = make_response(data)
     response.headers['Content-type'] = 'text/plain'
     return response
 
