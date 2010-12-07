@@ -15,12 +15,14 @@ app = Flask(__name__)
 @app.route("/ticket")
 @app.route("/ticket/")
 def ticket_list():
-    query = {'status': 'needs_review'}
-    if 'authors' in request.args:
-        authors = request.args.get('authors').split(':')
-        query['authors'] = {'$in': authors}
+    authors = None
+    if 'query' in request.args:
+        query = json.loads(request.args.get('query'))
     else:
-        authors = None
+        query = {'status': 'needs_review'}
+        if 'authors' in request.args:
+            authors = request.args.get('authors').split(':')
+            query['authors'] = {'$in': authors}
     all = buildbot.filter_on_authors(tickets.find(query).sort('id'), authors)
     if 'raw' in request.args:
         if 'pretty' in request.args:
@@ -136,6 +138,8 @@ def get_log(log):
     return response
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed', 'Pending', 'Spkg']
+# TODO: cleanup old records
+status_order += ['started', 'applied', 'built', 'tested']
 
 status_colors = {
     'New'        : 'white',

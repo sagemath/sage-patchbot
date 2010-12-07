@@ -32,11 +32,26 @@ def scrape(ticket_id, force=False, db=None):
     Scrapes the trac page for ticket_id, updating the database if needed.
     """
     ticket_id = int(ticket_id)
+    if ticket_id == 0:
+        return {
+            'id'            : ticket_id,
+            'title'         : 'base',
+            'page_hash'     : '0',
+            'status'        : 'base',
+            'priority'      : 'base',
+            'component'     : 'base',
+            'depends_on'    : [],
+            'spkgs'         : [],
+            'patches'       : [],
+            'authors'       : [],
+            'participants'  : [],
+        }
+
+    rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
+    page_hash = digest(rss) # rss isn't as brittle
     if db is not None:
         # TODO: perhaps the db caching should be extracted outside of this function...
         db_info = db.lookup_ticket(ticket_id)
-        rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
-        page_hash = digest(rss) # rss isn't as brittle
         if not force and db_info is not None and db_info['page_hash'] == page_hash:
             return db_info
     # TODO: Is there a better format that still has all the information?
@@ -63,7 +78,9 @@ def scrape(ticket_id, force=False, db=None):
     if db is not None:
         db.save_ticket(data)
         db_info = db.lookup_ticket(ticket_id)
-    return db_info
+        return db_info
+    else:
+        return data
 
 def extract_tag(sgml, tag):
     """
@@ -299,9 +316,13 @@ def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
 
 if __name__ == '__main__':
     force = False
+    apply = False
     for ticket in sys.argv[1:]:
         if ticket == '-f':
             force = True
+            continue
+        if ticket == '-a':
+            apply = True
             continue
         if '-' in ticket:
             start, end = ticket.split('-')
@@ -311,8 +332,11 @@ if __name__ == '__main__':
         for ticket in tickets:
             try:
                 print ticket, scrape(ticket, force=force)
+                if apply:
+                    pull_from_trac(os.environ['SAGE_ROOT'], ticket, force=True)
                 time.sleep(1)
             except Exception:
                 print "Error for", ticket
                 traceback.print_exc()
+        force = apply = False
 #    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)

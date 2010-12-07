@@ -1,5 +1,5 @@
 import re, os, sys, subprocess, time, traceback
-import bz2, urllib2, json
+import bz2, urllib2, urllib, json
 from optparse import OptionParser
 
 from http_post_file import post_multipart
@@ -39,6 +39,14 @@ def get_ticket(server, **conf):
     if all:
         return all[-1][1]
 
+def lookup_ticket(server, id):
+    url = server + "/ticket/?" + urllib.urlencode({'raw': True, 'query': json.dumps({'id': id})})
+    res = json.load(urllib2.urlopen(url))
+    if res:
+        return res[0]
+    else:
+        return scrape(id)
+
 def compare_machines(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
         # old format, remove
@@ -64,6 +72,7 @@ def rate_ticket(ticket, **conf):
     if 'component' in ticket:
         rating += conf['bonus'].get(ticket['component'], 0)
     rating += conf['bonus'].get(ticket['priority'], 0)
+    rating += conf['bonus'].get(ticket['id'], 0)
     redundancy = (100,)
     prune_pending(ticket, machine=conf['machine'])
     for reports in current_reports(ticket):
@@ -150,15 +159,20 @@ status = {
     'tested' : 'TestsPassed',
 }
 
-def test_a_ticket(sage_root, server, idle, parallelism):
-    
+def get_base(sage_root):
     p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
     if p.wait():
         raise ValueError, "Invalid sage_root='%s'" % sage_root
     version_info = p.stdout.read()
-    print version_info
-    base = re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
-    ticket = get_ticket(base=base, server=server, **conf)
+    return re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
+    
+
+def test_a_ticket(sage_root, server, idle, parallelism, ticket=None):
+    base = get_base(sage_root)
+    if ticket is None:
+        ticket = get_ticket(base=base, server=server, **conf)
+    else:
+        ticket = scrape(int(ticket))
     if not ticket:
         print "No more tickets."
         time.sleep(idle)
@@ -190,6 +204,7 @@ def test_a_ticket(sage_root, server, idle, parallelism):
     except Exception:
         traceback.print_exc()
     report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log)
+    return status[state]
 
 def get_conf(path):
     unicode_conf = json.load(open(path))
@@ -201,6 +216,8 @@ def get_conf(path):
 if __name__ == '__main__':
 
     parser = OptionParser()
+    parser.add_option("--count", dest="count", default=1000000)
+    parser.add_option("--ticket", dest="ticket", default='')
     parser.add_option("--config", dest="config")
     parser.add_option("--server", dest="server")
     parser.add_option("--sage", dest="sage_root")
@@ -209,12 +226,34 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     conf_path = os.path.abspath(options.config)
-    del options.config
-
-    if len(args) > 0:
-        count = int(args[0])
+    tickets = [int(t) for t in options.ticket.split(',')]
+    if tickets:
+        count = len(tickets)
     else:
-        count = 1000000
+        count = options.count
+    params = dict(sage_root=options.sage_root, server=options.server, idle=options.idle, parallelism=options.parallelism)
+
+    conf = get_conf(conf_path)
+    clean = lookup_ticket(options.server, 0)
+    def good(report):
+        return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
+    if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
+        res = test_a_ticket(ticket=0, **params)
+        if res != 'TestsPassed':
+            print "\n\n"
+            while True:
+                print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
+                ans = sys.stdin.readline().lower().strip()
+                if ans == '' or ans[0] == 'n':
+                    sys.exit(1)
+                elif ans[0] == 'y':
+                    break
+
     for _ in range(count):
+        if tickets:
+            ticket = tickets.pop(0)
+        else:
+            ticket = None
         conf = get_conf(conf_path)
-        test_a_ticket(**options.__dict__)
+        test_a_ticket(ticket=ticket, **params)
+    # TODO: periodically cleanup closed tickets
