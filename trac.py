@@ -211,13 +211,16 @@ def extract_spkgs(html):
 
 ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
 def extract_depends_on(rss):
-    depends_on = set()
+    depends_on = []
     rss = rss.lower()
     ix = min(rss.find('depends on'), rss.find('dependency'))
     while ix >= 0:
         line = rss[ix:rss.find('\n', ix)]
+        new_depends_on = []
         for m in ticket_url_regex.finditer(line):
-            depends_on.add(m.group(1))
+            new_depends_on.add(m.group(1))
+        if new_depends_on:
+            depends_on = new_depends_on
         ix = min(rss.find('depends on', ix+1), rss.find('dependency', ix+1))
     return list(depends_on)
 
@@ -260,13 +263,15 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
         series = open('.hg/patches/series').read().split('\n')
 
     desired_series = []
-    def append_patch_list(ticket):
+    def append_patch_list(ticket, dependency=False):
         data = scrape(ticket)
+        if dependency and 'closed' in data['status']:
+            return
         if data['spkgs']:
             raise NotImplementedError, "Spkgs not yet handled."
         if data['depends_on']:
             for dep in data['depends_on']:
-                append_patch_list(dep)
+                append_patch_list(dep, dependency=True)
         for patch in data['patches']:
             base, hash = patch.split('#')
             desired_series.append((hash, base, get_patch_url(ticket, base)))
