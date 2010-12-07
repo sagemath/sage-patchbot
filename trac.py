@@ -1,7 +1,6 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
 import re, hashlib, urllib2, os, sys, traceback, time
-import db
 
 
 def digest(s):
@@ -28,17 +27,18 @@ def get_patch_url(ticket, patch, raw=True):
 def get_patch(ticket, patch):
     return get_url(get_patch_url(ticket, patch))
 
-def scrape(ticket_id, force=False):
+def scrape(ticket_id, force=False, db=None):
     """
     Scrapes the trac page for ticket_id, updating the database if needed.
     """
     ticket_id = int(ticket_id)
-    # TODO: perhaps the db caching should be extracted outside of this function...
-    db_info = db.lookup_ticket(ticket_id)
-    rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
-    page_hash = digest(rss) # rss isn't as brittle
-    if not force and db_info is not None and db_info['page_hash'] == page_hash:
-        return db_info
+    if db is not None:
+        # TODO: perhaps the db caching should be extracted outside of this function...
+        db_info = db.lookup_ticket(ticket_id)
+        rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
+        page_hash = digest(rss) # rss isn't as brittle
+        if not force and db_info is not None and db_info['page_hash'] == page_hash:
+            return db_info
     # TODO: Is there a better format that still has all the information?
     html = get_url("%s/ticket/%s" % (TRAC_URL, ticket_id))
     authors = set()
@@ -60,8 +60,9 @@ def scrape(ticket_id, force=False):
         'authors'       : authors,
         'participants'  : extract_participants(rss),
     }
-    db.save_ticket(data)
-    db_info = db.lookup_ticket(ticket_id)
+    if db is not None:
+        db.save_ticket(data)
+        db_info = db.lookup_ticket(ticket_id)
     return db_info
 
 def extract_tag(sgml, tag):

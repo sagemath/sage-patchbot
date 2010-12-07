@@ -52,7 +52,7 @@ def format_patches(ticket, patches, good_patches=None):
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
     try:
-        info = trac.scrape(ticket)
+        info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
     if 'reports' in info:
@@ -85,7 +85,7 @@ def render_ticket(ticket):
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
     try:
-        info = trac.scrape(ticket)
+        info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
     status = get_ticket_status(info, base=base)[1]
