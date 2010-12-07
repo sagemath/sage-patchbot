@@ -199,7 +199,8 @@ def extract_participants(rss):
             all.add(who)
     return list(all)
     
-spkg_url_regex = re.compile(r"http://.*?\.spkg")
+spkg_url_regex = re.compile(r"(?:(?:http://)|(?:/attachment/)).*?\.spkg")
+#spkg_url_regex = re.compile(r"http://.*?\.spkg")
 def extract_spkgs(html):
     """
     Extracts any spkgs for a ticket from the html page.

@@ -10,6 +10,7 @@ Results against Sage {{base}}.
 <table>
 {% for ticket in tickets: %}
 <tr>
+<td>{{'*' if ticket.pending else ''}}</td>
 <td>{{ticket.report_count}}</td>
 <td><img src='/blob/{{ticket.report_status}}' height=16></td>
 <td align='right'>

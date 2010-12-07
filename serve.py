@@ -36,6 +36,8 @@ def ticket_list():
     def preprocess(all):
         for ticket in all:
             ticket['report_count'], ticket['report_status'] = get_ticket_status(ticket, base)
+            if 'reports' in ticket:
+                ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
             yield ticket
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base)
@@ -162,7 +164,7 @@ def get_ticket_status(ticket, base=None):
     if len(all):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]
-    elif ticket['spkgs']:
+    elif ticket['spkgs'] or not ticket['patches']:
         return 0, 'Spkg'
     else:
         return 0, 'New'
