@@ -13,7 +13,7 @@ def get_url(url):
     """
     Returns the contents of url as a string.
     """
-    handle = urllib2.urlopen(url)
+    handle = urllib2.urlopen(url, timeout=4)
     data = handle.read()
     handle.close()
     return data
@@ -33,6 +33,10 @@ def scrape(ticket_id, force=False, db=None):
     """
     ticket_id = int(ticket_id)
     if ticket_id == 0:
+        if db is not None:
+            db_info = db.lookup_ticket(ticket_id)
+            if db_info is not None:
+                return db_info
         return {
             'id'            : ticket_id,
             'title'         : 'base',
@@ -209,20 +213,28 @@ def extract_spkgs(html):
     """
     return list(set(spkg_url_regex.findall(html)))
 
+def min_non_neg(*rest):
+    non_neg = [a for a in rest if a >= 0]
+    if len(non_neg) == 0:
+        return rest[0]
+    elif len(non_neg) == 1:
+        return non_neg[0]
+    else:
+        return min(*non_neg)
 
 ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
 def extract_depends_on(rss):
     depends_on = []
     rss = rss.lower()
-    ix = min(rss.find('depends on'), rss.find('dependency'))
+    ix = min_non_neg(rss.find('depends on'), rss.find('dependency'))
     while ix >= 0:
         line = rss[ix:rss.find('\n', ix)]
         new_depends_on = []
         for m in ticket_url_regex.finditer(line):
-            new_depends_on.add(m.group(1))
+            new_depends_on.append(m.group(1))
         if new_depends_on:
             depends_on = new_depends_on
-        ix = min(rss.find('depends on', ix+1), rss.find('dependency', ix+1))
+        ix = min_non_neg(rss.find('depends on', ix+1), rss.find('dependency', ix+1))
     return list(depends_on)
 
 

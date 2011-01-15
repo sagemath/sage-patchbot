@@ -12,6 +12,10 @@ from buildbot import current_reports
 
 app = Flask(__name__)
 
+@app.route("/reports")
+def reports():
+    pass
+
 @app.route("/")
 @app.route("/ticket")
 @app.route("/ticket/")
@@ -41,7 +45,7 @@ def ticket_list():
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
             yield ticket
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base)
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base))
 
 def format_patches(ticket, patches, good_patches=None):
     def note(patch):
@@ -57,7 +61,7 @@ def format_patches(ticket, patches, good_patches=None):
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
     try:
-        info = trac.scrape(ticket, db=db)
+        info = trac.scrape(ticket, db=db, force='force' in request.args)
     except:
         info = tickets.find_one({'id': ticket})
     if 'reports' in info:
@@ -109,6 +113,8 @@ def get_or_set(ticket, key, default):
 def post_report(ticket_id):
     try:
         ticket = db.lookup_ticket(ticket_id)
+        if ticket is None:
+            ticket = trac.scrape(ticket_id)
         if 'reports' not in ticket:
             ticket['reports'] = []
         report = json.loads(request.form.get('report'))
@@ -187,7 +193,7 @@ def status_image(status):
     return response
 
 def get_ticket_status(ticket, base=None):
-    all = current_reports(ticket)
+    all = current_reports(ticket, base=base)
     if len(all):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]
