@@ -13,6 +13,7 @@ tickets.ensure_index('authors')
 tickets.ensure_index('participants')
 tickets.ensure_index('reports.base')
 tickets.ensure_index('reports.machine')
+tickets.ensure_index('reports.time')
 
 logs = gridfs.GridFS(mongodb, 'logs')
 

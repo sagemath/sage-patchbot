@@ -13,10 +13,15 @@ def get_url(url):
     """
     Returns the contents of url as a string.
     """
-    handle = urllib2.urlopen(url, timeout=4)
-    data = handle.read()
-    handle.close()
-    return data
+    try:
+        url = url.replace(' ', '%20')
+        handle = urllib2.urlopen(url, timeout=4)
+        data = handle.read()
+        handle.close()
+        return data
+    except:
+        print url
+        raise
 
 def get_patch_url(ticket, patch, raw=True):
     if raw:

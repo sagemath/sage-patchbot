@@ -28,7 +28,21 @@ def ticket_list():
         if 'authors' in request.args:
             authors = request.args.get('authors').split(':')
             query['authors'] = {'$in': authors}
-    all = buildbot.filter_on_authors(tickets.find(query).sort('id'), authors)
+    if 'order' in request.args:
+        order = request.args.get('order')
+    else:
+        order = 'id'
+    if 'base' in request.args:
+        base = request.args.get('base')
+        if base == 'all':
+            base = None
+    else:
+        base = global_base
+    if 'author' in request.args:
+        query['authors'] = request.args.get('author')
+    if 'participant' in request.args:
+        query['participants'] = request.args.get('participant')
+    all = buildbot.filter_on_authors(tickets.find(query).sort(order), authors)
     if 'raw' in request.args:
         if 'pretty' in request.args:
             indent = 4
@@ -75,6 +89,10 @@ def render_ticket(ticket):
                 new_info['patches'] = format_patches(ticket, value)
             elif key == 'reports' or key == 'pending':
                 pass
+            elif key == 'authors':
+                new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a,a) for a in value)
+            elif key == 'participants':
+                new_info[key] = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a,a) for a in value)
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
             elif key not in ('id', '_id'):
@@ -209,5 +227,5 @@ if __name__ == '__main__':
     parser.add_option("-p", "--port", dest="port")
     (options, args) = parser.parse_args()
 
-    base = options.base
+    global_base = base = options.base
     app.run(debug=True, host="0.0.0.0", port=int(options.port))
