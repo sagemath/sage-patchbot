@@ -1,6 +1,6 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
-import re, hashlib, urllib2, os, sys, traceback, time
+import re, hashlib, urllib2, os, sys, traceback, time, subprocess
 
 
 def digest(s):
@@ -76,6 +76,7 @@ def scrape(ticket_id, force=False, db=None):
         'title'         : extract_title(rss),
         'page_hash'     : page_hash,
         'status'        : extract_status(html),
+        'milestone'     : extract_milestone(html),
         'priority'      : extract_priority(html),
         'component'     : extract_component(html),
         'depends_on'    : extract_depends_on(rss),
@@ -127,6 +128,11 @@ def extract_priority(html):
     Extracts any spkgs for a ticket from the html page.
     """
     return extract_tag(html, '<td headers="h_priority">')
+
+def extract_milestone(html):
+    milestone_field = extract_tag(html, '<td headers="h_milestone">')
+    m = re.search(r'\d+(\.\d+)+', milestone_field)
+    return m.group() if m else None
 
 def extract_component(html):
     return extract_tag(html, '<td headers="h_component">')
@@ -262,6 +268,14 @@ def ensure_safe(items):
         for item in items:
             ensure_safe(item)
 
+def get_base(sage_root):
+    p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
+    if p.wait():
+        raise ValueError, "Invalid sage_root='%s'" % sage_root
+    version_info = p.stdout.read()
+    return re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
+    
+
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
     # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
     if branch is None:
@@ -280,19 +294,27 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
     else:
         series = open('.hg/patches/series').read().split('\n')
 
+    base = get_base(sage_root)
     desired_series = []
+    seen_deps = []
     def append_patch_list(ticket, dependency=False):
+        if ticket in seen_deps:
+            return
+        else:
+            seen_deps.append(ticket)
         data = scrape(ticket)
         if dependency and 'closed' in data['status']:
-            return
+            milestone = data.get('milestone')
+            if not milestone or milestone <= base:
+                return
         if data['spkgs']:
             raise NotImplementedError, "Spkgs not yet handled."
         if data['depends_on']:
             for dep in data['depends_on']:
                 append_patch_list(dep, dependency=True)
         for patch in data['patches']:
-            base, hash = patch.split('#')
-            desired_series.append((hash, base, get_patch_url(ticket, base)))
+            patchfile, hash = patch.split('#')
+            desired_series.append((hash, patchfile, get_patch_url(ticket, patchfile)))
     append_patch_list(ticket)
     
     ensure_safe(series)

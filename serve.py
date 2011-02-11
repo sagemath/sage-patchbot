@@ -78,6 +78,9 @@ def render_ticket(ticket):
         info = trac.scrape(ticket, db=db, force='force' in request.args)
     except:
         info = tickets.find_one({'id': ticket})
+    if 'kick' in request.args:
+        info['retry'] = True
+        db.save_ticket(info)        
     if 'reports' in info:
         info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
     else:
@@ -89,6 +92,8 @@ def render_ticket(ticket):
                 new_info['patches'] = format_patches(ticket, value)
             elif key == 'reports' or key == 'pending':
                 pass
+            elif key == 'depends_on':
+                new_info[key] = ', '.join("<a href='/ticket/%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a,a) for a in value)
             elif key == 'participants':
@@ -143,6 +148,8 @@ def post_report(ticket_id):
         ticket['reports'].append(report)
         if report['status'] != 'Pending':
             db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        if 'retry' in ticket:
+            ticket['retry'] = False
         db.save_ticket(ticket)
         return "ok"
     except:

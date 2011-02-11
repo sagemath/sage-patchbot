@@ -4,7 +4,7 @@ from optparse import OptionParser
 
 from http_post_file import post_multipart
 
-from trac import scrape, do_or_die, pull_from_trac
+from trac import scrape, do_or_die, pull_from_trac, get_base
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -81,8 +81,9 @@ def rate_ticket(ticket, **conf):
     rating += conf['bonus'].get(ticket['id'], 0)
     redundancy = (100,)
     prune_pending(ticket)
-    for reports in current_reports(ticket, base=conf['base']):
-        redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
+    if not ticket.get('retry'):
+        for reports in current_reports(ticket, base=conf['base']):
+            redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
@@ -189,13 +190,6 @@ status = {
     'tested' : 'TestsPassed',
 }
 
-def get_base(sage_root):
-    p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
-    if p.wait():
-        raise ValueError, "Invalid sage_root='%s'" % sage_root
-    version_info = p.stdout.read()
-    return re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
-    
 
 def test_a_ticket(sage_root, server, idle, parallelism, ticket=None, nodocs=False):
     base = get_base(sage_root)
