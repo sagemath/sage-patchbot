@@ -196,7 +196,7 @@ def test_a_ticket(sage_root, server, idle, parallelism, ticket=None, nodocs=Fals
     if ticket is None:
         ticket = get_ticket(base=base, server=server, **conf)
     else:
-        ticket = scrape(int(ticket))
+        ticket = None, scrape(int(ticket))
     if not ticket:
         print "No more tickets."
         time.sleep(idle)
@@ -270,7 +270,7 @@ if __name__ == '__main__':
     else:
         tickets = None
         count = int(options.count)
-    params = dict(sage_root=options.sage_root, server=options.server, idle=options.idle, parallelism=options.parallelism, nodocs=options.nodocs)
+    params = dict(sage_root=options.sage_root, server=options.server, idle=int(options.idle), parallelism=options.parallelism, nodocs=options.nodocs)
 
     conf = get_conf(conf_path)
     if options.list:

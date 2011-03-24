@@ -235,4 +235,4 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     global_base = base = options.base
-    app.run(debug=True, host="0.0.0.0", port=int(options.port))
+    app.run(debug=False, host="0.0.0.0", port=int(options.port))
