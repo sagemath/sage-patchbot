@@ -3,9 +3,14 @@
 {% block body %}
 
 <h1>Sage Patchbot</h1>
-Results against Sage {{base}}
 <img src='/blob/{{base_status[1]}}' height=16>
-(<a href='/ticket/0'>{{base_status[0]}} reports</a>).
+Results against Sage {{base}}
+(<a href='/ticket/0'>{{base_status[0]}} reports</a>).<br><br>
+See results against
+{% for version, status in versions: %}
+<img src='/blob/{{status[1]}}' height=16>
+<a href='?base={{version}}'>{{version}}</a>
+{% endfor %}
 
 <hr>
 

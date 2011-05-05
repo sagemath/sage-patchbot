@@ -59,7 +59,10 @@ def ticket_list():
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
             yield ticket
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base))
+    ticket0 = db.lookup_ticket(0)
+    versions = set(report['base'] for report in ticket0['reports'])
+    versions = [(v, get_ticket_status(ticket0, v)) for v in sorted(versions)]
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions)
 
 def format_patches(ticket, patches, good_patches=None):
     def note(patch):
@@ -235,4 +238,4 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     global_base = base = options.base
-    app.run(debug=False, host="0.0.0.0", port=int(options.port))
+    app.run(debug=True, host="0.0.0.0", port=int(options.port))

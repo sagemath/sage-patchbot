@@ -273,7 +273,7 @@ def get_base(sage_root):
     if p.wait():
         raise ValueError, "Invalid sage_root='%s'" % sage_root
     version_info = p.stdout.read()
-    return re.search(r'Sage Version ([\d.]+)', version_info).groups()[0]
+    return re.search(r'Sage Version ([\d.]+\w*)', version_info).groups()[0]
     
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
