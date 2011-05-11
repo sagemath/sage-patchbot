@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<title>#{{ticket}} PatchBot Results</title>
+<link rel="shortcut icon" href="/blob/{{status}}" />
+{% endblock %}
+
 {% block body %}
 
 <h2>

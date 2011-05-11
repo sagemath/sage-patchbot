@@ -2,6 +2,21 @@ TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
 import re, hashlib, urllib2, os, sys, traceback, time, subprocess
 
+def extract_version(s):
+    m = re.search(r'\d+(\.\d+)+(\.\w+)', s)
+    if m:
+        return m.group(0)
+
+def compare_version(a, b):
+    a += '.z'
+    b += '.z'
+    def maybe_int(s):
+        try:
+            return 1, int(s)
+        except:
+            return 0, s
+    return cmp([maybe_int(v) for v in a.split('.')],
+               [maybe_int(v) for v in b.split('.')])
 
 def digest(s):
     """
@@ -77,9 +92,10 @@ def scrape(ticket_id, force=False, db=None):
         'page_hash'     : page_hash,
         'status'        : extract_status(html),
         'milestone'     : extract_milestone(html),
+        'merged'        : extract_merged(html),
         'priority'      : extract_priority(html),
         'component'     : extract_component(html),
-        'depends_on'    : extract_depends_on(rss),
+        'depends_on'    : extract_depends_on(html),
         'spkgs'         : extract_spkgs(html),
         'patches'       : patches,
         'authors'       : authors,
@@ -131,8 +147,11 @@ def extract_priority(html):
 
 def extract_milestone(html):
     milestone_field = extract_tag(html, '<td headers="h_milestone">')
-    m = re.search(r'\d+(\.\d+)+', milestone_field)
-    return m.group() if m else None
+    return extract_version(milestone_field)
+
+def extract_merged(html):
+    merged_field = extract_tag(html, '<td headers="h_merged">')
+    return extract_version(merged_field)
 
 def extract_component(html):
     return extract_tag(html, '<td headers="h_component">')
@@ -234,19 +253,15 @@ def min_non_neg(*rest):
         return min(*non_neg)
 
 ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
-def extract_depends_on(rss):
-    depends_on = []
-    rss = rss.lower()
-    ix = min_non_neg(rss.find('depends on'), rss.find('dependency'))
-    while ix >= 0:
-        line = rss[ix:rss.find('\n', ix)]
-        new_depends_on = []
-        for m in ticket_url_regex.finditer(line):
-            new_depends_on.append(m.group(1))
-        if new_depends_on:
-            depends_on = new_depends_on
-        ix = min_non_neg(rss.find('depends on', ix+1), rss.find('dependency', ix+1))
-    return list(depends_on)
+def extract_depends_on(html):
+    deps_field = extract_tag(html, '<td headers="h_dependencies">')
+    deps = []
+    for dep in re.finditer(r'#(\d+)', deps_field):
+        deps.append(int(dep.group(1)))
+    version = re.search(r'\d+(\.\d)+(\.\w+)?', deps_field)
+    if version:
+        deps.insert(0, version.group(0))
+    return deps
 
 
 def do_or_die(cmd):
@@ -304,13 +319,19 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
             seen_deps.append(ticket)
         data = scrape(ticket)
         if dependency and 'closed' in data['status']:
-            milestone = data.get('milestone')
-            if not milestone or milestone <= base:
+            merged = data.get('merged')
+            if merged is None:
+                merged = data.get('milestone')
+            if merged is None or compare_version(merged, base) <= 0:
                 return
         if data['spkgs']:
             raise NotImplementedError, "Spkgs not yet handled."
         if data['depends_on']:
             for dep in data['depends_on']:
+                if isinstance(dep, basestring) and '.' in dep:
+                    if compare_version(base, dep) < 0:
+                        raise ValueError, "%s < %s for %s" % (base, dep, ticket)
+                    continue
                 append_patch_list(dep, dependency=True)
         for patch in data['patches']:
             patchfile, hash = patch.split('#')

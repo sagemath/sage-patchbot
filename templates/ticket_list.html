@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<title>Sage PatchBot</title>
+<link rel="shortcut icon" href="/blob/{{base_status[1]}}" />
+{% endblock %}
+
 {% block body %}
 
 <h1>Sage Patchbot</h1>

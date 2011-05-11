@@ -4,7 +4,7 @@ from optparse import OptionParser
 
 from http_post_file import post_multipart
 
-from trac import scrape, do_or_die, pull_from_trac, get_base
+from trac import scrape, do_or_die, pull_from_trac, get_base, compare_version
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -18,6 +18,7 @@ def current_reports(ticket, base=None):
         return []
     return filter(lambda report: (ticket['patches'] == report['patches'] and
                                   ticket['spkgs'] == report['spkgs'] and
+                                  ticket['depends_on'] == (report.get('deps') or []) and
                                   (base is None or base == report['base'])),
                   ticket['reports'])
 
@@ -67,6 +68,11 @@ def rate_ticket(ticket, **conf):
     rating = 0
     if ticket['spkgs']:
         return # can't handle these yet
+    for dep in ticket['depends_on']:
+        if isinstance(dep, basestring) and '.' in dep:
+            if compare_version(conf['base'], dep) < 0:
+                # Depends on a newer version of Sage than we're running.
+                return None
     for author in ticket['authors']:
         if author not in conf['trusted_authors']:
             return
@@ -117,6 +123,7 @@ def report_ticket(server, ticket, status, base, machine, log):
     report = {
         'status': status,
         'patches': ticket['patches'],
+        'deps': ticket['depends_on'],
         'spkgs': ticket['spkgs'],
         'base': base,
         'machine': machine,
@@ -153,8 +160,10 @@ class Tee:
             print datetime()
             print int(time.time() - self.start_time), "seconds"
         self.tee.stdin.close()
+        time.sleep(1)
         os.dup2(self._saved[0], sys.stdout.fileno())
         os.dup2(self._saved[1], sys.stderr.fileno())
+        time.sleep(1)
         self.tee.wait()
         return False
 
@@ -283,7 +292,8 @@ if __name__ == '__main__':
     clean = lookup_ticket(options.server, 0)
     def good(report):
         return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-    if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
+# TODO: fix to not have to re-start as often
+    if False and not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
         res = test_a_ticket(ticket=0, **params)
         if res != 'TestsPassed':
             print "\n\n"

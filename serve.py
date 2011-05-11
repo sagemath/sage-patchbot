@@ -64,15 +64,40 @@ def ticket_list():
     versions = [(v, get_ticket_status(ticket0, v)) for v in sorted(versions)]
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions)
 
-def format_patches(ticket, patches, good_patches=None):
-    def note(patch):
-        if good_patches is None or patch in good_patches:
-            return ""
+def format_patches(ticket, patches, deps=None, required=None):
+    if deps is None:
+        deps = []
+    if required is not None:
+        required = set(required)
+    def format_item(item):
+        if required is None or item in required:
+            note = ""
         else:
-            return "<span style='color: red'>(mismatch)</span>"
-    return ("<ol><li>" 
-        + "\n<li>".join("<a href='%s'>%s</a> %s" % (trac.get_patch_url(ticket, patch, raw=False), patch, note(patch)) for patch in patches) 
-        + ("" if (good_patches is None or len(patches) >= len(good_patches)) else "<li><span style='color: red'>(missing)</span>")
+            note = "<span style='color: red'>(mismatch)</span>"
+        item = str(item)
+        if '#' in item:
+            url = trac.get_patch_url(ticket, item, raw=False)
+            title = item
+        elif '.' in item:
+            url = '/?base=%s' % item
+            title = 'sage-%s' % item
+        else:
+            url = '/ticket/%s' % item
+            title = '#%s' % item            
+        return "<a href='%s'>%s</a> %s" % (url, title, note)
+        
+    missing_deps = missing_patches = ''
+    if required is not None:
+        required_patches_count = len([p for p in required if '#' in str(p)])
+        if len(deps) < len(required) - required_patches_count:
+            missing_deps = "<li><span style='color: red'>(missing deps)</span>\n"
+        if len(patches) < required_patches_count:
+            missing_patches = "<li><span style='color: red'>(missing patches)</span>\n"
+    return ("<ol>"
+        + missing_deps
+        + "<li>\n"
+        + "\n<li>".join(format_item(patch) for patch in (deps + patches)) 
+        + missing_patches
         + "</ol>")
 
 @app.route("/ticket/<int:ticket>/")
@@ -109,7 +134,8 @@ def render_ticket(ticket):
     def preprocess_reports(all):
         for item in all:
             if 'patches' in item:
-                item['patch_list'] = format_patches(ticket, item['patches'], info['patches'])
+                required = info['depends_on'] + info['patches']
+                item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
@@ -217,6 +243,21 @@ status_colors = {
 @app.route("/blob/<status>")
 def status_image(status):
     response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
+    response.headers['Content-type'] = 'image/png'
+    return response
+
+@app.route("/robots.txt")
+def robots():
+    return """
+User-agent: *
+Disallow: /ticket/1303/status.png
+Disallow: /blob/
+Crawl-delay: 10
+    """.lstrip()
+
+@app.route("/favicon.ico")
+def robots():
+    response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
     response.headers['Content-type'] = 'image/png'
     return response
 
