@@ -226,7 +226,7 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'TestsPassed', 'Pending', 'Spkg']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'Spkg']
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
@@ -236,6 +236,7 @@ status_colors = {
     'BuildFailed': 'red',
     'TestsFailed': 'yellow',
     'TestsPassed': 'green',
+    'PluginFailed': 'blue',
     'Pending'    : 'white',
     'Spkg'    : 'purple',
 }

@@ -108,7 +108,7 @@ def prune_pending(ticket, machine=None):
     else:
         return []
     # TODO: is there a better way to handle time zones?
-    now = time.time() + 60 * int(time.strftime('%z'))
+    now = time.time() + 60 * int(time.strftime('%z'))       + 1000000000000
     for report in list(reports):
         if report['status'] == 'Pending':
             t = parse_datetime(report['time'])
@@ -118,7 +118,7 @@ def prune_pending(ticket, machine=None):
                 reports.remove(report)
     return reports
 
-def report_ticket(server, ticket, status, base, machine, log):
+def report_ticket(server, ticket, status, base, machine, log, plugins=[]):
     print ticket['id'], status
     report = {
         'status': status,
@@ -128,6 +128,7 @@ def report_ticket(server, ticket, status, base, machine, log):
         'base': base,
         'machine': machine,
         'time': datetime(),
+        'plugins': plugins,
     }
     fields = {'report': json.dumps(report)}
     if status != 'Pending':
@@ -197,10 +198,16 @@ status = {
     'applied': 'BuildFailed',
     'built'  : 'TestsFailed',
     'tested' : 'TestsPassed',
+    'failed_plugin' : 'PluginFailed',
 }
 
+def plugin_boundary(name, end=False):
+    if end:
+        name = 'end ' + name
+    return ' '.join(('='*10, name, '='*10))
 
-def test_a_ticket(sage_root, server, idle, parallelism, ticket=None, nodocs=False):
+
+def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
     base = get_base(sage_root)
     if ticket is None:
         ticket = get_ticket(base=base, server=server, **conf)
@@ -208,7 +215,7 @@ def test_a_ticket(sage_root, server, idle, parallelism, ticket=None, nodocs=Fals
         ticket = None, scrape(int(ticket))
     if not ticket:
         print "No more tickets."
-        time.sleep(idle)
+        time.sleep(conf['idle'])
         return
     rating, ticket = ticket
     print "\n" * 2
@@ -220,58 +227,93 @@ def test_a_ticket(sage_root, server, idle, parallelism, ticket=None, nodocs=Fals
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
-    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
+    #report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
+    plugins_results = []
     try:
         with Tee(log, time=True):
             t = Timer()
             start_time = time.time()
+
             state = 'started'
-            os.environ['MAKE'] = "make -j%s" % parallelism
+            os.environ['MAKE'] = "make -j%s" % conf['parallelism']
             os.environ['SAGE_ROOT'] = sage_root
             pull_from_trac(sage_root, ticket['id'], force=True)
-            state = 'applied'
             t.finish("Apply")
-            os.system('$SAGE_ROOT/sage -coverageall')
-            t.finish("Coverage")
+            state = 'applied'
+            
             do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
             t.finish("Build")
-            if not nodocs:
-                do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
-                t.finish("DocBuild")
             state = 'built'
+            
+            working_dir = "%s/devel/sage-%s" % (sage_root, ticket['id'])
+            patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().split('\n')
+            kwds = {
+                "original_dir": "%s/devel/sage-0" % sage_root,
+                "patched_dir": working_dir,
+                "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (sage_root, ticket['id'], p) for p in patches],
+            }
+            for name, plugin in conf['plugins']:
+                try:
+                    print plugin_boundary(name)
+                    plugin(ticket, **kwds)
+                    passed = True
+                except Exception:
+                    traceback.print_exc()
+                    passed = False
+                finally:
+                    t.finish(name)
+                    print plugin_boundary(name, end=True)
+                    plugins_results.append((name, passed))
+                    
             test_dirs = ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-            do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (parallelism, ' '.join(test_dirs)))
+            #do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (conf['parallelism'], ' '.join(test_dirs)))
+            do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
             #do_or_die('sage -testall')
-            state = 'tested'
             t.finish("Tests")
+            state = 'tested'
+            
+            if not all(passed for name, passed in plugins_results):
+                state = 'failed_plugin'
+
             print
             t.print_all()
     except Exception:
         traceback.print_exc()
-    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log)
+    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log, plugins=plugins_results)
     return status[state]
 
-def get_conf(path):
+def get_conf(path, **overrides):
     unicode_conf = json.load(open(path))
-    conf = {}
+    # defaults
+    conf = {
+        "idle": 300,
+        "parallelism": 3,
+        "plugins": ["plugins.coverage", "plugins.docbuild"],
+        }
     for key, value in unicode_conf.items():
         conf[str(key)] = value
+    conf.update(overrides)
+    def locate_plugin(name):
+        ix = name.rindex('.')
+        module = name[:ix]
+        name = name[ix+1:]
+        plugin = getattr(__import__(module, fromlist=[name]), name)
+        assert callable(plugin)
+        return plugin
+    conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
     return conf
 
 if __name__ == '__main__':
 
     parser = OptionParser()
-    parser.add_option("--count", dest="count", default=1000000)
-    parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--config", dest="config")
     parser.add_option("--server", dest="server")
     parser.add_option("--sage", dest="sage_root")
-    parser.add_option("--idle", dest="idle", default=300)
-    parser.add_option("--parallelism", dest="parallelism", default=3)
+    parser.add_option("--count", dest="count", default=1000000)
+    parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
-    parser.add_option("--nodocs", dest="nodocs", default=False)
     (options, args) = parser.parse_args()
-
+    
     conf_path = os.path.abspath(options.config)
     if options.ticket:
         tickets = [int(t) for t in options.ticket.split(',')]
@@ -279,7 +321,6 @@ if __name__ == '__main__':
     else:
         tickets = None
         count = int(options.count)
-    params = dict(sage_root=options.sage_root, server=options.server, idle=int(options.idle), parallelism=options.parallelism, nodocs=options.nodocs)
 
     conf = get_conf(conf_path)
     if options.list:
@@ -294,7 +335,7 @@ if __name__ == '__main__':
         return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
 # TODO: fix to not have to re-start as often
     if False and not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
-        res = test_a_ticket(ticket=0, **params)
+        res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server)
         if res != 'TestsPassed':
             print "\n\n"
             while True:
@@ -311,5 +352,5 @@ if __name__ == '__main__':
         else:
             ticket = None
         conf = get_conf(conf_path)
-        test_a_ticket(ticket=ticket, **params)
+        test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
     # TODO: periodically cleanup closed tickets
