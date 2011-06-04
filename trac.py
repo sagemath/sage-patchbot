@@ -315,14 +315,14 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
     def append_patch_list(ticket, dependency=False):
         if ticket in seen_deps:
             return
-        else:
-            seen_deps.append(ticket)
+        seen_deps.append(ticket)
         data = scrape(ticket)
         if dependency and 'closed' in data['status']:
             merged = data.get('merged')
             if merged is None:
                 merged = data.get('milestone')
             if merged is None or compare_version(merged, base) <= 0:
+                print "#%s already applied (%s <= %s)" % (ticket, merged, base)
                 return
         if data['spkgs']:
             raise NotImplementedError, "Spkgs not yet handled."

@@ -24,7 +24,7 @@ See results against
 <tr>
 <td>{{'*' if ticket.pending else ''}}</td>
 <td>{{ticket.report_count}}</td>
-<td><img src='/blob/{{ticket.report_status}}' height=16></td>
+<td><img src='/blob/{{ticket.report_status}}' alt='{{ticket.report_status}}' title='{{ticket.report_status}}' height=16></td>
 <td align='right'>
     <a href="/ticket/{{ticket.id}}">{{ticket.id}}</a>
 </td>
@@ -37,11 +37,11 @@ See results against
 <hr>
 
 <table>
-{% for status, count in summary.items() %}
+{% for status in status_order %}
 <tr>
 <td><img src='/blob/{{status}}' height=16></td>
 <td>{{status}}</td>
-<td>{{count}}</td>
+<td>{{summary[status]}}</td>
 </tr>
 {% endfor %}
 </table>

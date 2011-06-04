@@ -24,7 +24,18 @@ def ticket_list():
     if 'query' in request.args:
         query = json.loads(request.args.get('query'))
     else:
-        query = {'status': 'needs_review'}
+        status = request.args.get('status', 'needs_review')
+        if status == 'all':
+            query = {}
+        elif status in ('new', 'closed'):
+            query = {'status': {'$regex': status + '.*' }}
+        elif status in ('open'):
+            query = {'status': {'$regex': 'needs_.*|positive_review' }}
+        else:
+            query = {'status': status}
+        if 'todo' in request.args:
+            query['patches'] = {'$not': {'$size': 0}}
+            query['spkgs'] = {'$size': 0}
         if 'authors' in request.args:
             authors = request.args.get('authors').split(':')
             query['authors'] = {'$in': authors}
@@ -60,9 +71,10 @@ def ticket_list():
             summary[ticket['report_status']] += 1
             yield ticket
     ticket0 = db.lookup_ticket(0)
-    versions = set(report['base'] for report in ticket0['reports'])
-    versions = [(v, get_ticket_status(ticket0, v)) for v in sorted(versions)]
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions)
+    versions = list(set(report['base'] for report in ticket0['reports']))
+    versions.sort(trac.compare_version)
+    versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order)
 
 def format_patches(ticket, patches, deps=None, required=None):
     if deps is None:
@@ -108,11 +120,17 @@ def render_ticket(ticket):
         info = tickets.find_one({'id': ticket})
     if 'kick' in request.args:
         info['retry'] = True
-        db.save_ticket(info)        
+        db.save_ticket(info)
     if 'reports' in info:
         info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
     else:
         info['reports'] = []
+
+    old_reports = list(info['reports'])
+    buildbot.prune_pending(info)
+    if old_reports != info['reports']:
+        db.save_ticket(info)
+
     def format_info(info):
         new_info = {}
         for key, value in info.items():
@@ -152,6 +170,7 @@ def render_ticket_status(ticket):
     status = get_ticket_status(info, base=base)[1]
     response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
     response.headers['Content-type'] = 'image/png'
+    response.headers['Cache-Control'] = 'no-cache'
     return response
 
 def get_or_set(ticket, key, default):
@@ -212,6 +231,25 @@ def shorten(lines):
     if prev is not None:
         yield prev
 
+def extract_plugin_log(data, plugin):
+    from buildbot import plugin_boundary
+    start = plugin_boundary(plugin) + "\n"
+    end = plugin_boundary(plugin, end=True) + "\n"
+    all = []
+    include = False
+    for line in StringIO(data):
+        if line == start:
+            include = True
+        if include:
+            all.append(line)
+        if line == end:
+            break
+    return ''.join(all)
+
+@app.route("/ticket/<id>/log/<path:log>")
+def get_ticket_log(id, log):
+    return get_log(log)
+
 @app.route("/log/<path:log>")
 def get_log(log):
     path = "/log/" + log
@@ -219,6 +257,8 @@ def get_log(log):
         data = "No such log!"
     else:
         data = bz2.decompress(logs.get(path).read())
+    if 'plugin' in request.args:
+        data = extract_plugin_log(data, request.args.get('plugin'))
     if 'short' in request.args:
         response = Response(shorten(data), direct_passthrough=True)
     else:
@@ -226,7 +266,7 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'Spkg']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'NoPatch', 'Spkg']
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
@@ -238,13 +278,15 @@ status_colors = {
     'TestsPassed': 'green',
     'PluginFailed': 'blue',
     'Pending'    : 'white',
-    'Spkg'    : 'purple',
+    'NoPatch'    : 'purple',
+    'Spkg'       : 'purple',
 }
 
 @app.route("/blob/<status>")
 def status_image(status):
     response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
     response.headers['Content-type'] = 'image/png'
+    response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
 @app.route("/robots.txt")
@@ -253,7 +295,7 @@ def robots():
 User-agent: *
 Disallow: /ticket/1303/status.png
 Disallow: /blob/
-Crawl-delay: 10
+Crawl-delay: 5
     """.lstrip()
 
 @app.route("/favicon.ico")
@@ -267,8 +309,10 @@ def get_ticket_status(ticket, base=None):
     if len(all):
         index = min(status_order.index(report['status']) for report in all)
         return len(all), status_order[index]
-    elif ticket['spkgs'] or not ticket['patches']:
+    elif ticket['spkgs']:
         return 0, 'Spkg'
+    elif not ticket['patches']:
+        return 0, 'NoPatch'
     else:
         return 0, 'New'
     

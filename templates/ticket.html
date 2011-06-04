@@ -26,7 +26,7 @@
 </table>
 <br>
 <hr>
-<table>
+<table width='100%'>
 {% for report in reports: %}
 <tr>
 <td><img src="/blob/{{report.status}}"></td>
@@ -34,14 +34,22 @@
 <td>{{report.base|safe}}</td>
 <td>{{'/'.join(report.machine)}}</td>
 <td>{{report.time}}</td>
-<td><a href='{{report.log}}'>log</a></td>
-<td><a href='{{report.log}}?short'>shortlog</a></td>
+<td align='center'><a href='{{report.log}}'>log</a> <a href='{{report.log}}?short'>shortlog</a></td>
 </tr>
 <tr>
-<td colspan=2><td>
-<td colspan=2>
+<td colspan=2></td>
+<td colspan=3 valign='top'>
 {{report.patch_list|safe}}
-<td>
+</td>
+<td valign='top'>
+<ul style='list-style-type: none'>
+{% for plugin, status in report.get('plugins', []) %}
+<li>
+<img height="16" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
+<a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
+{% endfor %}
+</ul>
+</td>
 </tr>
 {% endfor %}
 </table>

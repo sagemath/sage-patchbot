@@ -4,5 +4,5 @@ SAGE=/levi/scratch/robertwb/buildbot/sage-4.6/sage
 PYTHON="$SAGE -python"
 
 mongod --port=21000 --dbpath=../data &> mongod.log &
-exec $PYTHON serve.py --base=4.6.2 --port=21100
+exec $PYTHON serve.py --base=4.7 --port=21100
 

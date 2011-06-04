@@ -1,3 +1,4 @@
+import signal
 import re, os, sys, subprocess, time, traceback
 import bz2, urllib2, urllib, json
 from optparse import OptionParser
@@ -27,9 +28,9 @@ def contains_any(key, values):
     return {'$or': clauses}
 
 def get_ticket(server, return_all=False, **conf):
-    query = "raw"
+    query = "raw&status=open&todo"
     if 'trusted_authors' in conf:
-        query += "&authors=" + ':'.join(conf['trusted_authors'])
+        query += "&authors=" + urllib.quote_plus(':'.join(conf['trusted_authors']), safe=':')
     try:
         handle = urllib2.urlopen(server + "/ticket/?" + query)
         all = json.load(handle)
@@ -68,6 +69,8 @@ def rate_ticket(ticket, **conf):
     rating = 0
     if ticket['spkgs']:
         return # can't handle these yet
+    elif not ticket['patches']:
+        return # nothing to do
     for dep in ticket['depends_on']:
         if isinstance(dep, basestring) and '.' in dep:
             if compare_version(conf['base'], dep) < 0:
@@ -83,8 +86,9 @@ def rate_ticket(ticket, **conf):
     # TODO: remove condition
     if 'component' in ticket:
         rating += conf['bonus'].get(ticket['component'], 0)
+    rating += conf['bonus'].get(ticket['status'], 0)
     rating += conf['bonus'].get(ticket['priority'], 0)
-    rating += conf['bonus'].get(ticket['id'], 0)
+    rating += conf['bonus'].get(str(ticket['id']), 0)
     redundancy = (100,)
     prune_pending(ticket)
     if not ticket.get('retry'):
@@ -102,19 +106,19 @@ def parse_datetime(s):
     # The one thing Python can't do is parse dates...
     return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60*int(s[-5:].strip())
 
-def prune_pending(ticket, machine=None):
+def prune_pending(ticket, machine=None, timeout=6*60*60):
     if 'reports' in ticket:
         reports = ticket['reports']
     else:
         return []
     # TODO: is there a better way to handle time zones?
-    now = time.time() + 60 * int(time.strftime('%z'))       + 1000000000000
+    now = time.time() + 60 * int(time.strftime('%z'))
     for report in list(reports):
         if report['status'] == 'Pending':
             t = parse_datetime(report['time'])
             if report['machine'] == machine:
                 reports.remove(report)
-            elif now - t > 6 * 60 * 60:
+            elif now - t > timeout:
                 reports.remove(report)
     return reports
 
@@ -140,10 +144,17 @@ def report_ticket(server, ticket, status, base, machine, log, plugins=[]):
     except:
         traceback.print_exc()
 
+class TimeOut(Exception):
+    pass
+
+def alarm_handler(signum, frame):
+    raise Alarm
+
 class Tee:
-    def __init__(self, filepath, time=False):
+    def __init__(self, filepath, time=False, timeout=60*60*24):
         self.filepath = filepath
         self.time = time
+        self.timeout = timeout
         
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
@@ -165,7 +176,14 @@ class Tee:
         os.dup2(self._saved[0], sys.stdout.fileno())
         os.dup2(self._saved[1], sys.stderr.fileno())
         time.sleep(1)
-        self.tee.wait()
+        try:
+            signal.signal(signal.SIGALRM, alarm_handler)
+            signal.alarm(self.timeout)
+            self.tee.wait()
+            signal.alarm(0)
+        except TimeOut:
+            traceback.print_exc()
+            raise
         return False
 
 
@@ -227,10 +245,10 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
-    #report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
+    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
     plugins_results = []
     try:
-        with Tee(log, time=True):
+        with Tee(log, time=True, timeout=conf['timeout']):
             t = Timer()
             start_time = time.time()
 
@@ -246,11 +264,12 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
             state = 'built'
             
             working_dir = "%s/devel/sage-%s" % (sage_root, ticket['id'])
-            patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().split('\n')
+            # Only the ones on this ticket.
+            patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
             kwds = {
                 "original_dir": "%s/devel/sage-0" % sage_root,
                 "patched_dir": working_dir,
-                "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (sage_root, ticket['id'], p) for p in patches],
+                "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (sage_root, ticket['id'], p) for p in patches if p],
             }
             for name, plugin in conf['plugins']:
                 try:
@@ -266,8 +285,8 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
                     plugins_results.append((name, passed))
                     
             test_dirs = ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-            #do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (conf['parallelism'], ' '.join(test_dirs)))
-            do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
+            do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (conf['parallelism'], ' '.join(test_dirs)))
+            #do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
             #do_or_die('sage -testall')
             t.finish("Tests")
             state = 'tested'
@@ -288,11 +307,23 @@ def get_conf(path, **overrides):
     conf = {
         "idle": 300,
         "parallelism": 3,
-        "plugins": ["plugins.coverage", "plugins.docbuild"],
+        "timeout": 3 * 60 * 60,
+        "plugins": ["plugins.commit_messages", "plugins.coverage", "plugins.docbuild"],
+        "bonus": {},
+        }
+    default_bonus = {
+        "needs_review": 1000,
+        "positive_review": 500,
+        "blocker": 100,
+        "critical": 50,
         }
     for key, value in unicode_conf.items():
         conf[str(key)] = value
+    for key, value in default_bonus.items():
+        if key not in conf['bonus']:
+            conf['bonus'][key] = value
     conf.update(overrides)
+    
     def locate_plugin(name):
         ix = name.rindex('.')
         module = name[:ix]
@@ -333,8 +364,7 @@ if __name__ == '__main__':
     clean = lookup_ticket(options.server, 0)
     def good(report):
         return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-# TODO: fix to not have to re-start as often
-    if False and not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
+    if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
         res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server)
         if res != 'TestsPassed':
             print "\n\n"
