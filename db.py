@@ -3,7 +3,7 @@ import os
 # mongod --port=21000 --dbpath=data
 import pymongo, gridfs
 from pymongo import Connection
-mongo_port = 21000
+mongo_port = 21001
 
 mongodb = Connection(port=mongo_port).buildbot
 tickets = mongodb.tickets

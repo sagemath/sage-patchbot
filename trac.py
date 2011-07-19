@@ -30,7 +30,7 @@ def get_url(url):
     """
     try:
         url = url.replace(' ', '%20')
-        handle = urllib2.urlopen(url, timeout=4)
+        handle = urllib2.urlopen(url, timeout=5)
         data = handle.read()
         handle.close()
         return data
@@ -315,6 +315,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
     def append_patch_list(ticket, dependency=False):
         if ticket in seen_deps:
             return
+        print "Looking at #%s" % ticket
         seen_deps.append(ticket)
         data = scrape(ticket)
         if dependency and 'closed' in data['status']:
@@ -333,6 +334,8 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
                         raise ValueError, "%s < %s for %s" % (base, dep, ticket)
                     continue
                 append_patch_list(dep, dependency=True)
+        print "Patches for #%s:" % ticket
+        print "    " + "\n    ".join(data['patches'])
         for patch in data['patches']:
             patchfile, hash = patch.split('#')
             desired_series.append((hash, patchfile, get_patch_url(ticket, patchfile)))

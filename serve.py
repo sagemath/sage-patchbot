@@ -118,6 +118,8 @@ def render_ticket(ticket):
         info = trac.scrape(ticket, db=db, force='force' in request.args)
     except:
         info = tickets.find_one({'id': ticket})
+    if info is None:
+        return "No such ticket."
     if 'kick' in request.args:
         info['retry'] = True
         db.save_ticket(info)
