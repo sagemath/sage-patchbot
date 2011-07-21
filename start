@@ -1,0 +1,4 @@
+#!/bin/bash
+
+rm -f nohup.*
+../python-2.6/bin/python run_server.py >> nohup.out 2>>nohup.err &

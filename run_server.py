@@ -1,8 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-import signal, subprocess, time, urllib2
+import os, signal, subprocess, sys, time, traceback, urllib2
 
-SAGE_ROOT = "/levi/scratch/robertwb/buildbot/sage-4.6/"
+if not hasattr(subprocess.Popen, 'send_signal'):
+    def send_signal(self, sig):
+        os.kill(self.pid, sig)
+    subprocess.Popen.send_signal = send_signal
+
 DATABASE = "../data"
 
 # The server hangs while connecting to trac, so we poll it and
@@ -26,7 +30,7 @@ try:
         else:
             try:
                 print "Testing url..."
-                urllib2.urlopen("http://sage.math.washington.edu:21100/", timeout=HTTP_TIMEOUT)
+                urllib2.urlopen("http://patchbot.sagemath.org/", timeout=HTTP_TIMEOUT)
                 print "    ...good"
                 restart = False
             except urllib2.URLError, e:
@@ -44,11 +48,12 @@ try:
                     time.sleep(KILL_WAIT)
 
             print "Starting server..."
-            p = subprocess.Popen([SAGE_ROOT + "/local/bin/python", "serve.py", "--base=4.7", "--port=21100"])
+            p = subprocess.Popen([sys.executable, "serve.py", "--base=4.7", "--port=21100"])
             print "    ...done."
         time.sleep(POLL_INTERVAL)
 
 finally:
+    traceback.print_exc()
     mongo_process.send_signal(signal.SIGTERM)
     if p is not None and p.poll() is None:
         p.kill()
