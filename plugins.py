@@ -16,7 +16,7 @@ It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
 """
 
-import re, os
+import re, os, sys
 
 from trac import do_or_die
 
@@ -26,6 +26,27 @@ def coverage(ticket, **kwds):
 
 def docbuild(ticket, **kwds):
     do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
+
+def trailing_whitespace(ticket, patches, **kwds):
+    ignore_empty = True
+    bad_lines = 0
+    trailing = re.compile("\\+.*\\s+$")
+    for patch_path in patches:
+        patch = os.path.basename(patch_path)
+        print patch
+        for ix, line in enumerate(open(patch_path)):
+            line = line.strip("\n")
+            m = trailing.match(line)
+            if m:
+                print "    %s:%s %s$" % (patch, ix+1, line)
+                if line.strip() == '+' and ignore_empty:
+                    pass
+                else:
+                    bad_lines += 1
+    msg = "Trailing whitespace inserted on %s %slines." % (bad_lines, "non-empty " if ignore_empty else "")
+    print msg
+    if bad_lines > 0:
+        raise ValueError(msg)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:
@@ -54,3 +75,7 @@ def commit_messages(ticket, patches, **kwds):
             raise ValueError("No patch comments:" + patch)
         print
     print "All patches good."
+
+if __name__ == '__main__':
+    plugin = globals()[sys.argv[1]]
+    plugin(-1, patches=sys.argv[2:])

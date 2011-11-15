@@ -1,5 +1,5 @@
 import signal
-import re, os, sys, subprocess, time, traceback
+import random, re, os, shutil, sys, subprocess, time, traceback
 import bz2, urllib2, urllib, json
 from optparse import OptionParser
 
@@ -233,6 +233,8 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
         ticket = None, scrape(int(ticket))
     if not ticket:
         print "No more tickets."
+        if random.random() < 0.01:
+            cleanup(sage_root, server)
         time.sleep(conf['idle'])
         return
     rating, ticket = ticket
@@ -285,7 +287,11 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
                     plugins_results.append((name, passed))
                     
             test_dirs = ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-            do_or_die("$SAGE_ROOT/sage -tp %s -sagenb %s" % (conf['parallelism'], ' '.join(test_dirs)))
+            if conf['parallelism'] > 1:
+                test_cmd = "-tp %s" % conf['parallelism']
+            else:
+                test_cmd = "-t"
+            do_or_die("$SAGE_ROOT/sage %s -sagenb %s" % (test_cmd, ' '.join(test_dirs)))
             #do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
             #do_or_die('sage -testall')
             t.finish("Tests")
@@ -300,6 +306,18 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
         traceback.print_exc()
     report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log, plugins=plugins_results)
     return status[state]
+
+def cleanup(sage_root, server):
+    print "Looking up closed tickets."
+    closed_list = urllib2.urlopen(server + "?status=closed").read()
+    closed = set(m.groups()[0] for m in re.finditer(r"/ticket/(\d+)/", closed_list))
+    for branch in os.listdir(os.path.join(sage_root, "devel")):
+        if branch[:5] == "sage-":
+            if branch[5:] in closed:
+                to_delete = os.path.join(sage_root, "devel", branch)
+                print "Deleting closed ticket:", to_delete
+                shutil.rmtree(to_delete)
+    print "Done cleaning up."
 
 def get_conf(path, **overrides):
     unicode_conf = json.load(open(path))
@@ -343,8 +361,9 @@ if __name__ == '__main__':
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
+    parser.add_option("--skip_base", dest="skip_base", default=False)
     (options, args) = parser.parse_args()
-    
+
     conf_path = os.path.abspath(options.config)
     if options.ticket:
         tickets = [int(t) for t in options.ticket.split(',')]
@@ -360,21 +379,22 @@ if __name__ == '__main__':
             print ticket
             print
         sys.exit(0)
-    
-    clean = lookup_ticket(options.server, 0)
-    def good(report):
-        return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-    if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
-        res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server)
-        if res != 'TestsPassed':
-            print "\n\n"
-            while True:
-                print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
-                ans = sys.stdin.readline().lower().strip()
-                if ans == '' or ans[0] == 'n':
-                    sys.exit(1)
-                elif ans[0] == 'y':
-                    break
+
+    if not options.skip_base:
+        clean = lookup_ticket(options.server, 0)
+        def good(report):
+            return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
+        if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
+            res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server)
+            if res != 'TestsPassed':
+                print "\n\n"
+                while True:
+                    print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
+                    ans = sys.stdin.readline().lower().strip()
+                    if ans == '' or ans[0] == 'n':
+                        sys.exit(1)
+                    elif ans[0] == 'y':
+                        break
 
     for _ in range(count):
         if tickets:
@@ -383,4 +403,5 @@ if __name__ == '__main__':
             ticket = None
         conf = get_conf(conf_path)
         test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
-    # TODO: periodically cleanup closed tickets
+
+

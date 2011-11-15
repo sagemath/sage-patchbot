@@ -256,9 +256,9 @@ ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
 def extract_depends_on(html):
     deps_field = extract_tag(html, '<td headers="h_dependencies">')
     deps = []
-    for dep in re.finditer(r'#(\d+)', deps_field):
+    for dep in re.finditer(r'ticket/(\d+)', deps_field):
         deps.append(int(dep.group(1)))
-    version = re.search(r'\d+(\.\d)+(\.\w+)?', deps_field)
+    version = re.search(r'sage-\d+(\.\d)+(\.\w+)?', deps_field)
     if version:
         deps.insert(0, version.group(0))
     return deps
