@@ -333,9 +333,6 @@ def get_ticket_status(ticket, base=None):
     else:
         return 0, 'New'
 
-if __name__ == '__main__':
-    main()
-
 def main():
     parser = OptionParser()
     parser.add_option("-b", "--base", dest="base")
@@ -345,3 +342,6 @@ def main():
 
     global_base = base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
+
+if __name__ == '__main__':
+    main()

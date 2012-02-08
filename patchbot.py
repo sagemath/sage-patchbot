@@ -1,4 +1,5 @@
 import signal
+import getpass, platform
 import random, re, os, shutil, sys, subprocess, time, traceback
 import bz2, urllib2, urllib, json
 from optparse import OptionParser
@@ -58,11 +59,14 @@ def lookup_ticket(server, id):
     else:
         return scrape(id)
 
-def compare_machines(a, b):
+def compare_machines(a, b, machine_match=None):
     if isinstance(a, dict) or isinstance(b, dict):
         # old format, remove
         return (1,)
     else:
+        if machine_match is not None:
+            a = a[:machine_match]
+            b = b[:machine_match]
         diff = [x != y for x, y in zip(a, b)]
         if len(a) != len(b):
             diff.append(1)
@@ -96,7 +100,7 @@ def rate_ticket(ticket, **conf):
     prune_pending(ticket)
     if not ticket.get('retry'):
         for reports in current_reports(ticket, base=conf['base']):
-            redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine']))
+            redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine'], conf['machine_match']))
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
@@ -125,7 +129,7 @@ def prune_pending(ticket, machine=None, timeout=6*60*60):
                 reports.remove(report)
     return reports
 
-def report_ticket(server, ticket, status, base, machine, log, plugins=[]):
+def report_ticket(server, ticket, status, base, machine, user, log, plugins=[]):
     print ticket['id'], status
     report = {
         'status': status,
@@ -133,6 +137,7 @@ def report_ticket(server, ticket, status, base, machine, log, plugins=[]):
         'deps': ticket['depends_on'],
         'spkgs': ticket['spkgs'],
         'base': base,
+        'user': user,
         'machine': machine,
         'time': datetime(),
         'plugins': plugins,
@@ -250,7 +255,7 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log = '%s/%s-log.txt' % (log_dir, ticket['id'])
-    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], log=None)
+    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], user=conf['user'], log=None)
     plugins_results = []
     try:
         with Tee(log, time=True, timeout=conf['timeout']):
@@ -307,7 +312,7 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
             t.print_all()
     except Exception:
         traceback.print_exc()
-    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], log=log, plugins=plugins_results)
+    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
     return status[state]
 
 def cleanup(sage_root, server):
@@ -329,6 +334,14 @@ def default_trusted_authors(server):
     finally:
         handle.close()
 
+def machine_data():
+    system, node, release, version, arch = os.uname()
+    if system.lower() == "linux":
+        dist_name, dist_version, dist_id = platform.linux_distribution()
+        if dist_name:
+            return [dist_name, dist_version, arch, release, node]
+    return [system, arch, release, node]
+
 def get_conf(path, server, **overrides):
     if path is None:
         unicode_conf = {}
@@ -344,7 +357,9 @@ def get_conf(path, server, **overrides):
 #                    "plugins.whitespace",
                     "plugins.docbuild"],
         "bonus": {},
-        "machine": os.uname()[1],
+        "machine": machine_data(),
+        "machine_match": 3,
+        "user": getpass.getuser(),
     }
     default_bonus = {
         "needs_review": 1000,
@@ -370,13 +385,6 @@ def get_conf(path, server, **overrides):
         return plugin
     conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
     return conf
-
-if __name__ == '__main__':
-    # allow this script to serve as a single entry point for bots and the server
-    if sys.argv[1] == '--serve':
-        del sys.argv[1]
-        from serve import main
-    main()
 
 def main():
     parser = OptionParser()
@@ -429,4 +437,10 @@ def main():
         conf = get_conf(conf_path, options.server)
         test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
 
+if __name__ == '__main__':
+    # allow this script to serve as a single entry point for bots and the server
+    if sys.argv[1] == '--serve':
+        del sys.argv[1]
+        from serve import main
+    main()
 
