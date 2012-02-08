@@ -1,4 +1,4 @@
-import sys, bz2, json, traceback, re
+import sys, bz2, json, traceback, re, collections
 from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
@@ -15,6 +15,21 @@ app = Flask(__name__)
 @app.route("/reports")
 def reports():
     pass
+    
+@app.route("/trusted")
+@app.route("/trusted/")
+def trusted_authors():
+    authors = collections.defaultdict(int)
+    for ticket in tickets.find({'status': 'closed : fixed'}):
+        for author in ticket["authors"]:
+            authors[author] += 1
+    if 'pretty' in request.args:
+        indent = 4
+    else:
+        indent = None
+    response = make_response(json.dumps(authors, default=lambda x: None, indent=indent))
+    response.headers['Content-type'] = 'text/plain'
+    return response
 
 @app.route("/")
 @app.route("/ticket")
@@ -317,13 +332,16 @@ def get_ticket_status(ticket, base=None):
         return 0, 'NoPatch'
     else:
         return 0, 'New'
-    
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    main()
+
+def main():
     parser = OptionParser()
     parser.add_option("-b", "--base", dest="base")
     parser.add_option("-p", "--port", dest="port")
+    parser.add_option("--debug", dest="debug", default=True)
     (options, args) = parser.parse_args()
 
     global_base = base = options.base
-    app.run(debug=True, host="0.0.0.0", port=int(options.port))
+    app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))

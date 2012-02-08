@@ -27,10 +27,13 @@ def contains_any(key, values):
     clauses = [{'key': value} for value in values]
     return {'$or': clauses}
 
+def no_unicode(s):
+    return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
+
 def get_ticket(server, return_all=False, **conf):
     query = "raw&status=open&todo"
     if 'trusted_authors' in conf:
-        query += "&authors=" + urllib.quote_plus(':'.join(conf['trusted_authors']), safe=':')
+        query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(conf['trusted_authors'])), safe=':')
     try:
         handle = urllib2.urlopen(server + "/ticket/?" + query)
         all = json.load(handle)
@@ -319,28 +322,44 @@ def cleanup(sage_root, server):
                 shutil.rmtree(to_delete)
     print "Done cleaning up."
 
-def get_conf(path, **overrides):
-    unicode_conf = json.load(open(path))
+def default_trusted_authors(server):
+    handle = urllib2.urlopen(server + "/trusted/")
+    try:
+        return json.load(handle).keys()
+    finally:
+        handle.close()
+
+def get_conf(path, server, **overrides):
+    if path is None:
+        unicode_conf = {}
+    else:
+        unicode_conf = json.load(open(path))
     # defaults
     conf = {
         "idle": 300,
         "parallelism": 3,
         "timeout": 3 * 60 * 60,
-        "plugins": ["plugins.commit_messages", "plugins.coverage", "plugins.docbuild"],
+        "plugins": ["plugins.commit_messages",
+                    "plugins.coverage",
+#                    "plugins.whitespace",
+                    "plugins.docbuild"],
         "bonus": {},
-        }
+        "machine": os.uname()[1],
+    }
     default_bonus = {
         "needs_review": 1000,
         "positive_review": 500,
         "blocker": 100,
         "critical": 50,
-        }
+    }
     for key, value in unicode_conf.items():
         conf[str(key)] = value
     for key, value in default_bonus.items():
         if key not in conf['bonus']:
             conf['bonus'][key] = value
     conf.update(overrides)
+    if "trusted_authors" not in conf:
+        conf["trusted_authors"] = default_trusted_authors(server)
     
     def locate_plugin(name):
         ix = name.rindex('.')
@@ -353,26 +372,32 @@ def get_conf(path, **overrides):
     return conf
 
 if __name__ == '__main__':
+    # allow this script to serve as a single entry point for bots and the server
+    if sys.argv[1] == '--serve':
+        del sys.argv[1]
+        from serve import main
+    main()
 
+def main():
     parser = OptionParser()
     parser.add_option("--config", dest="config")
-    parser.add_option("--server", dest="server")
-    parser.add_option("--sage", dest="sage_root")
+    parser.add_option("--sage", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
+    parser.add_option("--server", dest="server", default="http://patchbot.sagemath.org/")
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
     parser.add_option("--skip_base", dest="skip_base", default=False)
     (options, args) = parser.parse_args()
 
-    conf_path = os.path.abspath(options.config)
+    conf_path = options.config and os.path.abspath(options.config)
     if options.ticket:
         tickets = [int(t) for t in options.ticket.split(',')]
         count = len(tickets)
     else:
         tickets = None
         count = int(options.count)
-
-    conf = get_conf(conf_path)
+    
+    conf = get_conf(conf_path, options.server)
     if options.list:
         for score, ticket in get_ticket(base=get_base(options.sage_root), server=options.server, return_all=True, **conf):
             print score, ticket['id'], ticket['title']
@@ -401,7 +426,7 @@ if __name__ == '__main__':
             ticket = tickets.pop(0)
         else:
             ticket = None
-        conf = get_conf(conf_path)
+        conf = get_conf(conf_path, options.server)
         test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
 
 
