@@ -354,8 +354,9 @@ def get_conf(path, server, **overrides):
         "timeout": 3 * 60 * 60,
         "plugins": ["plugins.commit_messages",
                     "plugins.coverage",
-#                    "plugins.whitespace",
-                    "plugins.docbuild"],
+                    "plugins.trailing_whitespace",
+#                    "plugins.docbuild"
+                    ],
         "bonus": {},
         "machine": machine_data(),
         "machine_match": 3,
@@ -387,6 +388,8 @@ def get_conf(path, server, **overrides):
     return conf
 
 def main():
+    global conf
+
     parser = OptionParser()
     parser.add_option("--config", dest="config")
     parser.add_option("--sage", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
