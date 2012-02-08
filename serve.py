@@ -4,11 +4,11 @@ from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
 import pymongo
 import trac
-import buildbot
+import patchbot
 import db
 
 from db import tickets, logs
-from buildbot import current_reports
+from patchbot import current_reports
 
 app = Flask(__name__)
 
@@ -249,7 +249,7 @@ def shorten(lines):
         yield prev
 
 def extract_plugin_log(data, plugin):
-    from buildbot import plugin_boundary
+    from patchbot import plugin_boundary
     start = plugin_boundary(plugin) + "\n"
     end = plugin_boundary(plugin, end=True) + "\n"
     all = []
