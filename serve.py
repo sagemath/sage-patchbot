@@ -68,7 +68,7 @@ def ticket_list():
         query['authors'] = request.args.get('author')
     if 'participant' in request.args:
         query['participants'] = request.args.get('participant')
-    all = buildbot.filter_on_authors(tickets.find(query).sort(order), authors)
+    all = patchbot.filter_on_authors(tickets.find(query).sort(order), authors)
     if 'raw' in request.args:
         if 'pretty' in request.args:
             indent = 4
@@ -144,7 +144,7 @@ def render_ticket(ticket):
         info['reports'] = []
 
     old_reports = list(info['reports'])
-    buildbot.prune_pending(info)
+    patchbot.prune_pending(info)
     if old_reports != info['reports']:
         db.save_ticket(info)
 
@@ -209,7 +209,7 @@ def post_report(ticket_id):
         assert isinstance(report, dict)
         for fld in ['status', 'patches', 'spkgs', 'base', 'machine', 'time']:
             assert fld in report
-        buildbot.prune_pending(ticket, report['machine'])
+        patchbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
         if report['status'] != 'Pending':
             db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
