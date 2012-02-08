@@ -340,6 +340,7 @@ def main():
     parser.add_option("--debug", dest="debug", default=True)
     (options, args) = parser.parse_args()
 
+    global global_base
     global_base = base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
 
