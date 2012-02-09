@@ -2,21 +2,7 @@ TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
 import re, hashlib, urllib2, os, sys, traceback, time, subprocess
 
-def extract_version(s):
-    m = re.search(r'\d+(\.\d+)+(\.\w+)', s)
-    if m:
-        return m.group(0)
-
-def compare_version(a, b):
-    a += '.z'
-    b += '.z'
-    def maybe_int(s):
-        try:
-            return 1, int(s)
-        except:
-            return 0, s
-    return cmp([maybe_int(v) for v in a.split('.')],
-               [maybe_int(v) for v in b.split('.')])
+from util import do_or_die, extract_version, compare_version, get_base, now_str
 
 def digest(s):
     """
@@ -100,6 +86,7 @@ def scrape(ticket_id, force=False, db=None):
         'patches'       : patches,
         'authors'       : authors,
         'participants'  : extract_participants(rss),
+        'last_activity' : now_str(),
     }
     if db is not None:
         db.save_ticket(data)
@@ -264,11 +251,6 @@ def extract_depends_on(html):
     return deps
 
 
-def do_or_die(cmd):
-    print cmd
-    res = os.system(cmd)
-    if res:
-        raise Exception, "%s %s" % (res, cmd)
 
 safe = re.compile('[-+A-Za-z0-9._]*')
 def ensure_safe(items):
@@ -282,13 +264,6 @@ def ensure_safe(items):
     else:
         for item in items:
             ensure_safe(item)
-
-def get_base(sage_root):
-    p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
-    if p.wait():
-        raise ValueError, "Invalid sage_root='%s'" % sage_root
-    version_info = p.stdout.read()
-    return re.search(r'Sage Version ([\d.]+\w*)', version_info).groups()[0]
     
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):

@@ -69,7 +69,7 @@ def commit_messages(ticket, patches, **kwds):
                 if line.startswith('[mq]'):
                     raise ValueError("Mercurial queue boilerplate")
                 elif not re.search(r"\b%s\b" % ticket['id'], line):
-                    raise ValueError("Ticket number not in first line of comments:" + patch)
+                    print "Ticket number not in first line of comments: " + patch
                 break
         else:
             raise ValueError("No patch comments:" + patch)

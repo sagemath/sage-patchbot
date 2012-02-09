@@ -9,6 +9,7 @@ import db
 
 from db import tickets, logs
 from patchbot import current_reports
+from util import now_str
 
 app = Flask(__name__)
 
@@ -57,7 +58,7 @@ def ticket_list():
     if 'order' in request.args:
         order = request.args.get('order')
     else:
-        order = 'id'
+        order = 'last_activity'
     if 'base' in request.args:
         base = request.args.get('base')
         if base == 'all':
@@ -215,6 +216,7 @@ def post_report(ticket_id):
             db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
         if 'retry' in ticket:
             ticket['retry'] = False
+        ticket['last_activity'] = now_str()
         db.save_ticket(ticket)
         return "ok"
     except:
@@ -340,7 +342,7 @@ def main():
     parser.add_option("--debug", dest="debug", default=True)
     (options, args) = parser.parse_args()
 
-    global global_base
+    global global_base, base
     global_base = base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
 

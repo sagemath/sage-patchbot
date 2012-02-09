@@ -6,7 +6,8 @@ from optparse import OptionParser
 
 from http_post_file import post_multipart
 
-from trac import scrape, do_or_die, pull_from_trac, get_base, compare_version
+from trac import scrape, pull_from_trac
+from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -104,30 +105,6 @@ def rate_ticket(ticket, **conf):
     if not redundancy[-1]:
         return # already did this one
     return redundancy, rating, -int(ticket['id'])
-
-DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
-def datetime():
-    return time.strftime(DATE_FORMAT)
-
-def parse_datetime(s):
-    # The one thing Python can't do is parse dates...
-    return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60*int(s[-5:].strip())
-
-def prune_pending(ticket, machine=None, timeout=6*60*60):
-    if 'reports' in ticket:
-        reports = ticket['reports']
-    else:
-        return []
-    # TODO: is there a better way to handle time zones?
-    now = time.time() + 60 * int(time.strftime('%z'))
-    for report in list(reports):
-        if report['status'] == 'Pending':
-            t = parse_datetime(report['time'])
-            if report['machine'] == machine:
-                reports.remove(report)
-            elif now - t > timeout:
-                reports.remove(report)
-    return reports
 
 def report_ticket(server, ticket, status, base, machine, user, log, plugins=[]):
     print ticket['id'], status
@@ -265,6 +242,7 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
             state = 'started'
             os.environ['MAKE'] = "make -j%s" % conf['parallelism']
             os.environ['SAGE_ROOT'] = sage_root
+            # TODO: Ensure that sage-main is pristine.
             pull_from_trac(sage_root, ticket['id'], force=True)
             t.finish("Apply")
             state = 'applied'
@@ -350,6 +328,7 @@ def get_conf(path, server, **overrides):
     # defaults
     conf = {
         "idle": 300,
+        "time_of_day": "0-0", # midnight-midnight
         "parallelism": 3,
         "timeout": 3 * 60 * 60,
         "plugins": ["plugins.commit_messages",
@@ -387,18 +366,43 @@ def get_conf(path, server, **overrides):
     conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
     return conf
 
+def parse_time_of_day(s):
+    def parse_interval(ss):
+        ss = ss.strip()
+        if '-' in ss:
+            start, end = ss.split('-')
+            return float(start), float(end)
+        else:
+            return float(ss), float(ss) + 1
+    return [parse_interval(ss) for ss in s.split(',')]
+
+def check_time_of_day(hours):
+    from datetime import datetime
+    now = datetime.now()
+    hour = now.hour + now.minute / 60.
+    for start, end in parse_time_of_day(hours):
+        if start < end:
+            if start <= hour <= end:
+                return True
+        elif hour <= end or start <= hour:
+            return True
+    return False
+
 def main():
     global conf
 
     parser = OptionParser()
     parser.add_option("--config", dest="config")
-    parser.add_option("--sage", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
+    parser.add_option("--sage-root", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
     parser.add_option("--server", dest="server", default="http://patchbot.sagemath.org/")
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
-    parser.add_option("--skip_base", dest="skip_base", default=False)
+    parser.add_option("--skip-base", dest="skip_base", default=False)
     (options, args) = parser.parse_args()
+    
+    if options.sage_root == os.environ.get('SAGE_ROOT'):
+        print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     conf_path = options.config and os.path.abspath(options.config)
     if options.ticket:
@@ -438,7 +442,11 @@ def main():
         else:
             ticket = None
         conf = get_conf(conf_path, options.server)
-        test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
+        if check_time_of_day(conf['time_of_day']):
+            test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
+        else:
+            print "Idle."
+            time.sleep(conf['idle'])
 
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and the server
