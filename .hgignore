@@ -3,3 +3,4 @@ syntax: glob
 *.log
 *.pyc
 *~
+images/_cache/*

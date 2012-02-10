@@ -7,7 +7,7 @@ from optparse import OptionParser
 from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
-from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version
+from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version, current_reports
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -15,15 +15,6 @@ def filter_on_authors(tickets, authors):
     for ticket in tickets:
         if authors is None or set(ticket['authors']).issubset(authors):
             yield ticket
-
-def current_reports(ticket, base=None):
-    if 'reports' not in ticket:
-        return []
-    return filter(lambda report: (ticket['patches'] == report['patches'] and
-                                  ticket['spkgs'] == report['spkgs'] and
-                                  ticket['depends_on'] == (report.get('deps') or []) and
-                                  (base is None or base == report['base'])),
-                  ticket['reports'])
 
 def contains_any(key, values):
     clauses = [{'key': value} for value in values]
@@ -320,6 +311,28 @@ def machine_data():
             return [dist_name, dist_version, arch, release, node]
     return [system, arch, release, node]
 
+def parse_time_of_day(s):
+    def parse_interval(ss):
+        ss = ss.strip()
+        if '-' in ss:
+            start, end = ss.split('-')
+            return float(start), float(end)
+        else:
+            return float(ss), float(ss) + 1
+    return [parse_interval(ss) for ss in s.split(',')]
+
+def check_time_of_day(hours):
+    from datetime import datetime
+    now = datetime.now()
+    hour = now.hour + now.minute / 60.
+    for start, end in parse_time_of_day(hours):
+        if start < end:
+            if start <= hour <= end:
+                return True
+        elif hour <= end or start <= hour:
+            return True
+    return False
+
 def get_conf(path, server, **overrides):
     if path is None:
         unicode_conf = {}
@@ -366,31 +379,11 @@ def get_conf(path, server, **overrides):
     conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
     return conf
 
-def parse_time_of_day(s):
-    def parse_interval(ss):
-        ss = ss.strip()
-        if '-' in ss:
-            start, end = ss.split('-')
-            return float(start), float(end)
-        else:
-            return float(ss), float(ss) + 1
-    return [parse_interval(ss) for ss in s.split(',')]
-
-def check_time_of_day(hours):
-    from datetime import datetime
-    now = datetime.now()
-    hour = now.hour + now.minute / 60.
-    for start, end in parse_time_of_day(hours):
-        if start < end:
-            if start <= hour <= end:
-                return True
-        elif hour <= end or start <= hour:
-            return True
-    return False
-
-def main():
+def main(args):
     global conf
 
+    # Most configuration is done in the config file, which is reread between
+    # each ticket for live configuration of the patchbot.
     parser = OptionParser()
     parser.add_option("--config", dest="config")
     parser.add_option("--sage-root", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
@@ -399,11 +392,8 @@ def main():
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
     parser.add_option("--skip-base", dest="skip_base", default=False)
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(args)
     
-    if options.sage_root == os.environ.get('SAGE_ROOT'):
-        print "WARNING: Do not use this copy of sage while the patchbot is running."
-
     conf_path = options.config and os.path.abspath(options.config)
     if options.ticket:
         tickets = [int(t) for t in options.ticket.split(',')]
@@ -419,6 +409,9 @@ def main():
             print ticket
             print
         sys.exit(0)
+
+    if options.sage_root == os.environ.get('SAGE_ROOT'):
+        print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     if not options.skip_base:
         clean = lookup_ticket(options.server, 0)
@@ -450,8 +443,8 @@ def main():
 
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and the server
-    if sys.argv[1] == '--serve':
-        del sys.argv[1]
+    args = list(sys.argv)
+    if args[1] == '--serve':
+        del args[1]
         from serve import main
-    main()
-
+    main(args)

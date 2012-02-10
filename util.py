@@ -25,6 +25,28 @@ def prune_pending(ticket, machine=None, timeout=6*60*60):
                 reports.remove(report)
     return reports
 
+def current_reports(ticket, base=None, unique=False):
+    if 'reports' not in ticket:
+        return []
+    if unique:
+        seen = set()
+        def first(x):
+            if x in seen:
+                return False
+            else:
+                seen.add(x)
+                return True
+    else:
+        first = lambda x: True
+    reports = list(ticket['reports'])
+    reports.sort(lambda a, b: cmp(b['time'], a['time']))
+    return filter(lambda report: (ticket['patches'] == report['patches'] and
+                                  ticket['spkgs'] == report['spkgs'] and
+                                  ticket['depends_on'] == (report.get('deps') or []) and
+                                  (not base or base == report['base'])) and
+                                  first('/'.join(report['machine'])),
+                      reports)
+
 def do_or_die(cmd):
     print cmd
     res = os.system(cmd)

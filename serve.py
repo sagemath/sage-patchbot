@@ -1,4 +1,4 @@
-import sys, bz2, json, traceback, re, collections
+import os, sys, bz2, json, traceback, re, collections
 from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
@@ -8,8 +8,7 @@ import patchbot
 import db
 
 from db import tickets, logs
-from patchbot import current_reports
-from util import now_str
+from util import now_str, current_reports
 
 app = Flask(__name__)
 
@@ -81,7 +80,7 @@ def ticket_list():
     summary = dict((key, 0) for key in status_order)
     def preprocess(all):
         for ticket in all:
-            ticket['report_count'], ticket['report_status'] = get_ticket_status(ticket, base)
+            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, base)
             if 'reports' in ticket:
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
@@ -177,16 +176,18 @@ def render_ticket(ticket):
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
             yield item
-    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[1])
+    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2])
 
+# The fact that this image is in the trac template lets the patchbot know
+# when a page gets updated.
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
     try:
         info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
-    status = get_ticket_status(info, base=base)[1]
-    response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
+    status = get_ticket_status(info, base=base)[2]
+    response = make_response(create_status_image(status))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'no-cache'
     return response
@@ -303,10 +304,44 @@ status_colors = {
 
 @app.route("/blob/<status>")
 def status_image(status):
-    response = make_response(open('images/%s-blob.png' % status_colors[status]).read())
+    response = make_response(create_status_image(status))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
+
+def create_status_image(status):
+    if ',' in status:
+        status_list = status.split(',')
+        if len(set(status_list)) == 1:
+            status = status_list[0]
+        else:
+            try:
+                from PIL import Image
+                import numpy
+                path = 'images/_cache/' + ','.join(status_list) + '-blob.png'
+                if not os.path.exists(path):
+                    composite = numpy.asarray(Image.open(status_image(status_list[0]))).copy()
+                    height, width, _ = composite.shape
+                    for ix, status in enumerate(reversed(status_list)):
+                        slice = numpy.asarray(Image.open(status_image(status)))
+                        start = ix * width / len(status_list)
+                        end = (ix + 1) * width / len(status_list)
+                        composite[:,start:end,:] = slice[:,start:end,:]
+                    if not os.path.exists('images/_cache'):
+                        os.mkdir('images/_cache')
+                    Image.fromarray(composite, 'RGBA').save(path)
+                return open(path).read()
+            except ImportError:
+                print "here"
+                status = min_status(status_list)
+    return open(status_image(status)).read()
+
+def status_image(status):
+    return 'images/%s-blob.png' % status_colors[status]
+
+def min_status(status_list):
+    index = min(status_order.index(status) for status in status_list)
+    return status_order[index]
 
 @app.route("/robots.txt")
 def robots():
@@ -326,25 +361,30 @@ def robots():
 def get_ticket_status(ticket, base=None):
     all = current_reports(ticket, base=base)
     if len(all):
-        index = min(status_order.index(report['status']) for report in all)
-        return len(all), status_order[index]
+        status_list = [report['status'] for report in all]
+        if len(set(status_list)) == 1:
+            composite = single = status_list[0]
+        else:
+            composite = ','.join(status_list)
+            single = min_status(status_list)
+        return len(all), single, composite
     elif ticket['spkgs']:
-        return 0, 'Spkg'
+        return 0, 'Spkg', 'Spkg'
     elif not ticket['patches']:
-        return 0, 'NoPatch'
+        return 0, 'NoPatch', 'NoPatch'
     else:
-        return 0, 'New'
+        return 0, 'New', 'New'
 
-def main():
+def main(args):
     parser = OptionParser()
     parser.add_option("-b", "--base", dest="base")
     parser.add_option("-p", "--port", dest="port")
     parser.add_option("--debug", dest="debug", default=True)
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(args)
 
     global global_base, base
     global_base = base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
