@@ -1,14 +1,14 @@
-The server needs a Python with Flask and mongod installed.  Start a monitoring loop with
-
-    python run_server.py
-
 The patchbot only needs a Sage install and is started with
 
-    python buildbot.py --server=http://patchbot.sagemath.org --sage=$SAGE_ROOT --config=../conf.txt
+    python patchbot.py [options]
 
-Eventually both of these will get merged into Sage, the patchbot can be run 
-anywhere (e.g. sage -patchbot --server=...), and there would be one central
-server.
+Type --help for a list of options, though most configuration is done via an
+optional JSON config file. This is what is invoked by sage --patchbot [...]
+
+The server needs a Python with Flask and mongod installed.  Installing numpy
+and PIL will allow multi-colored blurbs.  Start a monitoring loop with
+
+    python run_server.py
 
 Currently, the server is set up to run on port 21100, communicating with
 a mongod instance running on 21001.

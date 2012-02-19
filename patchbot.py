@@ -1,3 +1,23 @@
+#!/usr/bin/env python
+
+####################################################################
+#
+# This is the main script for the patchbot. It pulls patches from
+# trac, applies them, and publishes the results of the tests to a
+# server running serve.py.  Configuration is primarily done via an
+# optional conf.txt file passed in as a command line argument.
+#
+#          Author: Robert Bradshaw <robertwb@gmail.com>
+#
+#               Copyright 2010-11 (C) Google, Inc.
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#  as published by the Free Software Foundation; either version 2 of
+#  the License, or (at your option) any later version.
+#                  http://www.gnu.org/licenses/
+####################################################################
+
+
 import signal
 import getpass, platform
 import random, re, os, shutil, sys, subprocess, time, traceback
@@ -410,6 +430,7 @@ def main(args):
             print
         sys.exit(0)
 
+    print "WARNING: Assuming sage-main is pristine."
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 
@@ -444,7 +465,7 @@ def main(args):
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and the server
     args = list(sys.argv)
-    if args[1] == '--serve':
+    if len(args) > 1 and args[1] == '--serve':
         del args[1]
         from serve import main
     main(args)
