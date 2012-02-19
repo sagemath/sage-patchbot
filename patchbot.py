@@ -135,11 +135,8 @@ def report_ticket(server, ticket, status, base, machine, user, log, plugins=[]):
         files = [('log', 'log', bz2.compress(open(log).read()))]
     else:
         files = []
-    try:
-        print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
-    except:
-        traceback.print_exc()
-
+    print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
+    
 class TimeOut(Exception):
     pass
 
@@ -301,7 +298,18 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
             t.print_all()
     except Exception:
         traceback.print_exc()
-    report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
+    
+    for _ in range(5):
+        try:
+            print "Reporting", ticket['id'], status[state]
+            report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
+            print "Done reporting", ticket['id']
+            break
+        except urllib2.HTTPError:
+            traceback.print_exc()
+            time.sleep(conf['idle'])
+    else:
+        print "Error reporting", ticket['id']
     return status[state]
 
 def cleanup(sage_root, server):
@@ -451,16 +459,20 @@ def main(args):
                         break
 
     for _ in range(count):
-        if tickets:
-            ticket = tickets.pop(0)
-        else:
-            ticket = None
-        conf = get_conf(conf_path, options.server)
-        if check_time_of_day(conf['time_of_day']):
-            test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
-        else:
-            print "Idle."
-            time.sleep(conf['idle'])
+        try:
+            if tickets:
+                ticket = tickets.pop(0)
+            else:
+                ticket = None
+            conf = get_conf(conf_path, options.server)
+            if check_time_of_day(conf['time_of_day']):
+                test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
+            else:
+                print "Idle."
+                time.sleep(conf['idle'])
+        except urllib2.HTTPError:
+                traceback.print_exc()
+                time.sleep(conf['idle'])
 
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and the server
