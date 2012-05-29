@@ -186,7 +186,10 @@ def render_ticket_status(ticket):
         info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
-    base = latest_version(info['reports'])
+    if 'reports' in info:
+        base = latest_version(info['reports'])
+    else:
+        base = None
     status = get_ticket_status(info, base=base)[2]
     response = make_response(create_status_image(status, base=base))
     response.headers['Content-type'] = 'image/png'
