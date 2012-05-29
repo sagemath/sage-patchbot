@@ -8,7 +8,7 @@ import patchbot
 import db
 
 from db import tickets, logs
-from util import now_str, current_reports, comparable_version
+from util import now_str, current_reports, comparable_version, latest_version
 
 app = Flask(__name__)
 
@@ -186,7 +186,7 @@ def render_ticket_status(ticket):
         info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
-    base = max([r['base'] for r in info['reports']], key=comparable_version)
+    base = latest_version(info['reports'])
     status = get_ticket_status(info, base=base)[2]
     response = make_response(create_status_image(status, base=base))
     response.headers['Content-type'] = 'image/png'

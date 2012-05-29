@@ -25,6 +25,12 @@ def prune_pending(ticket, machine=None, timeout=6*60*60):
                 reports.remove(report)
     return reports
 
+def latest_version(reports):
+    if reports:
+        return max([r['base'] for r in reports], key=comparable_version)
+    else:
+        return None
+
 def current_reports(ticket, base=None, unique=False):
     if 'reports' not in ticket:
         return []
@@ -41,7 +47,7 @@ def current_reports(ticket, base=None, unique=False):
     reports = list(ticket['reports'])
     reports.sort(lambda a, b: cmp(b['time'], a['time']))
     if base == 'latest':
-        base = max([r['base'] for r in reports], key=comparable_version)
+        base = latest_version(reports)
     return filter(lambda report: (ticket['patches'] == report['patches'] and
                                   ticket['spkgs'] == report['spkgs'] and
                                   ticket['depends_on'] == (report.get('deps') or []) and
