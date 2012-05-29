@@ -11,4 +11,4 @@ and PIL will allow multi-colored blurbs.  Start a monitoring loop with
     python run_server.py
 
 Currently, the server is set up to run on port 21100, communicating with
-a mongod instance running on 21001.
+a mongod instance running on 21002.

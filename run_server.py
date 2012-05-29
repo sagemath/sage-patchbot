@@ -19,7 +19,7 @@ KILL_WAIT = 5
 p = None
 try:
     # Start mongodb
-    mongo_process = subprocess.Popen(["mongod", "--port=21001", "--dbpath=" + DATABASE], stderr=subprocess.STDOUT)
+    mongo_process = subprocess.Popen(["mongod", "--port=21002", "--dbpath=" + DATABASE], stderr=subprocess.STDOUT)
 
     # Run the server
     while True:
