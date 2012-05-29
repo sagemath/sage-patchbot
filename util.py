@@ -40,6 +40,8 @@ def current_reports(ticket, base=None, unique=False):
         first = lambda x: True
     reports = list(ticket['reports'])
     reports.sort(lambda a, b: cmp(b['time'], a['time']))
+    if base == 'latest':
+        base = max([r['base'] for r in reports], key=comparable_version)
     return filter(lambda report: (ticket['patches'] == report['patches'] and
                                   ticket['spkgs'] == report['spkgs'] and
                                   ticket['depends_on'] == (report.get('deps') or []) and
@@ -58,16 +60,17 @@ def extract_version(s):
     if m:
         return m.group(0)
 
-def compare_version(a, b):
-    a += '.z'
-    b += '.z'
+def comparable_version(version):
+    version = re.sub(r'([^.0-9])(\d+)', r'\1.\2', version) + '.z'
     def maybe_int(s):
         try:
             return 1, int(s)
         except:
             return 0, s
-    return cmp([maybe_int(v) for v in a.split('.')],
-               [maybe_int(v) for v in b.split('.')])
+    return [maybe_int(s) for s in version.split('.')]
+
+def compare_version(a, b):
+    return cmp(comparable_version(a), comparable_version(b))
 
 def get_base(sage_root):
     p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)

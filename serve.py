@@ -8,7 +8,7 @@ import patchbot
 import db
 
 from db import tickets, logs
-from util import now_str, current_reports
+from util import now_str, current_reports, comparable_version
 
 app = Flask(__name__)
 
@@ -63,7 +63,7 @@ def ticket_list():
         if base == 'all':
             base = None
     else:
-        base = global_base
+        base = 'latest'
     if 'author' in request.args:
         query['authors'] = request.args.get('author')
     if 'participant' in request.args:
@@ -80,7 +80,7 @@ def ticket_list():
     summary = dict((key, 0) for key in status_order)
     def preprocess(all):
         for ticket in all:
-            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, base)
+            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket)
             if 'reports' in ticket:
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
@@ -186,8 +186,9 @@ def render_ticket_status(ticket):
         info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
+    base = max([r['base'] for r in info['reports']], key=comparable_version)
     status = get_ticket_status(info, base=base)[2]
-    response = make_response(create_status_image(status))
+    response = make_response(create_status_image(status, base=base))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'no-cache'
     return response
@@ -309,7 +310,7 @@ def status_image(status):
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
-def create_status_image(status):
+def create_status_image(status, base=None):
     if ',' in status:
         status_list = status.split(',')
         if len(set(status_list)) == 1:
@@ -330,11 +331,22 @@ def create_status_image(status):
                     if not os.path.exists('images/_cache'):
                         os.mkdir('images/_cache')
                     Image.fromarray(composite, 'RGBA').save(path)
-                return open(path).read()
             except ImportError:
-                print "here"
+                print "bad import"
                 status = min_status(status_list)
-    return open(status_image(status)).read()
+                path = status_image(status)
+    else:
+        path = status_image(status)
+    if base is not None:
+        from PIL import Image
+        import ImageDraw
+        im = Image.open(path)
+        ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
+        output = StringIO()
+        im.save(output, format='png')
+        return output.getvalue()
+    else:
+        return open(path).read()
 
 def status_image(status):
     return 'images/%s-blob.png' % status_colors[status]

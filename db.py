@@ -3,7 +3,7 @@ import os
 # mongod --port=21000 --dbpath=data
 import pymongo, gridfs
 from pymongo import Connection
-mongo_port = 21001
+mongo_port = 21002
 
 mongodb = Connection(port=mongo_port).buildbot
 tickets = mongodb.tickets
@@ -11,6 +11,7 @@ tickets.ensure_index('id', unique=True)
 tickets.ensure_index('status')
 tickets.ensure_index('authors')
 tickets.ensure_index('participants')
+tickets.ensure_index('last_activity')
 tickets.ensure_index('reports.base')
 tickets.ensure_index('reports.machine')
 tickets.ensure_index('reports.time')
