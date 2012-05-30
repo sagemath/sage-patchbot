@@ -187,7 +187,7 @@ def render_ticket_status(ticket):
     except:
         info = tickets.find_one({'id': ticket})
     if 'reports' in info:
-        base = latest_version(info['reports'])
+        base = latest_version(current_reports(info))
     else:
         base = None
     status = get_ticket_status(info, base=base)[2]
