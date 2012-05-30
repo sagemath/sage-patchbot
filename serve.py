@@ -36,6 +36,7 @@ def trusted_authors():
 @app.route("/ticket/")
 def ticket_list():
     authors = None
+    machine = None
     if 'query' in request.args:
         query = json.loads(request.args.get('query'))
     else:
@@ -54,6 +55,9 @@ def ticket_list():
         if 'authors' in request.args:
             authors = request.args.get('authors').split(':')
             query['authors'] = {'$in': authors}
+        if 'machine' in request.args:
+            machine = request.args.get('machine').split('/')
+            query['reports.machine'] = machine
     if 'order' in request.args:
         order = request.args.get('order')
     else:
@@ -80,7 +84,7 @@ def ticket_list():
     summary = dict((key, 0) for key in status_order)
     def preprocess(all):
         for ticket in all:
-            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket)
+            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine)
             if 'reports' in ticket:
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
@@ -373,8 +377,10 @@ def robots():
     response.headers['Content-type'] = 'image/png'
     return response
 
-def get_ticket_status(ticket, base=None):
+def get_ticket_status(ticket, base=None, machine=None):
     all = current_reports(ticket, base=base)
+    if machine is not None:
+        all = [r for r in all if r['machine'] == machine]
     if len(all):
         status_list = [report['status'] for report in all]
         if len(set(status_list)) == 1:

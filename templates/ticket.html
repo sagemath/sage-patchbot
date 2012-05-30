@@ -32,7 +32,7 @@
 <td><img src="/blob/{{report.status}}"></td>
 <td><b>{{report.status}}</b></td>
 <td>{{report.base|safe}}</td>
-<td>{{'/'.join(report.machine)}}</td>
+<td><a href='/ticket/?machine={{'/'.join(report.machine)}}&status=open'>{{'/'.join(report.machine)}}</a></td>
 <td>{{report.time}}</td>
 <td align='center'><a href='{{report.log}}'>log</a> <a href='{{report.log}}?short'>shortlog</a></td>
 </tr>
