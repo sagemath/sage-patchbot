@@ -364,15 +364,10 @@ def min_status(status_list):
 
 @app.route("/robots.txt")
 def robots():
-    return """
-User-agent: *
-Disallow: /ticket/1303/status.png
-Disallow: /blob/
-Crawl-delay: 5
-    """.lstrip()
+    return render_template("robots.txt")
 
 @app.route("/favicon.ico")
-def robots():
+def favicon():
     response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
     response.headers['Content-type'] = 'image/png'
     return response
