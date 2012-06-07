@@ -84,7 +84,7 @@ def ticket_list():
     summary = dict((key, 0) for key in status_order)
     def preprocess(all):
         for ticket in all:
-            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine)
+            ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine, base=base or 'latest')
             if 'reports' in ticket:
                 ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
