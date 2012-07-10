@@ -1,6 +1,6 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
-import re, hashlib, urllib2, os, sys, traceback, time, subprocess
+import re, hashlib, urllib, urllib2, urlparse, os, sys, traceback, time, subprocess
 
 from util import do_or_die, extract_version, compare_version, get_base, now_str
 
@@ -15,7 +15,9 @@ def get_url(url):
     Returns the contents of url as a string.
     """
     try:
-        url = url.replace(' ', '%20')
+        parsed_url = list(urlparse.urlsplit(url, allow_fragments=False))
+        parsed_url[2] = urllib.quote(parsed_url[2]) # quote the path
+        url = urlparse.urlunsplit(parsed_url)
         handle = urllib2.urlopen(url, timeout=5)
         data = handle.read()
         handle.close()
