@@ -45,7 +45,7 @@ if [ -e "../uncommitted.patch" ]; then
 fi
 
 # Format as an spkg.
-rm -rf .git
+rm -rf .git*
 cp -r $ORIGINAL/.hg .
 mv README.txt src
 cd ..
