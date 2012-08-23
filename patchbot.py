@@ -168,6 +168,8 @@ class Tee:
         time.sleep(1)
         os.dup2(self._saved[0], sys.stdout.fileno())
         os.dup2(self._saved[1], sys.stderr.fileno())
+        os.close(self._saved[0])
+        os.close(self._saved[1])
         time.sleep(1)
         try:
             signal.signal(signal.SIGALRM, alarm_handler)
