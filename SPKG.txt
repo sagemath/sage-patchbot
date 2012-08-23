@@ -14,7 +14,8 @@ GPLv2+
 
 == Upstream Contact ==
 
-robertwb@gmail.com.
+robertwb@gmail.com
+https://github.com/robertwb/sage-patchbot/
 
 == Dependencies ==
 

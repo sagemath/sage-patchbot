@@ -3,4 +3,9 @@ syntax: glob
 *.log
 *.pyc
 *~
-images/_cache/*
+
+*.spkg
+src
+.git
+.gitignore
+README.txt

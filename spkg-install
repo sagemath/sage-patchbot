@@ -10,8 +10,10 @@ fi
 if [ -e "$SAGE_LOCAL/bin/patchbot" ]; then
     i=0
     while [ -e "$SAGE_LOCAL/bin/patchbot-old-$i" ]; do
-        $i=$(( $i + 1 ))
+        i=$(( $i + 1 ))
     done
+    echo "Renaming existing patchbot directory to patchbot-old-$i"
+    mv "$SAGE_LOCAL/bin/patchbot" "$SAGE_LOCAL/bin/patchbot-old-$i"
 fi
 
 # Copy into final location.
