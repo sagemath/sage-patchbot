@@ -346,7 +346,11 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
                 while old_patch in series:
                     old_patch += '-old'
                 do_or_die('hg qrename %s %s' % (patch, old_patch))
-            do_or_die('hg qimport %s && hg qpush' % url)
+            try:
+                do_or_die('hg qimport %s' % url)
+            except Exception, exn:
+                raise urllib2.HTTPError(exn)
+            do_or_die('hg qpush')
         do_or_die('hg qapplied')
     except:
         os.system('hg qpop -a')

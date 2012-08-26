@@ -298,6 +298,10 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
 
             print
             t.print_all()
+    except urllib2.HTTPError:
+        # Don't report failure because the network/trac died...
+        traceback.print_exc()
+        return 'Pending'
     except Exception:
         traceback.print_exc()
     
