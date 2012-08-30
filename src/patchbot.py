@@ -220,7 +220,7 @@ def plugin_boundary(name, end=False):
     return ' '.join(('='*10, name, '='*10))
 
 
-def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
+def test_a_ticket(sage_root, server, ticket=None, nodocs=False, dry_run=False):
     base = get_base(sage_root)
     if ticket is None:
         ticket = get_ticket(base=base, server=server, **conf)
@@ -281,13 +281,16 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
                     t.finish(name)
                     print plugin_boundary(name, end=True)
                     plugins_results.append((name, passed))
-                    
-            test_dirs = ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+            
+            if dry_run:
+                test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+            else:
+                test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
             if conf['parallelism'] > 1:
                 test_cmd = "-tp %s" % conf['parallelism']
             else:
                 test_cmd = "-t"
-            do_or_die("$SAGE_ROOT/sage %s -sagenb %s" % (test_cmd, ' '.join(test_dirs)))
+            do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
             #do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
             #do_or_die('sage -testall')
             t.finish("Tests")
@@ -308,7 +311,8 @@ def test_a_ticket(sage_root, server, ticket=None, nodocs=False):
     for _ in range(5):
         try:
             print "Reporting", ticket['id'], status[state]
-            report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
+            if not dry_run:
+                report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
             print "Done reporting", ticket['id']
             break
         except urllib2.HTTPError:
@@ -426,6 +430,7 @@ def main(args):
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
     parser.add_option("--skip-base", dest="skip_base", default=False)
+    parser.add_option("--dry-run", dest="dry_run", default=False)
     (options, args) = parser.parse_args(args)
     
     conf_path = options.config and os.path.abspath(options.config)
@@ -453,7 +458,7 @@ def main(args):
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
         if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
-            res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server)
+            res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server, dry_run=options.dry_run)
             if res != 'TestsPassed':
                 print "\n\n"
                 while True:
@@ -472,7 +477,7 @@ def main(args):
                 ticket = None
             conf = get_conf(conf_path, options.server)
             if check_time_of_day(conf['time_of_day']):
-                test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server)
+                test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server, dry_run=options.dry_run)
             else:
                 print "Idle."
                 time.sleep(conf['idle'])
