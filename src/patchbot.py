@@ -43,34 +43,6 @@ def contains_any(key, values):
 def no_unicode(s):
     return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
 
-def get_ticket(server, return_all=False, **conf):
-    query = "raw&status=open&todo"
-    if 'trusted_authors' in conf:
-        query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(conf['trusted_authors'])), safe=':')
-    try:
-        handle = urllib2.urlopen(server + "/ticket/?" + query)
-        all = json.load(handle)
-        handle.close()
-    except:
-        traceback.print_exc()
-        return
-    if 'trusted_authors' in conf:
-        all = filter_on_authors(all, conf['trusted_authors'])
-    all = filter(lambda x: x[0], ((rate_ticket(t, **conf), t) for t in all))
-    all.sort()
-    if return_all:
-        return all
-    if all:
-        return all[-1]
-
-def lookup_ticket(server, id):
-    url = server + "/ticket/?" + urllib.urlencode({'raw': True, 'query': json.dumps({'id': id})})
-    res = json.load(urllib2.urlopen(url))
-    if res:
-        return res[0]
-    else:
-        return scrape(id)
-
 def compare_machines(a, b, machine_match=None):
     if isinstance(a, dict) or isinstance(b, dict):
         # old format, remove
@@ -83,59 +55,6 @@ def compare_machines(a, b, machine_match=None):
         if len(a) != len(b):
             diff.append(1)
         return diff
-
-def rate_ticket(ticket, **conf):
-    rating = 0
-    if ticket['spkgs']:
-        return # can't handle these yet
-    elif not ticket['patches']:
-        return # nothing to do
-    for dep in ticket['depends_on']:
-        if isinstance(dep, basestring) and '.' in dep:
-            if compare_version(conf['base'], dep) < 0:
-                # Depends on a newer version of Sage than we're running.
-                return None
-    for author in ticket['authors']:
-        if author not in conf['trusted_authors']:
-            return
-        rating += conf['bonus'].get(author, 0)
-    for participant in ticket['participants']:
-        rating += conf['bonus'].get(participant, 0) # doubled for authors
-    rating += len(ticket['participants'])
-    # TODO: remove condition
-    if 'component' in ticket:
-        rating += conf['bonus'].get(ticket['component'], 0)
-    rating += conf['bonus'].get(ticket['status'], 0)
-    rating += conf['bonus'].get(ticket['priority'], 0)
-    rating += conf['bonus'].get(str(ticket['id']), 0)
-    redundancy = (100,)
-    prune_pending(ticket)
-    if not ticket.get('retry'):
-        for reports in current_reports(ticket, base=conf['base']):
-            redundancy = min(redundancy, compare_machines(reports['machine'], conf['machine'], conf['machine_match']))
-    if not redundancy[-1]:
-        return # already did this one
-    return redundancy, rating, -int(ticket['id'])
-
-def report_ticket(server, ticket, status, base, machine, user, log, plugins=[]):
-    print ticket['id'], status
-    report = {
-        'status': status,
-        'patches': ticket['patches'],
-        'deps': ticket['depends_on'],
-        'spkgs': ticket['spkgs'],
-        'base': base,
-        'user': user,
-        'machine': machine,
-        'time': datetime(),
-        'plugins': plugins,
-    }
-    fields = {'report': json.dumps(report)}
-    if status != 'Pending':
-        files = [('log', 'log', bz2.compress(open(log).read()))]
-    else:
-        files = []
-    print post_multipart("%s/report/%s" % (server, ticket['id']), fields, files)
     
 class TimeOut(Exception):
     pass
@@ -220,127 +139,6 @@ def plugin_boundary(name, end=False):
     return ' '.join(('='*10, name, '='*10))
 
 
-def test_a_ticket(sage_root, server, ticket=None, nodocs=False, dry_run=False):
-    base = get_base(sage_root)
-    if ticket is None:
-        ticket = get_ticket(base=base, server=server, **conf)
-    else:
-        ticket = None, scrape(int(ticket))
-    if not ticket:
-        print "No more tickets."
-        if random.random() < 0.01:
-            cleanup(sage_root, server)
-        time.sleep(conf['idle'])
-        return
-    rating, ticket = ticket
-    print "\n" * 2
-    print "=" * 30, ticket['id'], "=" * 30
-    print ticket['title']
-    print "score", rating
-    print "\n" * 2
-    log_dir = sage_root + "/logs"
-    if not os.path.exists(log_dir):
-        os.mkdir(log_dir)
-    log = '%s/%s-log.txt' % (log_dir, ticket['id'])
-    report_ticket(server, ticket, status='Pending', base=base, machine=conf['machine'], user=conf['user'], log=None)
-    plugins_results = []
-    try:
-        with Tee(log, time=True, timeout=conf['timeout']):
-            t = Timer()
-            start_time = time.time()
-
-            state = 'started'
-            os.environ['MAKE'] = "make -j%s" % conf['parallelism']
-            os.environ['SAGE_ROOT'] = sage_root
-            # TODO: Ensure that sage-main is pristine.
-            pull_from_trac(sage_root, ticket['id'], force=True)
-            t.finish("Apply")
-            state = 'applied'
-            
-            do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
-            t.finish("Build")
-            state = 'built'
-            
-            working_dir = "%s/devel/sage-%s" % (sage_root, ticket['id'])
-            # Only the ones on this ticket.
-            patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
-            kwds = {
-                "original_dir": "%s/devel/sage-0" % sage_root,
-                "patched_dir": working_dir,
-                "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (sage_root, ticket['id'], p) for p in patches if p],
-            }
-            for name, plugin in conf['plugins']:
-                try:
-                    print plugin_boundary(name)
-                    plugin(ticket, **kwds)
-                    passed = True
-                except Exception:
-                    traceback.print_exc()
-                    passed = False
-                finally:
-                    t.finish(name)
-                    print plugin_boundary(name, end=True)
-                    plugins_results.append((name, passed))
-            
-            if dry_run:
-                test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
-            else:
-                test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-            if conf['parallelism'] > 1:
-                test_cmd = "-tp %s" % conf['parallelism']
-            else:
-                test_cmd = "-t"
-            do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
-            #do_or_die("$SAGE_ROOT/sage -t $SAGE_ROOT/devel/sage-%s/sage/rings/integer.pyx" % ticket['id'])
-            #do_or_die('sage -testall')
-            t.finish("Tests")
-            state = 'tested'
-            
-            if not all(passed for name, passed in plugins_results):
-                state = 'failed_plugin'
-
-            print
-            t.print_all()
-    except urllib2.HTTPError:
-        # Don't report failure because the network/trac died...
-        traceback.print_exc()
-        return 'Pending'
-    except Exception:
-        traceback.print_exc()
-    
-    for _ in range(5):
-        try:
-            print "Reporting", ticket['id'], status[state]
-            if not dry_run:
-                report_ticket(server, ticket, status=status[state], base=base, machine=conf['machine'], user=conf['user'], log=log, plugins=plugins_results)
-            print "Done reporting", ticket['id']
-            break
-        except urllib2.HTTPError:
-            traceback.print_exc()
-            time.sleep(conf['idle'])
-    else:
-        print "Error reporting", ticket['id']
-    return status[state]
-
-def cleanup(sage_root, server):
-    print "Looking up closed tickets."
-    closed_list = urllib2.urlopen(server + "?status=closed").read()
-    closed = set(m.groups()[0] for m in re.finditer(r"/ticket/(\d+)/", closed_list))
-    for branch in os.listdir(os.path.join(sage_root, "devel")):
-        if branch[:5] == "sage-":
-            if branch[5:] in closed:
-                to_delete = os.path.join(sage_root, "devel", branch)
-                print "Deleting closed ticket:", to_delete
-                shutil.rmtree(to_delete)
-    print "Done cleaning up."
-
-def default_trusted_authors(server):
-    handle = urllib2.urlopen(server + "/trusted/")
-    try:
-        return json.load(handle).keys()
-    finally:
-        handle.close()
-
 def machine_data():
     system, node, release, version, arch = os.uname()
     if system.lower() == "linux":
@@ -371,51 +169,279 @@ def check_time_of_day(hours):
             return True
     return False
 
-def get_conf(path, server, **overrides):
-    if path is None:
-        unicode_conf = {}
-    else:
-        unicode_conf = json.load(open(path))
-    # defaults
-    conf = {
-        "idle": 300,
-        "time_of_day": "0-0", # midnight-midnight
-        "parallelism": 3,
-        "timeout": 3 * 60 * 60,
-        "plugins": ["plugins.commit_messages",
-                    "plugins.coverage",
-                    "plugins.trailing_whitespace",
-#                    "plugins.docbuild"
-                    ],
-        "bonus": {},
-        "machine": machine_data(),
-        "machine_match": 3,
-        "user": getpass.getuser(),
-    }
-    default_bonus = {
-        "needs_review": 1000,
-        "positive_review": 500,
-        "blocker": 100,
-        "critical": 50,
-    }
-    for key, value in unicode_conf.items():
-        conf[str(key)] = value
-    for key, value in default_bonus.items():
-        if key not in conf['bonus']:
-            conf['bonus'][key] = value
-    conf.update(overrides)
-    if "trusted_authors" not in conf:
-        conf["trusted_authors"] = default_trusted_authors(server)
+class Patchbot:
     
-    def locate_plugin(name):
-        ix = name.rindex('.')
-        module = name[:ix]
-        name = name[ix+1:]
-        plugin = getattr(__import__(module, fromlist=[name]), name)
-        assert callable(plugin)
-        return plugin
-    conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
-    return conf
+    def __init__(self, sage_root, server, config_path, dry_run=False):
+        self.sage_root = sage_root
+        self.server = server
+        self.base = get_base(sage_root)
+        self.dry_run = dry_run
+        self.config_path = config_path
+        self.reload_config()
+        
+    def load_json_from_server(self, path):
+        handle = urllib2.urlopen("%s/%s" % (self.server, path))
+        try:
+            return json.load(handle)
+        finally:
+            handle.close()
+
+    def default_trusted_authors(self):
+        try:
+            return self._default_trusted
+        except:
+            self._default_trusted = self.load_json_from_server("trusted").keys()
+            return self._default_trusted
+
+    def lookup_ticket(self, id):
+        path = "ticket/?" + urllib.urlencode({'raw': True, 'query': json.dumps({'id': id})})
+        res = self.load_json_from_server(path)
+        if res:
+            return res[0]
+        else:
+            return scrape(id)
+
+    def get_config(self):
+        if self.config_path is None:
+            unicode_conf = {}
+        else:
+            unicode_conf = json.load(open(self.config_path))
+        # defaults
+        conf = {
+            "idle": 300,
+            "time_of_day": "0-0", # midnight-midnight
+            "parallelism": 3,
+            "timeout": 3 * 60 * 60,
+            "plugins": ["plugins.commit_messages",
+                        "plugins.coverage",
+                        "plugins.trailing_whitespace",
+    #                    "plugins.docbuild"
+                        ],
+            "bonus": {},
+            "machine": machine_data(),
+            "machine_match": 3,
+            "user": getpass.getuser(),
+        }
+        default_bonus = {
+            "needs_review": 1000,
+            "positive_review": 500,
+            "blocker": 100,
+            "critical": 50,
+        }
+        for key, value in unicode_conf.items():
+            conf[str(key)] = value
+        for key, value in default_bonus.items():
+            if key not in conf['bonus']:
+                conf['bonus'][key] = value
+        if "trusted_authors" not in conf:
+            conf["trusted_authors"] = self.default_trusted_authors()
+        
+        def locate_plugin(name):
+            ix = name.rindex('.')
+            module = name[:ix]
+            name = name[ix+1:]
+            plugin = getattr(__import__(module, fromlist=[name]), name)
+            assert callable(plugin)
+            return plugin
+        conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
+        return conf
+    
+    def reload_config(self):
+        self.config = self.get_config()
+        return self.config
+
+    def get_ticket(self, return_all=False):
+        trusted_authors = self.config.get('trusted_authors')
+        query = "raw&status=open&todo"
+        if trusted_authors:
+            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
+        all = self.load_json_from_server("ticket/?" + query)
+        if trusted_authors:
+            all = filter_on_authors(all, trusted_authors)
+        all = filter(lambda x: x[0], ((self.rate_ticket(t), t) for t in all))
+        all.sort()
+        if return_all:
+            return reversed(all)
+        if all:
+            return all[-1]
+
+    def get_ticket_list(self):
+        return self.get_ticket(return_all=True)
+
+    def rate_ticket(self, ticket):
+        rating = 0
+        if ticket['spkgs']:
+            return # can't handle these yet
+        elif not ticket['patches']:
+            return # nothing to do
+        for dep in ticket['depends_on']:
+            if isinstance(dep, basestring) and '.' in dep:
+                if compare_version(self.base, dep) < 0:
+                    # Depends on a newer version of Sage than we're running.
+                    return None
+        bonus = self.config['bonus']
+        for author in ticket['authors']:
+            if author not in self.config['trusted_authors']:
+                return
+            rating += bonus.get(author, 0)
+        for participant in ticket['participants']:
+            rating += bonus.get(participant, 0) # doubled for authors
+        rating += len(ticket['participants'])
+        # TODO: remove condition
+        if 'component' in ticket:
+            rating += bonus.get(ticket['component'], 0)
+        rating += bonus.get(ticket['status'], 0)
+        rating += bonus.get(ticket['priority'], 0)
+        rating += bonus.get(str(ticket['id']), 0)
+        redundancy = (100,)
+        prune_pending(ticket)
+        if not ticket.get('retry'):
+            for reports in self.current_reports(ticket):
+                redundancy = min(redundancy, compare_machines(reports['machine'], self.config['machine'], self.config['machine_match']))
+        if not redundancy[-1]:
+            return # already did this one
+        return redundancy, rating, -int(ticket['id'])
+
+    def current_reports(self, ticket):
+        if isinstance(ticket, (int, str)):
+            ticket = self.lookup_ticket(ticket)
+        return current_reports(ticket, base=self.base)
+    
+    def test_a_ticket(self, ticket=None):
+    
+        self.reload_config()
+
+        if ticket is None:
+            ticket = self.get_ticket()
+        else:
+            ticket = None, scrape(int(ticket))
+        if not ticket:
+            print "No more tickets."
+            if random.random() < 0.01:
+                self.cleanup()
+            time.sleep(conf['idle'])
+            return
+
+        rating, ticket = ticket
+        print "\n" * 2
+        print "=" * 30, ticket['id'], "=" * 30
+        print ticket['title']
+        print "score", rating
+        print "\n" * 2
+        log_dir = self.sage_root + "/logs"
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        log = '%s/%s-log.txt' % (log_dir, ticket['id'])
+        self.report_ticket(ticket, status='Pending', log=None)
+        plugins_results = []
+        try:
+            with Tee(log, time=True, timeout=self.config['timeout']):
+                t = Timer()
+                start_time = time.time()
+
+                state = 'started'
+                os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
+                os.environ['SAGE_ROOT'] = self.sage_root
+                # TODO: Ensure that sage-main is pristine.
+                pull_from_trac(self.sage_root, ticket['id'], force=True)
+                t.finish("Apply")
+                state = 'applied'
+                
+                do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
+                t.finish("Build")
+                state = 'built'
+                
+                working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
+                # Only the ones on this ticket.
+                patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
+                kwds = {
+                    "original_dir": "%s/devel/sage-0" % self.sage_root,
+                    "patched_dir": working_dir,
+                    "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
+                }
+                for name, plugin in self.config['plugins']:
+                    try:
+                        print plugin_boundary(name)
+                        plugin(ticket, **kwds)
+                        passed = True
+                    except Exception:
+                        traceback.print_exc()
+                        passed = False
+                    finally:
+                        t.finish(name)
+                        print plugin_boundary(name, end=True)
+                        plugins_results.append((name, passed))
+                
+                if self.dry_run:
+                    test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+                else:
+                    test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+                if conf['parallelism'] > 1:
+                    test_cmd = "-tp %s" % conf['parallelism']
+                else:
+                    test_cmd = "-t"
+                do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
+                t.finish("Tests")
+                state = 'tested'
+                
+                if not all(passed for name, passed in plugins_results):
+                    state = 'failed_plugin'
+
+                print
+                t.print_all()
+        except urllib2.HTTPError:
+            # Don't report failure because the network/trac died...
+            traceback.print_exc()
+            return 'Pending'
+        except Exception:
+            traceback.print_exc()
+        
+        for _ in range(5):
+            try:
+                print "Reporting", ticket['id'], status[state]
+                if not self.dry_run:
+                    self.report_ticket(ticket, status=status[state], log=log, plugins=plugins_results)
+                print "Done reporting", ticket['id']
+                break
+            except urllib2.HTTPError:
+                traceback.print_exc()
+                time.sleep(conf['idle'])
+        else:
+            print "Error reporting", ticket['id']
+        return status[state]
+
+    def report_ticket(self, ticket, status, log, plugins=[]):
+        print ticket['id'], status
+        report = {
+            'status': status,
+            'patches': ticket['patches'],
+            'deps': ticket['depends_on'],
+            'spkgs': ticket['spkgs'],
+            'base': self.base,
+            'user': self.config['user'],
+            'machine': self.config['machine'],
+            'time': datetime(),
+            'plugins': plugins,
+        }
+        fields = {'report': json.dumps(report)}
+        if status != 'Pending':
+            files = [('log', 'log', bz2.compress(open(log).read()))]
+        else:
+            files = []
+        ###print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
+
+    def cleanup(self):
+        print "Looking up closed tickets."
+        # TODO: Get just the list, not the entire rendered page.
+        closed_list = urllib2.urlopen(self.server + "?status=closed").read()
+        closed = set(m.groups()[0] for m in re.finditer(r"/ticket/(\d+)/", closed_list))
+        for branch in os.listdir(os.path.join(self.sage_root, "devel")):
+            if branch[:5] == "sage-":
+                if branch[5:] in closed:
+                    to_delete = os.path.join(self.sage_root, "devel", branch)
+                    print "Deleting closed ticket:", to_delete
+                    shutil.rmtree(to_delete)
+        print "Done cleaning up."
 
 def main(args):
     global conf
@@ -429,6 +455,7 @@ def main(args):
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
+    parser.add_option("--full", dest="full", default=False)
     parser.add_option("--skip-base", dest="skip_base", default=False)
     parser.add_option("--dry-run", dest="dry_run", default=False)
     (options, args) = parser.parse_args(args)
@@ -440,13 +467,20 @@ def main(args):
     else:
         tickets = None
         count = int(options.count)
+
+    patchbot = Patchbot(options.sage_root, options.server, conf_path, dry_run=options.dry_run)
     
-    conf = get_conf(conf_path, options.server)
+    conf = patchbot.get_config()
     if options.list:
-        for score, ticket in get_ticket(base=get_base(options.sage_root), server=options.server, return_all=True, **conf):
-            print score, ticket['id'], ticket['title']
-            print ticket
-            print
+        count = sys.maxint if options.list is "True" else int(options.list)
+        print "Getting ticket list..."
+        for ix, (score, ticket) in enumerate(patchbot.get_ticket_list()):
+            if ix >= count:
+                break
+            print score, '\t', ticket['id'], '\t', ticket['title']
+            if options.full:
+                print ticket
+                print
         sys.exit(0)
 
     print "WARNING: Assuming sage-main is pristine."
@@ -454,11 +488,10 @@ def main(args):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     if not options.skip_base:
-        clean = lookup_ticket(options.server, 0)
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-        if not any(good(report) for report in current_reports(clean, base=get_base(options.sage_root))):
-            res = test_a_ticket(ticket=0, sage_root=options.sage_root, server=options.server, dry_run=options.dry_run)
+        if not any(good(report) for report in patchbot.current_reports(0)):
+            res = patchbot.test_a_ticket(0)
             if res != 'TestsPassed':
                 print "\n\n"
                 while True:
@@ -475,9 +508,9 @@ def main(args):
                 ticket = tickets.pop(0)
             else:
                 ticket = None
-            conf = get_conf(conf_path, options.server)
+            conf = patchbot.reload_config()
             if check_time_of_day(conf['time_of_day']):
-                test_a_ticket(ticket=ticket, sage_root=options.sage_root, server=options.server, dry_run=options.dry_run)
+                patchbot.test_a_ticket(ticket)
             else:
                 print "Idle."
                 time.sleep(conf['idle'])
