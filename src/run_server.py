@@ -16,7 +16,7 @@ HTTP_TIMEOUT = 60
 POLL_INTERVAL = 180
 KILL_WAIT = 5
 
-open("keepalive", "w").write(os.getpid())
+open("keepalive", "w").write(str(os.getpid()))
 
 p = None
 try:
