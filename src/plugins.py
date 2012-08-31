@@ -81,11 +81,17 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             print "Coverage remained unchanged."
         else:
             print "Coverage went from", format(*baseline[None], prec=3), "to", format(*current[None], prec=3)
+        data = sorted(set(current.items()) - set(baseline.items()))
+    else:
+        data = None
 
+    if baseline:
+        print
+        print "=" * 20
     print
     print all
     
-    return PluginResult(status, baseline=current)
+    return PluginResult(status, baseline=current, data=data)
 
 def docbuild(ticket, **kwds):
     do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
@@ -154,8 +160,8 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     else:
         module_set = set(modules)
         baseline_set = set(baseline)
-        new = module_set.difference(baseline_set)
-        removed = baseline_set.difference(module_set)
+        new = sorted(module_set - baseline_set)
+        removed = sorted(baseline_set - module_set)
         if new:
             status = PluginResult.Failed
             print "New:", ", ".join(new)
@@ -165,6 +171,9 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
             print "Removed:", ", ".join(removed)
         data = {'new': new, 'removed': removed}
 
+    if baseline:
+        print
+        print "=" * 20
     print
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)

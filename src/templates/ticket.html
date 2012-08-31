@@ -43,12 +43,16 @@
 </td>
 <td valign='top'>
 <ul style='list-style-type: none'>
-{% for plugin, status in report.get('plugins', []) %}
+{% for plugin_tuple in report.get('plugins', []) %}
+{% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
 <img height="16" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
 (<a href='{{report.log}}?plugin={{plugin}}&diff={{report.base_log}}&ticket={{ticket}}&base={{report.raw_base}}'>diff</a>)
+{% endif %}
+{% if data %}
+(<a href='plugin/{{plugin}}/{{report.time}}/'>data</a>)
 {% endif %}
 {% endfor %}
 </ul>

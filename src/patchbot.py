@@ -390,10 +390,12 @@ class Patchbot:
                                 pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
                             passed = res.status == PluginResult.Passed
                             print name, res.status
-                        plugins_results.append((name, passed))
+                            plugins_results.append((name, passed, res.data))
+                        else:
+                            plugins_results.append((name, passed, None))
                         t.finish(name)
                         print plugin_boundary(name, end=True)
-                plugins_passed = all(passed for (name, passed) in plugins_results)
+                plugins_passed = all(passed for (name, passed, data) in plugins_results)
                 
                 if self.plugin_only:
                     state = 'plugins' if plugins_passed else 'plugins_failed'

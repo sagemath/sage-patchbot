@@ -202,7 +202,11 @@ def render_ticket(ticket):
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
             yield item
-    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2])
+    def normalize_plugin(plugin):
+        while len(plugin) < 3:
+            plugin.append(None)
+        return plugin
+    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2], normalize_plugin=normalize_plugin)
 
 @timed_cached_function(10)
 def base_reports_by_machine_and_base():
@@ -343,6 +347,21 @@ def get_log(log):
         response = make_response(data)
     response.headers['Content-type'] = 'text/plain'
     return response
+
+@app.route("/ticket/<id>/plugin/<plugin_name>/<timestamp>/")
+def get_plugin_data(id, plugin_name, timestamp):
+    ticket = tickets.find_one({'id': int(id)})
+    if ticket is None:
+        return "Unknown ticket: " + id
+    for report in ticket['reports']:
+        if report['time'] == timestamp:
+            for plugin in report['plugins']:
+                if plugin[0] == plugin_name:
+                    response = make_response(json.dumps(plugin[2], default=lambda x: None, indent=4))
+                    response.headers['Content-type'] = 'text/plain'
+                    return response
+            return "Unknown plugin: " + plugin_name
+    return "Unknown report: " + timestamp
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'PluginOnly', 'PluginOnlyFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'NoPatch', 'Spkg']
 # TODO: cleanup old records
