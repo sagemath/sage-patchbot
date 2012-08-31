@@ -401,6 +401,7 @@ def create_status_image(status, base=None):
                     status_list[ix] = 'PluginFailed'
         if len(set(status_list)) == 1:
             status = status_list[0]
+            path = status_image(status)
         else:
             try:
                 from PIL import Image
