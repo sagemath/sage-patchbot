@@ -164,11 +164,13 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
         removed = sorted(baseline_set - module_set)
         if new:
             status = PluginResult.Failed
-            print "New:", ", ".join(new)
+            print "New:"
+            print "    " + "\n    ".join(new)
         else:
             status = PluginResult.Passed
         if removed:
-            print "Removed:", ", ".join(removed)
+            print "Removed:"
+            print "    " + "\n    ".join(removed)
         data = {'new': new, 'removed': removed}
 
     if baseline:
