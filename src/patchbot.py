@@ -299,14 +299,15 @@ class Patchbot:
         rating += bonus.get(ticket['status'], 0)
         rating += bonus.get(ticket['priority'], 0)
         rating += bonus.get(str(ticket['id']), 0)
-        redundancy = (100,)
+        uniqueness = (100,)
         prune_pending(ticket)
         if not ticket.get('retry'):
-            for reports in self.current_reports(ticket):
-                redundancy = min(redundancy, compare_machines(reports['machine'], self.config['machine'], self.config['machine_match']))
-        if not redundancy[-1]:
+            for report in self.current_reports(ticket):
+                uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
+                rating -= report['status'] == 'ApplyFailed'
+        if not any(uniqueness):
             return # already did this one
-        return redundancy, rating, -int(ticket['id'])
+        return uniqueness, rating, -int(ticket['id'])
 
     def current_reports(self, ticket):
         if isinstance(ticket, (int, str)):
