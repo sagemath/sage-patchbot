@@ -21,6 +21,7 @@
 import signal
 import getpass, platform
 import random, re, os, shutil, sys, subprocess, time, traceback
+import cPickle as pickle
 import bz2, urllib2, urllib, json
 from optparse import OptionParser
 
@@ -28,6 +29,7 @@ from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version, current_reports
+from plugins import PluginResult
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -363,19 +365,34 @@ class Patchbot:
                     "original_dir": "%s/devel/sage-0" % self.sage_root,
                     "patched_dir": working_dir,
                     "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
+                    "sage_binary": os.path.join(self.sage_root, 'sage')
                 }
+                
                 for name, plugin in self.config['plugins']:
                     try:
+                        if os.path.exists(os.path.join(log_dir, '0', name)):
+                            baseline = pickle.load(open(os.path.join(log_dir, '0', name)))
+                        else:
+                            baseline = None
                         print plugin_boundary(name)
-                        plugin(ticket, **kwds)
+                        res = plugin(ticket, baseline=baseline, **kwds)
                         passed = True
                     except Exception:
                         traceback.print_exc()
                         passed = False
+                        res = None
                     finally:
+                        if isinstance(res, PluginResult):
+                            if res.baseline is not None:
+                                plugin_dir = os.path.join(log_dir, str(ticket['id']))
+                                if not os.path.exists(plugin_dir):
+                                    os.mkdir(plugin_dir)
+                                pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
+                            passed = res.status == PluginResult.Passed
+                            print name, res.status
+                        plugins_results.append((name, passed))
                         t.finish(name)
                         print plugin_boundary(name, end=True)
-                        plugins_results.append((name, passed))
                 plugins_passed = all(passed for (name, passed) in plugins_results)
                 
                 if self.plugin_only:
