@@ -370,7 +370,7 @@ class Patchbot:
                 
                 for name, plugin in self.config['plugins']:
                     try:
-                        if os.path.exists(os.path.join(log_dir, '0', name)):
+                        if ticket['id'] != 0 and os.path.exists(os.path.join(log_dir, '0', name)):
                             baseline = pickle.load(open(os.path.join(log_dir, '0', name)))
                         else:
                             baseline = None

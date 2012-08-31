@@ -33,9 +33,59 @@ class PluginResult:
         self.data = data
         self.baseline = baseline or data
 
-def coverage(ticket, sage_binary, **kwds):
+def coverage(ticket, sage_binary, baseline=None, **kwds):
+    # TODO: This doesn't check that tests were added to existing doctests for
+    # new functionality.
     all = subprocess.check_output([sage_binary, '-coverageall'])
+    current = {}
+    total_funcs = 0
+    total_docs = 0
+    status = "Passed"
+    def format(docs, funcs, prec=None):
+        if funcs == 0:
+            return "N/A"
+        else:
+            percent = 100.0 * docs / funcs
+            if prec is None:
+                percent = int(percent)
+            else:
+                percent = ("%%0.%sf" % prec) % percent
+            return "%s / %s = %s%%" % (docs, funcs, percent)
+    for line in all.split('\n'):
+        m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)
+        if m:
+            module, docs, funcs = m.groups()
+            docs = int(docs)
+            funcs = int(funcs)
+            current[module] = docs, funcs
+            total_docs += docs
+            total_funcs += funcs
+            if baseline:
+                old_docs, old_funcs = baseline.get(module, (0, 0))
+                if old_funcs == 0:
+                    if funcs != docs:
+                        print "Missing doctests ", module, format(docs, funcs)
+                        status = "Failed"
+                    else:
+                        print "Full doctests ", module, format(docs, funcs)
+                elif funcs - docs > old_funcs - old_docs:
+                    print     "Decreased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
+                    status = "Failed"
+                elif funcs - docs < old_funcs - old_docs:
+                    print     "Increased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
+
+    current[None] = total_docs, total_funcs
+    if baseline:
+        print
+        if baseline[None] == current[None]:
+            print "Coverage remained unchanged."
+        else:
+            print "Coverage went from", format(*baseline[None], prec=3), "to", format(*current[None], prec=3)
+
+    print
     print all
+    
+    return PluginResult(status, baseline=current)
 
 def docbuild(ticket, **kwds):
     do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
@@ -116,7 +166,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
         data = {'new': new, 'removed': removed}
 
     print
-#    print '\n'.join(modules)
+    print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
 if __name__ == '__main__':
