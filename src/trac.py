@@ -349,7 +349,11 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None)
             try:
                 do_or_die('hg qimport %s' % url)
             except Exception, exn:
-                raise urllib2.HTTPError(exn)
+                time.sleep(30)
+                try:
+                    do_or_die('hg qimport %s' % url)
+                except Exception, exn:
+                    raise urllib2.HTTPError(exn)
             do_or_die('hg qpush')
         do_or_die('hg qapplied')
     except:
