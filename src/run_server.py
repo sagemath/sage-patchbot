@@ -16,6 +16,8 @@ HTTP_TIMEOUT = 60
 POLL_INTERVAL = 180
 KILL_WAIT = 5
 
+open("keepalive", "w").write(os.getpid())
+
 p = None
 try:
     # Start mongodb
@@ -23,6 +25,9 @@ try:
 
     # Run the server
     while True:
+    
+        if not os.path.exists("keepalive"):
+            break
 
         if p is None or p.poll() is not None:
             # The subprocess died.
