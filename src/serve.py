@@ -1,4 +1,5 @@
-import os, sys, bz2, json, traceback, re, collections
+import os, sys, bz2, json, traceback, re, collections, urllib
+import difflib
 from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
@@ -146,7 +147,10 @@ def render_ticket(ticket):
         info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
     else:
         info['reports'] = []
-
+    
+    base_reports = reports_by_machine_and_base(tickets.find_one({'id': 0}))
+    print base_reports.keys()
+        
     old_reports = list(info['reports'])
     patchbot.prune_pending(info)
     if old_reports != info['reports']:
@@ -172,15 +176,29 @@ def render_ticket(ticket):
         return new_info
     def preprocess_reports(all):
         for item in all:
+            base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
+            if base_report:
+                print log_name(0, base_report)
+                item['base_log'] = urllib.quote(log_name(0, base_report))
             if 'patches' in item:
                 required = info['depends_on'] + info['patches']
                 item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
+            item['raw_base'] = item['base']
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
             yield item
     return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2])
+
+def reports_by_machine_and_base(ticket):
+    all = {}
+    if 'reports' in ticket:
+        # oldest to newest
+        for report in sorted(ticket['reports'], lambda a, b: cmp(a['time'], b['time'])):
+            all[report['base']] = report
+            all[report['base'] + "/" + "/".join(report['machine'])] = report
+    return all
 
 # The fact that this image is in the trac template lets the patchbot know
 # when a page gets updated.
@@ -288,7 +306,19 @@ def get_log(log):
     else:
         data = bz2.decompress(logs.get(path).read())
     if 'plugin' in request.args:
-        data = extract_plugin_log(data, request.args.get('plugin'))
+        plugin = request.args.get('plugin')
+        data = extract_plugin_log(data, plugin)
+        if 'diff' in request.args:
+            header = data[:data.find('\n')]
+            base = request.args.get('base')
+            ticket_id = request.args.get('ticket')
+            base_data = bz2.decompress(logs.get(request.args.get('diff')).read())
+            base_data = extract_plugin_log(base_data, plugin)
+            data = '\n'.join(difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0))
+            if not data:
+                data = "No change."
+            data = header + "\n\n" + data
+            
     if 'short' in request.args:
         response = Response(shorten(data), direct_passthrough=True)
     else:

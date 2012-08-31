@@ -47,6 +47,9 @@
 <li>
 <img height="16" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
+{% if 'base_log' in report %}
+(<a href='{{report.log}}?plugin={{plugin}}&diff={{report.base_log}}&ticket={{ticket}}&base={{report.raw_base}}'>diff</a>)
+{% endif %}
 {% endfor %}
 </ul>
 </td>

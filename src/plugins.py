@@ -76,8 +76,8 @@ def commit_messages(ticket, patches, **kwds):
         print
     print "All patches good."
 
-def bad(**kwds):
-    raise RuntimeError
+def startup_modules(ticket, **kwds):
+    do_or_die(r"""sage -c 'all = sorted(sys.modules); print "\nTotal count:", len(all); print; print "\n".join(all)'""")
 
 if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]

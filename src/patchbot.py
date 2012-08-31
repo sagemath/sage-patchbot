@@ -218,6 +218,7 @@ class Patchbot:
             "plugins": ["plugins.commit_messages",
                         "plugins.coverage",
                         "plugins.trailing_whitespace",
+                        "plugins.startup_modules",
     #                    "plugins.docbuild"
                         ],
             "bonus": {},
