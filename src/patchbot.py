@@ -233,6 +233,8 @@ class Patchbot:
             "positive_review": 500,
             "blocker": 100,
             "critical": 50,
+            "unique": 20,
+            "applies": 20,
         }
         for key, value in unicode_conf.items():
             conf[str(key)] = value
@@ -304,7 +306,9 @@ class Patchbot:
         if not ticket.get('retry'):
             for report in self.current_reports(ticket):
                 uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
-                rating -= report['status'] == 'ApplyFailed'
+                if report['status'] != 'ApplyFailed':
+                    rating += bonus.get("applies", 0)
+                rating -= bonus.get("unique", 0)
         if not any(uniqueness):
             return # already did this one
         return uniqueness, rating, -int(ticket['id'])
