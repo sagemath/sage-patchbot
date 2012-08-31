@@ -1,4 +1,4 @@
-import os, sys, bz2, json, traceback, re, collections, urllib
+import os, sys, bz2, json, traceback, re, collections, urllib, time
 import difflib
 from cStringIO import StringIO
 from optparse import OptionParser
@@ -10,6 +10,21 @@ import db
 
 from db import tickets, logs
 from util import now_str, current_reports, comparable_version, latest_version
+
+def timed_cached_function(refresh_rate=60):
+    def decorator(func):
+        cache = {}
+        def wrap(*args):
+            now = time.time()
+            if args in cache:
+                latest_update, res = cache[args]
+                if now - latest_update < refresh_rate:
+                    return res
+            res = func(*args)
+            cache[args] = now, res
+            return res
+        return wrap
+    return decorator
 
 app = Flask(__name__)
 
@@ -148,8 +163,7 @@ def render_ticket(ticket):
     else:
         info['reports'] = []
     
-    base_reports = reports_by_machine_and_base(tickets.find_one({'id': 0}))
-    print base_reports.keys()
+    base_reports = base_reports_by_machine_and_base()
         
     old_reports = list(info['reports'])
     patchbot.prune_pending(info)
@@ -178,7 +192,6 @@ def render_ticket(ticket):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
-                print log_name(0, base_report)
                 item['base_log'] = urllib.quote(log_name(0, base_report))
             if 'patches' in item:
                 required = info['depends_on'] + info['patches']
@@ -190,6 +203,10 @@ def render_ticket(ticket):
                 item['log'] = log_name(info['id'], item)
             yield item
     return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2])
+
+@timed_cached_function(10)
+def base_reports_by_machine_and_base():
+    return reports_by_machine_and_base(tickets.find_one({'id': 0}))
 
 def reports_by_machine_and_base(ticket):
     all = {}
@@ -314,7 +331,8 @@ def get_log(log):
             ticket_id = request.args.get('ticket')
             base_data = bz2.decompress(logs.get(request.args.get('diff')).read())
             base_data = extract_plugin_log(base_data, plugin)
-            data = '\n'.join(difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0))
+            diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
+            data = data = '\n'.join(('' if item[0] == '@' else item) for item in diff)
             if not data:
                 data = "No change."
             data = header + "\n\n" + data

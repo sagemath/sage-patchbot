@@ -77,6 +77,7 @@ def commit_messages(ticket, patches, **kwds):
     print "All patches good."
 
 def startup_modules(ticket, **kwds):
+    do_or_die("sage -c ''"
     do_or_die(r"""sage -c 'all = sorted(sys.modules); print "\nTotal count:", len(all); print; print "\n".join(all)'""")
 
 if __name__ == '__main__':
