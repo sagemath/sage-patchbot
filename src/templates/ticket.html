@@ -8,7 +8,7 @@
 {% block body %}
 
 <h2>
-<img src="/ticket/{{ticket}}/status.png">
+<img src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">
 {{ticket}}
 </h2>
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">

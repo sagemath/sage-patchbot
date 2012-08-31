@@ -76,6 +76,9 @@ def commit_messages(ticket, patches, **kwds):
         print
     print "All patches good."
 
+def bad(**kwds):
+    raise RuntimeError
+
 if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]
     plugin(-1, patches=sys.argv[2:])

@@ -126,11 +126,13 @@ class Timer:
 all_test_dirs = ["doc/common", "doc/en", "doc/fr", "sage"]
 
 status = {
-    'started': 'ApplyFailed',
-    'applied': 'BuildFailed',
-    'built'  : 'TestsFailed',
-    'tested' : 'TestsPassed',
-    'failed_plugin' : 'PluginFailed',
+    'started'       : 'ApplyFailed',
+    'applied'       : 'BuildFailed',
+    'built'         : 'TestsFailed',
+    'tested'        : 'TestsPassed',
+    'tests_passed_plugins_failed': 'PluginFailed',
+    'plugins'       : 'PluginOnly',
+    'plugins_failed' : 'PluginOnlyFailed',
 }
 
 def plugin_boundary(name, end=False):
@@ -171,11 +173,12 @@ def check_time_of_day(hours):
 
 class Patchbot:
     
-    def __init__(self, sage_root, server, config_path, dry_run=False):
+    def __init__(self, sage_root, server, config_path, dry_run=False, plugin_only=False):
         self.sage_root = sage_root
         self.server = server
         self.base = get_base(sage_root)
         self.dry_run = dry_run
+        self.plugin_only = plugin_only
         self.config_path = config_path
         self.reload_config()
         
@@ -332,7 +335,8 @@ class Patchbot:
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
         log = '%s/%s-log.txt' % (log_dir, ticket['id'])
-        self.report_ticket(ticket, status='Pending', log=None)
+        if not self.plugin_only:
+            self.report_ticket(ticket, status='Pending', log=None)
         plugins_results = []
         try:
             with Tee(log, time=True, timeout=self.config['timeout']):
@@ -371,21 +375,25 @@ class Patchbot:
                         t.finish(name)
                         print plugin_boundary(name, end=True)
                         plugins_results.append((name, passed))
+                plugins_passed = all(passed for (name, passed) in plugins_results)
                 
-                if self.dry_run:
-                    test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+                if self.plugin_only:
+                    state = 'plugins' if plugins_passed else 'plugins_failed'
                 else:
-                    test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-                if conf['parallelism'] > 1:
-                    test_cmd = "-tp %s" % conf['parallelism']
-                else:
-                    test_cmd = "-t"
-                do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
-                t.finish("Tests")
-                state = 'tested'
-                
-                if not all(passed for name, passed in plugins_results):
-                    state = 'failed_plugin'
+                    if self.dry_run:
+                        test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+                    else:
+                        test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+                    if conf['parallelism'] > 1:
+                        test_cmd = "-tp %s" % conf['parallelism']
+                    else:
+                        test_cmd = "-t"
+                    do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
+                    t.finish("Tests")
+                    state = 'tested'
+                    
+                    if not plugins_passed:
+                        state = 'tests_passed_plugins_failed'
 
                 print
                 t.print_all()
@@ -428,7 +436,7 @@ class Patchbot:
             files = [('log', 'log', bz2.compress(open(log).read()))]
         else:
             files = []
-        ###print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
+        print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
 
     def cleanup(self):
         print "Looking up closed tickets."
@@ -455,9 +463,10 @@ def main(args):
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
-    parser.add_option("--full", dest="full", default=False)
-    parser.add_option("--skip-base", dest="skip_base", default=False)
-    parser.add_option("--dry-run", dest="dry_run", default=False)
+    parser.add_option("--full", action="store_true", dest="full", default=False)
+    parser.add_option("--skip-base", action="store_true", dest="skip_base", default=False)
+    parser.add_option("--dry-run", action="store_true", dest="dry_run", default=False)
+    parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
     (options, args) = parser.parse_args(args)
     
     conf_path = options.config and os.path.abspath(options.config)
@@ -468,7 +477,7 @@ def main(args):
         tickets = None
         count = int(options.count)
 
-    patchbot = Patchbot(options.sage_root, options.server, conf_path, dry_run=options.dry_run)
+    patchbot = Patchbot(options.sage_root, options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only)
     
     conf = patchbot.get_config()
     if options.list:
@@ -490,9 +499,9 @@ def main(args):
     if not options.skip_base:
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-        if not any(good(report) for report in patchbot.current_reports(0)):
+        if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
-            if res != 'TestsPassed':
+            if res not in  ('TestsPassed', 'PluginOnly'):
                 print "\n\n"
                 while True:
                     print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
@@ -502,7 +511,7 @@ def main(args):
                     elif ans[0] == 'y':
                         break
 
-    for _ in range(count):
+    for k in range(count):
         try:
             if tickets:
                 ticket = tickets.pop(0)

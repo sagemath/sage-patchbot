@@ -190,7 +190,9 @@ def render_ticket_status(ticket):
         info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
-    if 'reports' in info:
+    if 'base' in request.args:
+        base = request.args.get('base')
+    elif 'reports' in info:
         base = latest_version(current_reports(info))
     else:
         base = None
@@ -294,7 +296,7 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'NoPatch', 'Spkg']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'PluginOnly', 'PluginOnlyFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'NoPatch', 'Spkg']
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
@@ -306,6 +308,8 @@ status_colors = {
     'TestsPassed': 'green',
     'PluginFailed': 'blue',
     'Pending'    : 'white',
+    'PluginOnly' : 'white',
+    'PluginOnlyFailed' : 'white',
     'NoPatch'    : 'purple',
     'Spkg'       : 'purple',
 }
@@ -320,6 +324,14 @@ def status_image(status):
 def create_status_image(status, base=None):
     if ',' in status:
         status_list = status.split(',')
+        # Ignore plugin only...
+        while 'PluginOnly' in status_list and len(status_list) > 1:
+            status_list.remove('PluginOnly')
+        # If tests passed but a plugin-only failed, report as if the plugin failed.
+        if 'TestsPassed' in status_list:
+            for ix, status in enumerate(status_list):
+                if status_list[ix] == 'PluginOnlyFailed':
+                    status_list[ix] = 'PluginFailed'
         if len(set(status_list)) == 1:
             status = status_list[0]
         else:
@@ -338,20 +350,23 @@ def create_status_image(status, base=None):
                     if not os.path.exists('images/_cache'):
                         os.mkdir('images/_cache')
                     Image.fromarray(composite, 'RGBA').save(path)
-            except ImportError:
-                print "bad import"
+            except ImportError, exn:
+                print exn
                 status = min_status(status_list)
                 path = status_image(status)
     else:
         path = status_image(status)
     if base is not None:
-        from PIL import Image
-        import ImageDraw
-        im = Image.open(path)
-        ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
-        output = StringIO()
-        im.save(output, format='png')
-        return output.getvalue()
+        try:
+            from PIL import Image
+            import ImageDraw
+            im = Image.open(path)
+            ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
+            output = StringIO()
+            im.save(output, format='png')
+            return output.getvalue()
+        except ImportError:
+            return open(path).read()
     else:
         return open(path).read()
 
