@@ -185,7 +185,7 @@ def render_ticket(ticket):
                     else:
                         dep['style'] = ''
                     deps_status[dep['id']] = dep
-                new_info[key] = ', '.join("<img src='/ticket/%s/status.png?no_trac' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
+                new_info[key] = ', '.join("<img src='/ticket/%s/status.png?fast' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a,a) for a in value)
             elif key == 'participants':
@@ -233,7 +233,7 @@ def reports_by_machine_and_base(ticket):
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
     try:
-        if 'no_trac' in request.args:
+        if 'fast' in request.args:
             info = tickets.find_one({'id': ticket})
         else:
             info = trac.scrape(ticket, db=db)
@@ -246,7 +246,11 @@ def render_ticket_status(ticket):
     else:
         base = None
     status = get_ticket_status(info, base=base)[2]
-    response = make_response(create_status_image(status, base=base))
+    if 'fast' in request.args:
+        display_base = None
+    else:
+        display_base = base
+    response = make_response(create_status_image(status, base=display_base))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'no-cache'
     return response
