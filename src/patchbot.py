@@ -233,7 +233,7 @@ class Patchbot:
             "positive_review": 500,
             "blocker": 100,
             "critical": 50,
-            "unique": 20,
+            "unique": 40,
             "applies": 20,
         }
         for key, value in unicode_conf.items():

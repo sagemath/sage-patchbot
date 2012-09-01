@@ -377,14 +377,14 @@ def get_plugin_data(id, plugin_name, timestamp):
             return "Unknown plugin: " + plugin_name
     return "Unknown report: " + timestamp
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'PluginOnly', 'PluginOnlyFailed', 'NoPatch', 'Spkg']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
 status_colors = {
     'New'        : 'white',
     'ApplyFailed': 'red',
-    'BuildFailed': 'red',
+    'BuildFailed': 'orange',
     'TestsFailed': 'yellow',
     'TestsPassed': 'green',
     'PluginFailed': 'blue',
