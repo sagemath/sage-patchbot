@@ -178,7 +178,14 @@ def render_ticket(ticket):
             elif key == 'reports' or key == 'pending':
                 pass
             elif key == 'depends_on':
-                new_info[key] = ', '.join("<a href='/ticket/%s'>%s</a>" % (a, a) for a in value)
+                deps_status = {}
+                for dep in tickets.find({'id': {'$in': [int(a) for a in value]}}, ['status', 'id']):
+                    if 'closed' in dep['status']:
+                        dep['style'] = 'text-decoration: line-through'
+                    else:
+                        dep['style'] = ''
+                    deps_status[dep['id']] = dep
+                new_info[key] = ', '.join("<img src='/ticket/%s/status.png?no_trac' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a,a) for a in value)
             elif key == 'participants':
@@ -226,7 +233,10 @@ def reports_by_machine_and_base(ticket):
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
     try:
-        info = trac.scrape(ticket, db=db)
+        if 'no_trac' in request.args:
+            info = tickets.find_one({'id': ticket})
+        else:
+            info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
     if 'base' in request.args:
