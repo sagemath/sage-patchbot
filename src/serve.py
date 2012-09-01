@@ -375,8 +375,8 @@ status_colors = {
     'TestsPassed': 'green',
     'PluginFailed': 'blue',
     'Pending'    : 'white',
-    'PluginOnly' : 'white',
-    'PluginOnlyFailed' : 'white',
+    'PluginOnly' : 'lightgreen',
+    'PluginOnlyFailed' : 'lightblue',
     'NoPatch'    : 'purple',
     'Spkg'       : 'purple',
 }
