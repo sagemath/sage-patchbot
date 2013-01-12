@@ -219,6 +219,7 @@ class Patchbot:
             "timeout": 3 * 60 * 60,
             "plugins": ["plugins.commit_messages",
                         "plugins.coverage",
+                        "plugins.ascii",
                         "plugins.trailing_whitespace",
                         "plugins.startup_modules",
                         "plugins.docbuild"

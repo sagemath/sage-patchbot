@@ -96,26 +96,33 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 def docbuild(ticket, **kwds):
     do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
 
-def trailing_whitespace(ticket, patches, **kwds):
+def exclude_new(regex, msg, ticket, patches, **kwds):
     ignore_empty = True
     bad_lines = 0
-    trailing = re.compile("\\+.*\\s+$")
+    bad = re.complie(r'\+.*' + regex)
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print patch
         for ix, line in enumerate(open(patch_path)):
             line = line.strip("\n")
-            m = trailing.match(line)
+            m = non_ascii.match(line)
             if m:
                 print "    %s:%s %s$" % (patch, ix+1, line)
                 if line.strip() == '+' and ignore_empty:
                     pass
                 else:
                     bad_lines += 1
-    msg = "Trailing whitespace inserted on %s %slines." % (bad_lines, "non-empty " if ignore_empty else "")
-    print msg
+    full_msg = "%s inserted on %s %slines" % (
+        msg, bad_lines, "non-empty " if ignore_empty else "")
+    print full_msg
     if bad_lines > 0:
-        raise ValueError(msg)
+        raise ValueError(full_msg)
+
+def trailing_whitespace(ticket, patches, **kwds):
+    exclude_new(r'\s+$', "Trailing whitespace", **kwds)
+
+def non_ascii(**kwds):
+    exclude_new(regex=r'[^\x00-\x7F]', "Non-ascii characters", **kwds)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:
@@ -179,6 +186,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
+
 
 if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]
