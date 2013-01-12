@@ -220,7 +220,7 @@ class Patchbot:
             "plugins": ["plugins.commit_messages",
                         "plugins.coverage",
                         "plugins.ascii",
-                        "plugins.trailing_whitespace",
+#                        "plugins.trailing_whitespace",
                         "plugins.startup_time",
                         "plugins.startup_modules",
                         "plugins.docbuild"
