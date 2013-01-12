@@ -20,7 +20,8 @@ It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
 """
 
-import re, os, sys, subprocess
+import math
+import re, os, sys, subprocess, time
 
 from trac import do_or_die
 
@@ -122,7 +123,7 @@ def trailing_whitespace(ticket, patches, **kwds):
     exclude_new(r'\s+$', "Trailing whitespace", **kwds)
 
 def non_ascii(**kwds):
-    exclude_new(regex=r'[^\x00-\x7F]', "Non-ascii characters", **kwds)
+    exclude_new(r'[^\x00-\x7F]', "Non-ascii characters", **kwds)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:
@@ -187,7 +188,133 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
+def startup_time(ticket, loops=3, **kwds):
+    try:
+        def startup_times(samples, warmups=2):
+            all = []
+            for k in range(samples + warmups):
+                start = time.time()
+                do_or_die("$SAGE_ROOT/sage -c ''")
+                all.append(time.time() - start)
+            all.sort()
+            return all[:samples]
+
+        main_timings = []
+        ticket_timings = []
+
+        if loops == 0:
+            main_timings = [1.2578270435333252, 1.260890007019043, 1.2620019912719727, 1.2620508670806885, 1.2620928287506104, 1.2624049186706543, 1.2628939151763916, 1.2597601413726807, 1.2601690292358398, 1.2619030475616455, 1.2621428966522217, 1.2627081871032715, 1.2631988525390625, 1.263575792312622, 1.2605640888214111, 1.2606971263885498, 1.2611360549926758, 1.2615859508514404, 1.262929916381836, 1.263355016708374, 1.2642560005187988, 1.2611699104309082, 1.2625548839569092, 1.2645201683044434, 1.2647550106048584, 1.2648990154266357, 1.2657241821289062, 1.2662768363952637]
+            ticket_timings = [1.3140549659729004, 1.314316987991333, 1.3158237934112549, 1.315997838973999, 1.31626296043396, 1.3165380954742432, 1.317572832107544, 1.3129069805145264, 1.3167099952697754, 1.318160057067871, 1.3189101219177246, 1.3200490474700928, 1.3227341175079346, 1.3227899074554443, 1.314229965209961, 1.3146660327911377, 1.3169920444488525, 1.318953037261963, 1.3190178871154785, 1.3199529647827148, 1.320039987564087, 1.313957929611206, 1.3181397914886475, 1.318274974822998, 1.3190598487854004, 1.3199548721313477, 1.3200139999389648, 1.3249070644378662]
+
+        for _ in range(loops):
+            do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket)
+            ticket_timings.extend(startup_times(8, 2))
+            do_or_die("$SAGE_ROOT/sage -b main > /dev/null")
+            main_timings.extend(startup_times(8, 2))
+        print "main_timings =", main_timings
+        print "ticket_timings =", ticket_timings
+
+        n1 = len(main_timings)
+        p1 = mean(main_timings)
+        s1 = std_dev(main_timings)
+
+        n2 = len(ticket_timings)
+        p2 = mean(ticket_timings)
+        s2 = std_dev(ticket_timings)
+
+        base = p1
+        diff = abs(p2 - p1)
+        increased = p1 < p2
+        inc_or_dec = ['decreased', 'increased']
+
+        print
+        print "Main:   %0.3g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1)
+        print "Ticket: %0.3g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2)
+        print
+        print "Average %s of %0.2g secs or %0.2g%%." % (
+            inc_or_dec[increased][:-1], diff, diff / base)
+        print
+
+        if increased:
+            # swap
+            n1, p1, s1, n2, p2, s2 = n2, p2, s2, n1, p1, s1
+        err = math.sqrt(s1**2 / n1 + s2**2 / n2)
+        stats = []
+        for confidence in (.9999, .999, .99, .95, .9, .75):
+            lower_bound = (diff - err * ICDF(confidence)) / base
+            if lower_bound > 0:
+                stats.append((confidence, lower_bound))
+            if len(stats) > 4:
+                break
+        for lower_bound in (1, .5, .1, .05, .01, 0.005, .001):
+            confidence = CDF((diff - base * lower_bound) / err)
+            if confidence > 0.25:
+                stats.append((confidence, lower_bound))
+            if len(stats) > 6:
+                break
+
+        stats.sort()
+        status = PluginResult.Passed
+        for confidence, lower_bound, in stats:
+            if increased and confidence > .90 and lower_bound > .005:
+                status = PluginResult.Failed
+            # Get 99.999x%.
+            confidence = 1 - float(("%0.1g" if confidence > .9 else "%0.2g") % (1 - confidence))
+            print "With %g%% confidence, startup time %s by at least %0.2g%%" % (
+                100 * confidence, inc_or_dec[increased], 100 * lower_bound)
+
+        data = dict(stats=stats, main_timings=main_timings, ticket_timings=ticket_timings)
+        return PluginResult(status, data=data)
+
+    finally:
+        print
+        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket)
+
+
+# Some utility functions.
+
+sqrt_pi_over_8 = math.sqrt(math.pi / 8)
+def mean(a):
+    return 1.0 * sum(a) / len(a)
+
+def std_dev(a):
+    xbar = mean(a)
+    return math.sqrt(sum((x-xbar)**2 for x in a) / (len(a) - 1.0))
+
+# Aludaat, K.M. and Alodat, M.T. (2008). A note on approximating the normal
+# distribution function. Applied Mathematical Sciences, Vol 2, no 9, pgs 425-429.
+
+def CDF(x):
+    """
+    The cumulative distribution function to within 0.00197323.
+    """
+    if x < 0:
+        return 1 - CDF(-x)
+    return 0.5 + 0.5 * math.sqrt(1 - math.exp(-sqrt_pi_over_8 * x*x))
+
+def ICDF(p):
+    """
+    Inverse cumulative distribution function.
+    """
+    if p < 0.5:
+        return -ICDF(1 - p)
+    return math.sqrt(-math.log(1 - (2 * p - 1)**2) / sqrt_pi_over_8)
+
+
 
 if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]
-    plugin(-1, patches=sys.argv[2:])
+    kwds = {}
+    for arg in sys.argv[2:]:
+        m = re.match("--([a-zA-Z0-9]+)=(([_a-zA-Z]*).*)", arg)
+        if not m:
+            print arg, "must be of the form --kwd=expr"
+            sys.exit(1)
+        key = m.group(1)
+        if m.group(2) == m.group(3):
+            value = m.group(2)
+        else:
+            value = eval(m.group(2))
+        kwds[key] = value
+    plugin(**kwds)
+
