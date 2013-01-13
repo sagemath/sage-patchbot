@@ -219,16 +219,17 @@ class Patchbot:
             "timeout": 3 * 60 * 60,
             "plugins": ["plugins.commit_messages",
                         "plugins.coverage",
-                        "plugins.ascii",
+                        "plugins.non_ascii",
 #                        "plugins.trailing_whitespace",
                         "plugins.startup_time",
                         "plugins.startup_modules",
-                        "plugins.docbuild"
+#                        "plugins.docbuild"
                         ],
             "bonus": {},
             "machine": machine_data(),
             "machine_match": 3,
             "user": getpass.getuser(),
+            "keep_open_branches": True,
         }
         default_bonus = {
             "needs_review": 1000,
@@ -330,8 +331,6 @@ class Patchbot:
             ticket = None, scrape(int(ticket))
         if not ticket:
             print "No more tickets."
-            if random.random() < 0.01:
-                self.cleanup()
             time.sleep(conf['idle'])
             return
 
@@ -443,6 +442,8 @@ class Patchbot:
                 time.sleep(conf['idle'])
         else:
             print "Error reporting", ticket['id']
+        if not conf['keep_open_branches'] and str(ticket['id']) != '0':
+            shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
         return status[state]
 
     def report_ticket(self, ticket, status, log, plugins=[]):
@@ -547,6 +548,8 @@ def main(args):
             conf = patchbot.reload_config()
             if check_time_of_day(conf['time_of_day']):
                 patchbot.test_a_ticket(ticket)
+                if random.random() < 0.01:
+                    patchbot.cleanup()
             else:
                 print "Idle."
                 time.sleep(conf['idle'])
