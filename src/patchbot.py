@@ -276,8 +276,8 @@ class Patchbot:
     def get_ticket(self, return_all=False):
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status=open"
-        if trusted_authors:
-            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
+#        if trusted_authors:
+#            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
         print "Getting ticket list..."
         all = self.load_json_from_server("ticket/?" + query)
         if trusted_authors:
@@ -295,14 +295,14 @@ class Patchbot:
     def rate_ticket(self, ticket):
         rating = 0
         if not ticket['spkgs'] and not ticket['patches']:
-            return # can't handle these yet
+            return # nothing to do
         for dep in ticket['depends_on']:
             if isinstance(dep, basestring) and '.' in dep:
                 if compare_version(self.base, dep) < 0:
                     # Depends on a newer version of Sage than we're running.
                     return None
         bonus = self.config['bonus']
-        for author in ticket['authors']:
+        for author in ticket['authors'] or ticket['participants']:
             if author not in self.config['trusted_authors']:
                 return
             rating += bonus.get(author, 0)
