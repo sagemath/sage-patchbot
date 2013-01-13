@@ -97,16 +97,16 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 def docbuild(ticket, **kwds):
     do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
 
-def exclude_new(regex, msg, ticket, patches, **kwds):
+def exclude_new(ticket, regex, msg, patches, **kwds):
     ignore_empty = True
     bad_lines = 0
-    bad = re.complie(r'\+.*' + regex)
+    bad = re.compile(r'\+.*' + regex)
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print patch
         for ix, line in enumerate(open(patch_path)):
             line = line.strip("\n")
-            m = non_ascii.match(line)
+            m = bad.match(line)
             if m:
                 print "    %s:%s %s$" % (patch, ix+1, line)
                 if line.strip() == '+' and ignore_empty:
@@ -119,11 +119,11 @@ def exclude_new(regex, msg, ticket, patches, **kwds):
     if bad_lines > 0:
         raise ValueError(full_msg)
 
-def trailing_whitespace(ticket, patches, **kwds):
-    exclude_new(r'\s+$', "Trailing whitespace", **kwds)
+def trailing_whitespace(ticket, **kwds):
+    exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
 
-def non_ascii(**kwds):
-    exclude_new(r'[^\x00-\x7F]', "Non-ascii characters", **kwds)
+def non_ascii(ticket, **kwds):
+    exclude_new(ticket, regex=r'[^\x00-\x7F]', msg="Non-ascii characters", **kwds)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:
@@ -189,6 +189,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=modules, data=data)
 
 def startup_time(ticket, loops=3, **kwds):
+    ticket_id = ticket['id']
     try:
         def startup_times(samples, warmups=2):
             all = []
@@ -202,14 +203,10 @@ def startup_time(ticket, loops=3, **kwds):
         main_timings = []
         ticket_timings = []
 
-        if loops == 0:
-            main_timings = [1.2578270435333252, 1.260890007019043, 1.2620019912719727, 1.2620508670806885, 1.2620928287506104, 1.2624049186706543, 1.2628939151763916, 1.2597601413726807, 1.2601690292358398, 1.2619030475616455, 1.2621428966522217, 1.2627081871032715, 1.2631988525390625, 1.263575792312622, 1.2605640888214111, 1.2606971263885498, 1.2611360549926758, 1.2615859508514404, 1.262929916381836, 1.263355016708374, 1.2642560005187988, 1.2611699104309082, 1.2625548839569092, 1.2645201683044434, 1.2647550106048584, 1.2648990154266357, 1.2657241821289062, 1.2662768363952637]
-            ticket_timings = [1.3140549659729004, 1.314316987991333, 1.3158237934112549, 1.315997838973999, 1.31626296043396, 1.3165380954742432, 1.317572832107544, 1.3129069805145264, 1.3167099952697754, 1.318160057067871, 1.3189101219177246, 1.3200490474700928, 1.3227341175079346, 1.3227899074554443, 1.314229965209961, 1.3146660327911377, 1.3169920444488525, 1.318953037261963, 1.3190178871154785, 1.3199529647827148, 1.320039987564087, 1.313957929611206, 1.3181397914886475, 1.318274974822998, 1.3190598487854004, 1.3199548721313477, 1.3200139999389648, 1.3249070644378662]
-
         for _ in range(loops):
-            do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket)
+            do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
             ticket_timings.extend(startup_times(8, 2))
-            do_or_die("$SAGE_ROOT/sage -b main > /dev/null")
+            do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null")
             main_timings.extend(startup_times(8, 2))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
@@ -228,8 +225,8 @@ def startup_time(ticket, loops=3, **kwds):
         inc_or_dec = ['decreased', 'increased']
 
         print
-        print "Main:   %0.3g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1)
-        print "Ticket: %0.3g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2)
+        print "Main:   %0.5g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1)
+        print "Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2)
         print
         print "Average %s of %0.2g secs or %0.2g%%." % (
             inc_or_dec[increased][:-1], diff, diff / base)
@@ -255,20 +252,24 @@ def startup_time(ticket, loops=3, **kwds):
 
         stats.sort()
         status = PluginResult.Passed
+        if not stats:
+            print "No statistically significant difference."
         for confidence, lower_bound, in stats:
-            if increased and confidence > .90 and lower_bound > .005:
+            if increased and confidence >= .75 and lower_bound >= .001:
                 status = PluginResult.Failed
             # Get 99.999x%.
             confidence = 1 - float(("%0.1g" if confidence > .9 else "%0.2g") % (1 - confidence))
             print "With %g%% confidence, startup time %s by at least %0.2g%%" % (
                 100 * confidence, inc_or_dec[increased], 100 * lower_bound)
 
+        if not increased:
+            stats = [(x, -y) for x, y in stats]
         data = dict(stats=stats, main_timings=main_timings, ticket_timings=ticket_timings)
         return PluginResult(status, data=data)
 
     finally:
         print
-        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket)
+        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
 
 
 # Some utility functions.
