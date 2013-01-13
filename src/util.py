@@ -31,7 +31,7 @@ def latest_version(reports):
     else:
         return None
 
-def current_reports(ticket, base=None, unique=False):
+def current_reports(ticket, base=None, unique=False, newer=False):
     if 'reports' not in ticket:
         return []
     if unique:
@@ -48,11 +48,15 @@ def current_reports(ticket, base=None, unique=False):
     reports.sort(lambda a, b: cmp(b['time'], a['time']))
     if base == 'latest':
         base = latest_version(reports)
+    def base_ok(report_base):
+        return (not base 
+            or base == report_base
+            or (newer and comparable_version(base) <= comparable_version(report_base)))
     return filter(lambda report: (ticket['patches'] == report['patches'] and
                                   ticket['spkgs'] == report['spkgs'] and
                                   ticket['depends_on'] == (report.get('deps') or []) and
-                                  (not base or base == report['base'])) and
-                                  first('/'.join(report['machine'])),
+                                  base_ok(report['base']) and
+                                  first('/'.join(report['machine']))),
                       reports)
 
 def do_or_die(cmd):

@@ -229,7 +229,7 @@ def startup_time(ticket, loops=3, **kwds):
         print "Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2)
         print
         print "Average %s of %0.2g secs or %0.2g%%." % (
-            inc_or_dec[increased][:-1], diff, diff / base)
+            inc_or_dec[increased][:-1], diff, 100 * diff / base)
         print
 
         if increased:
@@ -255,7 +255,7 @@ def startup_time(ticket, loops=3, **kwds):
         if not stats:
             print "No statistically significant difference."
         for confidence, lower_bound, in stats:
-            if increased and confidence >= .75 and lower_bound >= .001:
+            if increased and confidence >= .75 and lower_bound >= .002:
                 status = PluginResult.Failed
             # Get 99.999x%.
             confidence = 1 - float(("%0.1g" if confidence > .9 else "%0.2g") % (1 - confidence))

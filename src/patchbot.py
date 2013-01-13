@@ -17,10 +17,11 @@
 #                  http://www.gnu.org/licenses/
 ####################################################################
 
-
+import hashlib
 import signal
 import getpass, platform
 import random, re, os, shutil, sys, subprocess, time, traceback
+import tempfile
 import cPickle as pickle
 import bz2, urllib2, urllib, json
 from optparse import OptionParser
@@ -135,6 +136,7 @@ status = {
     'tests_passed_plugins_failed': 'PluginFailed',
     'plugins'       : 'PluginOnly',
     'plugins_failed' : 'PluginOnlyFailed',
+    'spkg'          : 'Spkg',
 }
 
 def plugin_boundary(name, end=False):
@@ -173,6 +175,15 @@ def check_time_of_day(hours):
             return True
     return False
 
+def sha1file(path, blocksize=2**16):
+    h = hashlib.sha1()
+    handle = open(path)
+    buf = handle.read(blocksize)
+    while len(buf) > 0:
+        h.update(buf)
+        buf = handle.read(blocksize)
+    return h.hexdigest()
+
 class Patchbot:
     
     def __init__(self, sage_root, server, config_path, dry_run=False, plugin_only=False):
@@ -195,6 +206,7 @@ class Patchbot:
         try:
             return self._default_trusted
         except:
+            print "Getting trusted author list..."
             self._default_trusted = self.load_json_from_server("trusted").keys()
             return self._default_trusted
 
@@ -263,9 +275,10 @@ class Patchbot:
 
     def get_ticket(self, return_all=False):
         trusted_authors = self.config.get('trusted_authors')
-        query = "raw&status=open&todo"
+        query = "raw&status=open"
         if trusted_authors:
             query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
+        print "Getting ticket list..."
         all = self.load_json_from_server("ticket/?" + query)
         if trusted_authors:
             all = filter_on_authors(all, trusted_authors)
@@ -281,10 +294,8 @@ class Patchbot:
 
     def rate_ticket(self, ticket):
         rating = 0
-        if ticket['spkgs']:
+        if not ticket['spkgs'] and not ticket['patches']:
             return # can't handle these yet
-        elif not ticket['patches']:
-            return # nothing to do
         for dep in ticket['depends_on']:
             if isinstance(dep, basestring) and '.' in dep:
                 if compare_version(self.base, dep) < 0:
@@ -307,7 +318,7 @@ class Patchbot:
         uniqueness = (100,)
         prune_pending(ticket)
         if not ticket.get('retry'):
-            for report in self.current_reports(ticket):
+            for report in self.current_reports(ticket, newer=True):
                 uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
@@ -316,10 +327,10 @@ class Patchbot:
             return # already did this one
         return uniqueness, rating, -int(ticket['id'])
 
-    def current_reports(self, ticket):
+    def current_reports(self, ticket, newer=False):
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
-        return current_reports(ticket, base=self.base)
+        return current_reports(ticket, base=self.base, newer=newer)
     
     def test_a_ticket(self, ticket=None):
     
@@ -352,74 +363,89 @@ class Patchbot:
                 t = Timer()
                 start_time = time.time()
 
-                state = 'started'
-                os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
-                os.environ['SAGE_ROOT'] = self.sage_root
-                # TODO: Ensure that sage-main is pristine.
-                pull_from_trac(self.sage_root, ticket['id'], force=True)
-                t.finish("Apply")
-                state = 'applied'
-                
-                do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
-                t.finish("Build")
-                state = 'built'
-                
-                working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
-                # Only the ones on this ticket.
-                patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
-                kwds = {
-                    "original_dir": "%s/devel/sage-0" % self.sage_root,
-                    "patched_dir": working_dir,
-                    "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
-                    "sage_binary": os.path.join(self.sage_root, 'sage')
-                }
-                
-                for name, plugin in self.config['plugins']:
-                    try:
-                        if ticket['id'] != 0 and os.path.exists(os.path.join(log_dir, '0', name)):
-                            baseline = pickle.load(open(os.path.join(log_dir, '0', name)))
-                        else:
-                            baseline = None
-                        print plugin_boundary(name)
-                        res = plugin(ticket, baseline=baseline, **kwds)
-                        passed = True
-                    except Exception:
-                        traceback.print_exc()
-                        passed = False
-                        res = None
-                    finally:
-                        if isinstance(res, PluginResult):
-                            if res.baseline is not None:
-                                plugin_dir = os.path.join(log_dir, str(ticket['id']))
-                                if not os.path.exists(plugin_dir):
-                                    os.mkdir(plugin_dir)
-                                pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
-                            passed = res.status == PluginResult.Passed
-                            print name, res.status
-                            plugins_results.append((name, passed, res.data))
-                        else:
-                            plugins_results.append((name, passed, None))
-                        t.finish(name)
-                        print plugin_boundary(name, end=True)
-                plugins_passed = all(passed for (name, passed, data) in plugins_results)
-                
-                if self.plugin_only:
-                    state = 'plugins' if plugins_passed else 'plugins_failed'
+                if ticket['spkgs']:
+                    state = 'spkg'
+                    print "\n".join(ticket['spkgs'])
+                    print
+                    for spkg in ticket['spkgs']:
+                        print
+                        print '+' * 10, spkg, '+' * 10
+                        print
+                        try:
+                            self.check_spkg(spkg)
+                        except Exception:
+                            traceback.print_exc()
+                        t.finish(spkg)
+
                 else:
-                    if self.dry_run:
-                        test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
-                    else:
-                        test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
-                    if conf['parallelism'] > 1:
-                        test_cmd = "-tp %s" % conf['parallelism']
-                    else:
-                        test_cmd = "-t"
-                    do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
-                    t.finish("Tests")
-                    state = 'tested'
+                    state = 'started'
+                    os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
+                    os.environ['SAGE_ROOT'] = self.sage_root
+                # TODO: Ensure that sage-main is pristine.
+                    pull_from_trac(self.sage_root, ticket['id'], force=True)
+                    t.finish("Apply")
+                    state = 'applied'
+                
+                    do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
+                    t.finish("Build")
+                    state = 'built'
+                
+                    working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
+                # Only the ones on this ticket.
+                    patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
+                    kwds = {
+                        "original_dir": "%s/devel/sage-0" % self.sage_root,
+                        "patched_dir": working_dir,
+                        "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
+                        "sage_binary": os.path.join(self.sage_root, 'sage')
+                        }
+                
+                    for name, plugin in self.config['plugins']:
+                        try:
+                            if ticket['id'] != 0 and os.path.exists(os.path.join(log_dir, '0', name)):
+                                baseline = pickle.load(open(os.path.join(log_dir, '0', name)))
+                            else:
+                                baseline = None
+                            print plugin_boundary(name)
+                            res = plugin(ticket, baseline=baseline, **kwds)
+                            passed = True
+                        except Exception:
+                            traceback.print_exc()
+                            passed = False
+                            res = None
+                        finally:
+                            if isinstance(res, PluginResult):
+                                if res.baseline is not None:
+                                    plugin_dir = os.path.join(log_dir, str(ticket['id']))
+                                    if not os.path.exists(plugin_dir):
+                                        os.mkdir(plugin_dir)
+                                    pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
+                                    passed = res.status == PluginResult.Passed
+                                    print name, res.status
+                                    plugins_results.append((name, passed, res.data))
+                                else:
+                                    plugins_results.append((name, passed, None))
+                            t.finish(name)
+                            print plugin_boundary(name, end=True)
+                    plugins_passed = all(passed for (name, passed, data) in plugins_results)
+                
+                    if self.plugin_only:
+                        state = 'plugins' if plugins_passed else 'plugins_failed'
+                    else: 
+                        if self.dry_run:
+                            test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+                        else: 
+                            test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+                        if conf['parallelism'] > 1:
+                            test_cmd = "-tp %s" % conf['parallelism']
+                        else: 
+                            test_cmd = "-t"
+                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
+                        t.finish("Tests")
+                        state = 'tested'
                     
-                    if not plugins_passed:
-                        state = 'tests_passed_plugins_failed'
+                        if not plugins_passed:
+                            state = 'tests_passed_plugins_failed'
 
                 print
                 t.print_all()
@@ -445,6 +471,96 @@ class Patchbot:
         if not conf['keep_open_branches'] and str(ticket['id']) != '0':
             shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
         return status[state]
+
+    def check_spkg(self, spkg):
+        temp_dir = None
+        try:
+            if '#' in spkg:
+                spkg = spkg.split('#')[0]
+            basename = os.path.basename(spkg)
+            temp_dir = tempfile.mkdtemp()
+            local_spkg = os.path.join(temp_dir, basename)
+            do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
+            do_or_die("tar xf %s -C %s" % (local_spkg, temp_dir))
+            
+            print
+            print "Sha1", basename, sha1file(local_spkg)
+            print
+            print "Checking repo status."
+            do_or_die("cd %s; hg diff; echo $?" % local_spkg[:-5])
+            print
+            print
+            print "Comparing to previous spkg."
+
+            # Compare to the current version.
+            base = basename.split('-')[0] # the reset is the version
+            old_path = old_url = listing = None
+            if False:
+                # There seems to be a bug...
+                #  File "/data/sage/sage-5.5/local/lib/python2.7/site-packages/pexpect.py", line 1137, in which
+                #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
+
+                import pexpect
+                p = pexpect.spawn("%s/sage" % self.sage_root,  ['-i', '--info', base])
+                while True:
+                    index = p.expect([
+                            r"Found package %s in (\S+)" % base,
+                            r">>> Checking online list of (\S+) packages.",
+                            r">>> Found (%s-\S+)" % base,
+                            r"Error: could not find a package"])
+                    if index == 0:
+                        old_path = "$SAGE_ROOT/" + p.match.group(1)
+                        break
+                    elif index == 1:
+                        listing = p.match.group(2)
+                    elif index == 2:
+                        old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, p.match.group(1))
+                        break
+                    else:
+                        print "No previous match."
+                        break
+            else:
+                p = subprocess.Popen(r"%s/sage -i --info %s" % (self.sage_root, base),
+                                     shell=True, stdout=subprocess.PIPE)
+                for line in p.communicate()[0].split('\n'):
+                    m = re.match("Found package %s in (\S+)" % base, line)
+                    if m:
+                        old_path = os.path.join(self.sage_root, m.group(1))
+                        break
+                    m = re.match(r">>> Checking online list of (\S+) packages.", line)
+                    if m:
+                        listing = m.group(1)
+                    m = re.match(r">>> Found (%s-\S+)" % base, line)
+                    if m:
+                        old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
+                        break
+                if not old_path and not old_url:
+                    print "Unable to locate existing package %s." % base
+            
+            if old_url is not None:
+                old_basename = os.path.basename(old_url)
+                old_path = os.path.join(temp_dir, old_basename)
+                if not os.path.exists(old_path):
+                    do_or_die("wget --progress=dot:mega %s -O %s" % (old_url, old_path))
+            if old_path is not None:
+                old_basename = os.path.basename(old_path)
+                if old_basename == basename:
+                    print "PACKAGE NOT RENAMED"
+                else:
+                    do_or_die("tar xf %s -C %s" % (old_path, temp_dir))
+                    print '\n\n', '-' * 20
+                    do_or_die("diff -N -u -r -x src -x .hg %s/%s %s/%s; echo $?" % (temp_dir, old_basename[:-5], temp_dir, basename[:-5]))
+                    print '\n\n', '-' * 20
+                    do_or_die("diff -q -r %s/%s/src %s/%s/src; echo $?" % (temp_dir, old_basename[:-5], temp_dir, basename[:-5]))
+                
+            print
+            print "-" * 20
+            do_or_die("head -n 100 %s/SPKG.txt" % local_spkg[:-5])
+
+
+        finally:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
 
     def report_ticket(self, ticket, status, log, plugins=[]):
         print ticket['id'], status
