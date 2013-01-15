@@ -188,28 +188,33 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, loops=3, **kwds):
+def startup_time(ticket, loops=5, total_samples=40, used_samples=25, **kwds):
     ticket_id = ticket['id']
     try:
-        def startup_times(samples, warmups=2):
+        def startup_times(samples):
             all = []
-            for k in range(samples + warmups):
+            for k in range(samples):
                 start = time.time()
                 do_or_die("$SAGE_ROOT/sage -c ''")
                 all.append(time.time() - start)
-            all.sort()
-            return all[:samples]
+            return all
 
         main_timings = []
         ticket_timings = []
 
         for _ in range(loops):
             do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
-            ticket_timings.extend(startup_times(8, 2))
+            ticket_timings.extend(startup_times(total_samples // loops))
             do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null")
-            main_timings.extend(startup_times(8, 2))
+            main_timings.extend(startup_times(total_samples // loops))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
+
+        # Only look at the min timings.
+        main_timings.sort()
+        del main_timings[used_samples:]
+        ticket_timings.sort()
+        del ticket_timings[used_samples:]
 
         n1 = len(main_timings)
         p1 = mean(main_timings)
@@ -264,7 +269,8 @@ def startup_time(ticket, loops=3, **kwds):
 
         if not increased:
             stats = [(x, -y) for x, y in stats]
-        data = dict(stats=stats, main_timings=main_timings, ticket_timings=ticket_timings)
+        data = dict(stats=stats, main_timings=main_timings, ticket_timings=ticket_timings,
+                    loops=loops, total_samples=total_samples, used_samples=used_samples)
         return PluginResult(status, data=data)
 
     finally:
