@@ -209,6 +209,7 @@ def startup_time(ticket, loops=5, total_samples=40, used_samples=25, **kwds):
             main_timings.extend(startup_times(total_samples // loops))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
+        print "Keeping the lowest", used_samples, "of", total_samples
 
         # Only look at the min timings.
         main_timings.sort()
