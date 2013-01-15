@@ -115,6 +115,14 @@ def extract_tag(sgml, tag):
         return None
     return sgml[start_ix + len(tag) : end_ix].strip()
 
+def extract_description(html):
+    start = html.find('<div class="description">')
+    end = html.find('<div id="attachments">')
+    if -1 < start < end:
+        return html[start:end]
+    else:
+        return ""
+
 def extract_status(html):
     """
     Extracts the status of a ticket from the html page.
@@ -228,7 +236,7 @@ def extract_spkgs(html):
     
     Just searches for urls ending in .spkg.
     """
-    return list(set(spkg_url_regex.findall(html)))
+    return list(set(spkg_url_regex.findall(extract_description(html))))
 
 def min_non_neg(*rest):
     non_neg = [a for a in rest if a >= 0]

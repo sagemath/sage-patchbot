@@ -537,6 +537,8 @@ class Patchbot:
                 if not old_path and not old_url:
                     print "Unable to locate existing package %s." % base
             
+            if old_path is not None and old_path.startswith('/attachment/'):
+                old_url = 'http://trac.sagemath.org/sage_trac' + old_path
             if old_url is not None:
                 old_basename = os.path.basename(old_url)
                 old_path = os.path.join(temp_dir, old_basename)
