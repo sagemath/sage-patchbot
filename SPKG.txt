@@ -24,7 +24,7 @@ https://github.com/robertwb/sage-patchbot/
 
 == Changelog ==
 
-=== Sage Patchbot 1.2.1 (Robert Bradshaw, January 2013) ===
+=== Sage Patchbot 1.2 (Robert Bradshaw, January 2013) ===
 
  * Startup-time plugin.
  * Non-ascii plugin.
