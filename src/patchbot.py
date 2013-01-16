@@ -557,7 +557,10 @@ class Patchbot:
                 
             print
             print "-" * 20
-            do_or_die("head -n 100 %s/SPKG.txt" % local_spkg[:-5])
+            if old_path:
+                do_or_die("head -n 100 %s/SPKG.txt" % local_spkg[:-5])
+            else:
+                do_or_die("cat %s/SPKG.txt" % local_spkg[:-5])                
 
 
         finally:

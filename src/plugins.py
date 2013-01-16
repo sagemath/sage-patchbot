@@ -207,9 +207,9 @@ def startup_time(ticket, loops=5, total_samples=60, used_samples=40, **kwds):
 
         for k in range(loops):
             do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
-            ticket_timings.extend(startup_times(total_samples // loops + k - loops // 2))
+            ticket_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
             do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null")
-            main_timings.extend(startup_times(total_samples // loops + k - loops // 2))
+            main_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
         print "Keeping the lowest", used_samples, "of", total_samples
