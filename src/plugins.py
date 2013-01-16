@@ -188,7 +188,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, loops=5, total_samples=40, used_samples=25, **kwds):
+def startup_time(ticket, loops=5, total_samples=60, used_samples=40, **kwds):
     ticket_id = ticket['id']
     try:
         def startup_times(samples):
@@ -202,11 +202,14 @@ def startup_time(ticket, loops=5, total_samples=40, used_samples=25, **kwds):
         main_timings = []
         ticket_timings = []
 
-        for _ in range(loops):
+        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null; sage -c ''" % ticket_id)
+        do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null; sage -c ''")
+
+        for k in range(loops):
             do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
-            ticket_timings.extend(startup_times(total_samples // loops))
+            ticket_timings.extend(startup_times(total_samples // loops + k - loops // 2))
             do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null")
-            main_timings.extend(startup_times(total_samples // loops))
+            main_timings.extend(startup_times(total_samples // loops + k - loops // 2))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
         print "Keeping the lowest", used_samples, "of", total_samples
@@ -241,7 +244,7 @@ def startup_time(ticket, loops=5, total_samples=40, used_samples=25, **kwds):
         if increased:
             # swap
             n1, p1, s1, n2, p2, s2 = n2, p2, s2, n1, p1, s1
-        err = math.sqrt(s1**2 / n1 + s2**2 / n2)
+        err = math.sqrt(s1**2 * (n1-1) / n1 + s2**2 * (n2-1) / n2)
         stats = []
         for confidence in (.9999, .999, .99, .95, .9, .75):
             lower_bound = (diff - err * ICDF(confidence)) / base
