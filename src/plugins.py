@@ -188,7 +188,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, loops=5, total_samples=60, used_samples=40, **kwds):
+def startup_time(ticket, loops=5, total_samples=60, used_samples=25, **kwds):
     ticket_id = ticket['id']
     try:
         def startup_times(samples):
@@ -244,7 +244,7 @@ def startup_time(ticket, loops=5, total_samples=60, used_samples=40, **kwds):
         if increased:
             # swap
             n1, p1, s1, n2, p2, s2 = n2, p2, s2, n1, p1, s1
-        err = math.sqrt(s1**2 * (n1-1) / n1 + s2**2 * (n2-1) / n2)
+        err = math.sqrt(s1**2 / n1 + s2**2 / n2)
         stats = []
         for confidence in (.9999, .999, .99, .95, .9, .75):
             lower_bound = (diff - err * ICDF(confidence)) / base
