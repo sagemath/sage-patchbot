@@ -188,7 +188,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, loops=5, total_samples=60, used_samples=25, **kwds):
+def startup_time(ticket, loops=5, total_samples=30, **kwds):
     ticket_id = ticket['id']
     try:
         def startup_times(samples):
@@ -212,13 +212,6 @@ def startup_time(ticket, loops=5, total_samples=60, used_samples=25, **kwds):
             main_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
-        print "Keeping the lowest", used_samples, "of", total_samples
-
-        # Only look at the min timings.
-        main_timings.sort()
-        del main_timings[used_samples:]
-        ticket_timings.sort()
-        del ticket_timings[used_samples:]
 
         n1 = len(main_timings)
         p1 = mean(main_timings)
@@ -240,41 +233,38 @@ def startup_time(ticket, loops=5, total_samples=60, used_samples=25, **kwds):
         print "Average %s of %0.2g secs or %0.2g%%." % (
             inc_or_dec[increased][:-1], diff, 100 * diff / base)
         print
+        print "Using the Mann-Whitney U test to determine significance."
 
         if increased:
             # swap
             n1, p1, s1, n2, p2, s2 = n2, p2, s2, n1, p1, s1
-        err = math.sqrt(s1**2 / n1 + s2**2 / n2)
-        stats = []
-        for confidence in (.9999, .999, .99, .95, .9, .75):
-            lower_bound = (diff - err * ICDF(confidence)) / base
-            if lower_bound > 0:
-                stats.append((confidence, lower_bound))
-            if len(stats) > 4:
-                break
-        for lower_bound in (1, .5, .1, .05, .01, 0.005, .001):
-            confidence = CDF((diff - base * lower_bound) / err)
+        z = mann_whitney_U(main_timings, ticket_timings)
+        confidence_intervals = []
+        for lower_bound in (1, .5, .25, .1, .05, .025, .01, 0.005, .0025, .001):
+            z = mann_whitney_U(main_timings, ticket_timings, offset=base*lower_bound)
+            confidence = CDF(z) 
+            print lower_bound, z, confidence
             if confidence > 0.25:
-                stats.append((confidence, lower_bound))
-            if len(stats) > 6:
+                confidence_intervals.append((confidence, lower_bound))
+            if len(confidence_intervals) >= 5:
                 break
 
-        stats.sort()
         status = PluginResult.Passed
-        if not stats:
+        if not confidence_intervals:
             print "No statistically significant difference."
-        for confidence, lower_bound, in stats:
-            if increased and confidence >= .75 and lower_bound >= .002:
+        for confidence, lower_bound, in confidence_intervals:
+            if increased and confidence >= .9 and lower_bound >= .001:
                 status = PluginResult.Failed
-            # Get 99.999x%.
+            # Print 99.999x%.
             confidence = 1 - float(("%0.1g" if confidence > .9 else "%0.2g") % (1 - confidence))
             print "With %g%% confidence, startup time %s by at least %0.2g%%" % (
                 100 * confidence, inc_or_dec[increased], 100 * lower_bound)
 
         if not increased:
-            stats = [(x, -y) for x, y in stats]
-        data = dict(stats=stats, main_timings=main_timings, ticket_timings=ticket_timings,
-                    loops=loops, total_samples=total_samples, used_samples=used_samples)
+            confidence_intervals = [(x, -y) for x, y in confidence_intervals]
+        data = dict(confidence_intervals=confidence_intervals,
+                    main_timings=main_timings, ticket_timings=ticket_timings,
+                    loops=loops, total_samples=total_samples)
         return PluginResult(status, data=data)
 
     finally:
@@ -283,6 +273,19 @@ def startup_time(ticket, loops=5, total_samples=60, used_samples=25, **kwds):
 
 
 # Some utility functions.
+
+def mann_whitney_U(a, b, offset=0):
+    all = [(x, 0) for x in a] + [(x - offset, 1) for x in b]
+    all.sort()
+    R = [0, 0]
+    for ix, (x, k) in enumerate(all):
+        R[k] += ix + 1
+    n0 = len(a)
+    n1 = len(b)
+    U = [R[0] - n1 * (n0 + 1) / 2, R[1] - n1 * (n1 + 1) / 2]
+    mU = n0*n1/2
+    sU = math.sqrt(n0 * n1 * (n0+n1+1) / 12.0)
+    return (U[1] - mU) / sU
 
 sqrt_pi_over_8 = math.sqrt(math.pi / 8)
 def mean(a):
@@ -317,7 +320,7 @@ if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]
     kwds = {}
     for arg in sys.argv[2:]:
-        m = re.match("--([a-zA-Z0-9]+)=(([_a-zA-Z]*).*)", arg)
+        m = re.match("--([_a-zA-Z0-9]+)=(([_a-zA-Z]*).*)", arg)
         if not m:
             print arg, "must be of the form --kwd=expr"
             sys.exit(1)
