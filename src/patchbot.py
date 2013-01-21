@@ -235,7 +235,7 @@ class Patchbot:
 #                        "plugins.trailing_whitespace",
                         "plugins.startup_time",
                         "plugins.startup_modules",
-#                        "plugins.docbuild"
+                        "plugins.docbuild"
                         ],
             "bonus": {},
             "machine": machine_data(),
