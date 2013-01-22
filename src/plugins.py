@@ -243,7 +243,6 @@ def startup_time(ticket, loops=5, total_samples=30, **kwds):
         for lower_bound in (1, .5, .25, .1, .05, .025, .01, 0.005, .0025, .001):
             z = mann_whitney_U(main_timings, ticket_timings, offset=base*lower_bound)
             confidence = CDF(z) 
-            print lower_bound, z, confidence
             if confidence > 0.25:
                 confidence_intervals.append((confidence, lower_bound))
             if len(confidence_intervals) >= 5:
