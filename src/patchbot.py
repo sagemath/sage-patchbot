@@ -468,7 +468,7 @@ class Patchbot:
                 time.sleep(conf['idle'])
         else:
             print "Error reporting", ticket['id']
-        if not conf['keep_open_branches'] and str(ticket['id']) != '0':
+        if not conf['keep_open_branches'] and str(ticket['id']) != '0' and not ticket['spkgs']:
             shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
         return status[state]
 
