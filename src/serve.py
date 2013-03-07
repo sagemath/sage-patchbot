@@ -492,7 +492,7 @@ def main(args):
     parser = OptionParser()
     parser.add_option("-b", "--base", dest="base")
     parser.add_option("-p", "--port", dest="port")
-    parser.add_option("--debug", dest="debug", default=True)
+    parser.add_option("--debug", dest="debug", default=False)
     (options, args) = parser.parse_args(args)
 
     global global_base, base
