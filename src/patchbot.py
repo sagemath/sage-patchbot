@@ -435,7 +435,7 @@ class Patchbot:
                         if self.dry_run:
                             test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
                         else: 
-                            test_dirs = ["-sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+                            test_dirs = ["--sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
                         if conf['parallelism'] > 1:
                             test_cmd = "-tp %s" % conf['parallelism']
                         else: 
