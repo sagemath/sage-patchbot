@@ -188,10 +188,17 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, loops=5, total_samples=30, **kwds):
+def startup_time(ticket, is_git=False, loops=5, total_samples=30, **kwds):
     ticket_id = ticket['id']
+    if is_git:
+        choose_base = "git checkout base; make build"
+        choose_ticket = "git checkout ticket; make build"
+    else:
+        choose_base = "$SAGE_ROOT/sage -b 0 > /dev/null"
+        choose_ticket = "$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id
     try:
         def startup_times(samples):
+            do_or_die("sage -c ''")
             all = []
             for k in range(samples):
                 start = time.time()
@@ -202,13 +209,15 @@ def startup_time(ticket, loops=5, total_samples=30, **kwds):
         main_timings = []
         ticket_timings = []
 
-        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null; sage -c ''" % ticket_id)
-        do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null; sage -c ''")
+        do_or_die(choose_ticket)
+        do_or_die("sage -c ''")
+        do_or_die(choose_base)
+        do_or_die("sage -c ''")
 
         for k in range(loops):
-            do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
+            do_or_die(choose_ticket)
             ticket_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
-            do_or_die("$SAGE_ROOT/sage -b 0 > /dev/null")
+            do_or_die(choose_base)
             main_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings

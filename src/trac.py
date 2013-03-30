@@ -1,8 +1,8 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
-import re, hashlib, urllib2, os, sys, traceback, time, subprocess
+import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 
-from util import do_or_die, extract_version, compare_version, get_base, now_str
+from util import do_or_die, extract_version, compare_version, get_base, now_str, is_git
 
 def digest(s):
     """
@@ -86,6 +86,7 @@ def scrape(ticket_id, force=False, db=None):
         'patches'       : patches,
         'authors'       : authors,
         'participants'  : extract_participants(rss),
+        'git_branch'    : extract_git_branch(rss),
         'last_activity' : now_str(),
     }
     if db is not None:
@@ -227,7 +228,14 @@ def extract_participants(rss):
         if who:
             all.add(who)
     return list(all)
-    
+
+git_branch_regex = re.compile(r"\b((git|ssh|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b")
+def extract_git_branch(rss):
+    commit = None
+    for m in git_branch_regex.finditer(rss):
+        commit = m.group(0)
+    return commit
+
 spkg_url_regex = re.compile(r"(?:(?:http://)|(?:/attachment/)).*?\.spkg")
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
 def extract_spkgs(html):
@@ -272,101 +280,135 @@ def ensure_safe(items):
     else:
         for item in items:
             ensure_safe(item)
-    
 
-def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
-    # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
-    if branch is None:
-        branch = str(ticket)
-    if not os.path.exists('%s/devel/sage-%s' % (sage_root, branch)):
-        do_or_die('%s/sage -b main' % (sage_root,))
-        do_or_die('%s/sage -clone %s' % (sage_root, branch))
-    os.chdir('%s/devel/sage-%s' % (sage_root, branch))
-    if interactive:
-        raise NotImplementedError
-    if not os.path.exists('.hg/patches'):
-        do_or_die('hg qinit')
-        series = []
-    elif not os.path.exists('.hg/patches/series'):
-        series = []
-    else:
-        series = open('.hg/patches/series').read().split('\n')
-
-    base = get_base(sage_root)
-    desired_series = []
-    seen_deps = []
-    def append_patch_list(ticket, dependency=False):
-        if ticket in seen_deps:
-            return
-        print "Looking at #%s" % ticket
-        seen_deps.append(ticket)
-        data = scrape(ticket)
-        if dependency and 'closed' in data['status']:
-            merged = data.get('merged')
-            if merged is None:
-                merged = data.get('milestone')
-            if merged is None or compare_version(merged, base) <= 0:
-                print "#%s already applied (%s <= %s)" % (ticket, merged, base)
-                return
-        if data['spkgs']:
-            raise NotImplementedError, "Spkgs not yet handled."
-        if data['depends_on']:
-            for dep in data['depends_on']:
-                if isinstance(dep, basestring) and '.' in dep:
-                    if compare_version(base, dep) < 0:
-                        raise ValueError, "%s < %s for %s" % (base, dep, ticket)
-                    continue
-                append_patch_list(dep, dependency=True)
-        print "Patches for #%s:" % ticket
-        print "    " + "\n    ".join(data['patches'])
-        for patch in data['patches']:
-            patchfile, hash = patch.split('#')
-            desired_series.append((hash, patchfile, get_patch_url(ticket, patchfile)))
-    append_patch_list(ticket)
-    
-    ensure_safe(series)
-    ensure_safe(patch for hash, patch, url in desired_series)
-
-    last_good_patch = '-a'
-    to_push = list(desired_series)
-    for series_patch, (hash, patch, url) in zip(series, desired_series):
-        if not series_patch:
-            break
-        next_hash = digest(open('.hg/patches/%s' % series_patch).read())
-#        print next_hash, hash, series_patch
-        if next_hash == hash:
-            to_push.pop(0)
-            last_good_patch = series_patch
+def inplace_safe(branch):
+    """
+    Returns whether it is safe to test this ticket inplace.
+    """
+    # TODO: Are removed files sufficiently cleaned up?
+    for file in subprocess.check_output(["git", "diff", "--name-only", "base..ticket"]).split('\n'):
+        if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt"):
+            continue
         else:
-            break
+            return False
+    return True
 
-    try:
-        if last_good_patch != '-a':
-            # In case it's not yet pushed...
-            if last_good_patch not in os.popen2('hg qapplied')[1].read().split('\n'):
-                do_or_die('hg qpush %s' % last_good_patch)
-        do_or_die('hg qpop %s' % last_good_patch)
-        for hash, patch, url in to_push:
-            if patch in series:
-                if not force:
-                    raise Exception, "Duplicate patch: %s" % patch
-                old_patch = patch
-                while old_patch in series:
-                    old_patch += '-old'
-                do_or_die('hg qrename %s %s' % (patch, old_patch))
-            try:
-                do_or_die('hg qimport %s' % url)
-            except Exception, exn:
-                time.sleep(30)
+def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None):
+    # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
+    if is_git(sage_root):
+        ticket_id = ticket
+        info = scrape(ticket_id)
+        os.chdir(sage_root)
+        do_or_die("git checkout base")
+        if ticket_id == 0:
+            return
+        repo, branch = info['git_branch'].split(' ')
+        do_or_die("git fetch %s +%s:ticket" % (repo, branch))
+        if inplace is None:
+            inplace = inplace_safe("ticket")
+        if inplace:
+            do_or_die("git checkout ticket")
+            do_or_die("git merge base")
+        else:
+            tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
+            do_or_die("git clone . %s" % tmp_dir)
+            os.chdir(tmp_dir)
+            os.environ['SAGE_ROOT'] = tmp_dir
+            do_or_die("git checkout ticket")
+            do_or_die("git merge base")
+            os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+    else:
+        if branch is None:
+            branch = str(ticket)
+        if not os.path.exists('%s/devel/sage-%s' % (sage_root, branch)):
+            do_or_die('%s/sage -b main' % (sage_root,))
+            do_or_die('%s/sage -clone %s' % (sage_root, branch))
+        os.chdir('%s/devel/sage-%s' % (sage_root, branch))
+        if interactive:
+            raise NotImplementedError
+        if not os.path.exists('.hg/patches'):
+            do_or_die('hg qinit')
+            series = []
+        elif not os.path.exists('.hg/patches/series'):
+            series = []
+        else:
+            series = open('.hg/patches/series').read().split('\n')
+
+        base = get_base(sage_root)
+        desired_series = []
+        seen_deps = []
+        def append_patch_list(ticket, dependency=False):
+            if ticket in seen_deps:
+                return
+            print "Looking at #%s" % ticket
+            seen_deps.append(ticket)
+            data = scrape(ticket)
+            if dependency and 'closed' in data['status']:
+                merged = data.get('merged')
+                if merged is None:
+                    merged = data.get('milestone')
+                if merged is None or compare_version(merged, base) <= 0:
+                    print "#%s already applied (%s <= %s)" % (ticket, merged, base)
+                    return
+            if data['spkgs']:
+                raise NotImplementedError, "Spkgs not yet handled."
+            if data['depends_on']:
+                for dep in data['depends_on']:
+                    if isinstance(dep, basestring) and '.' in dep:
+                        if compare_version(base, dep) < 0:
+                            raise ValueError, "%s < %s for %s" % (base, dep, ticket)
+                        continue
+                    append_patch_list(dep, dependency=True)
+            print "Patches for #%s:" % ticket
+            print "    " + "\n    ".join(data['patches'])
+            for patch in data['patches']:
+                patchfile, hash = patch.split('#')
+                desired_series.append((hash, patchfile, get_patch_url(ticket, patchfile)))
+        append_patch_list(ticket)
+        
+        ensure_safe(series)
+        ensure_safe(patch for hash, patch, url in desired_series)
+
+        last_good_patch = '-a'
+        to_push = list(desired_series)
+        for series_patch, (hash, patch, url) in zip(series, desired_series):
+            if not series_patch:
+                break
+            next_hash = digest(open('.hg/patches/%s' % series_patch).read())
+    #        print next_hash, hash, series_patch
+            if next_hash == hash:
+                to_push.pop(0)
+                last_good_patch = series_patch
+            else:
+                break
+
+        try:
+            if last_good_patch != '-a':
+                # In case it's not yet pushed...
+                if last_good_patch not in os.popen2('hg qapplied')[1].read().split('\n'):
+                    do_or_die('hg qpush %s' % last_good_patch)
+            do_or_die('hg qpop %s' % last_good_patch)
+            for hash, patch, url in to_push:
+                if patch in series:
+                    if not force:
+                        raise Exception, "Duplicate patch: %s" % patch
+                    old_patch = patch
+                    while old_patch in series:
+                        old_patch += '-old'
+                    do_or_die('hg qrename %s %s' % (patch, old_patch))
                 try:
                     do_or_die('hg qimport %s' % url)
                 except Exception, exn:
-                    raise urllib2.HTTPError(exn)
-            do_or_die('hg qpush')
-        do_or_die('hg qapplied')
-    except:
-        os.system('hg qpop -a')
-        raise
+                    time.sleep(30)
+                    try:
+                        do_or_die('hg qimport %s' % url)
+                    except Exception, exn:
+                        raise urllib2.HTTPError(exn)
+                do_or_die('hg qpush')
+            do_or_die('hg qapplied')
+        except:
+            os.system('hg qpop -a')
+            raise
 
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):

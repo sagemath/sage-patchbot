@@ -59,6 +59,9 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                                   first('/'.join(report['machine']))),
                       reports)
 
+def is_git(sage_root):
+    return os.path.exists(sage_root + "/.git")
+
 def do_or_die(cmd):
     print cmd
     res = os.system(cmd)

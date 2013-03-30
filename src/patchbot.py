@@ -29,7 +29,7 @@ from optparse import OptionParser
 from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
-from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version, current_reports
+from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version, current_reports, is_git
 from plugins import PluginResult
 
 def filter_on_authors(tickets, authors):
@@ -125,10 +125,7 @@ class Timer:
         for label, elapsed in self._history:
             self.print_time(label, elapsed)
 
-# The sage test scripts could really use some cleanup...
-all_test_dirs = ["doc/common", "doc/en", "doc/fr", "sage"]
-
-status = {
+--alstatus = {
     'started'       : 'ApplyFailed',
     'applied'       : 'BuildFailed',
     'built'         : 'TestsFailed',
@@ -194,6 +191,7 @@ class Patchbot:
         self.plugin_only = plugin_only
         self.config_path = config_path
         self.reload_config()
+        self.is_git = is_git(sage_root)
         
     def load_json_from_server(self, path):
         handle = urllib2.urlopen("%s/%s" % (self.server, path))
@@ -251,6 +249,8 @@ class Patchbot:
             "unique": 40,
             "applies": 20,
         }
+        if self.is_git:
+            conf["plugins"].append("plugins.trailing_whitespace")
         for key, value in unicode_conf.items():
             conf[str(key)] = value
         for key, value in default_bonus.items():
@@ -294,8 +294,12 @@ class Patchbot:
 
     def rate_ticket(self, ticket):
         rating = 0
-        if not ticket['spkgs'] and not ticket['patches']:
-            return # nothing to do
+        if self.is_git:
+            if not ticket.get('git_branch'):
+                return
+        else:
+            if not ticket['spkgs'] and not ticket['patches']:
+                return # nothing to do
         for dep in ticket['depends_on']:
             if isinstance(dep, basestring) and '.' in dep:
                 if compare_version(self.base, dep) < 0:
@@ -351,9 +355,9 @@ class Patchbot:
         print ticket['title']
         print "score", rating
         print "\n" * 2
-        log_dir = self.sage_root + "/logs"
+        log_dir = self.sage_root + "/logs/patchbot"
         if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
+            os.makedirs(log_dir)
         log = '%s/%s-log.txt' % (log_dir, ticket['id'])
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=None)
@@ -381,24 +385,40 @@ class Patchbot:
                     state = 'started'
                     os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
-                # TODO: Ensure that sage-main is pristine.
+                    # TODO: Ensure that sage-main is pristine.
                     pull_from_trac(self.sage_root, ticket['id'], force=True)
                     t.finish("Apply")
                     state = 'applied'
                 
-                    do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
+                    if self.is_git:
+                        do_or_die("make")
+                    else:
+                        do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
                     t.finish("Build")
                     state = 'built'
                 
-                    working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
-                # Only the ones on this ticket.
-                    patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
-                    kwds = {
-                        "original_dir": "%s/devel/sage-0" % self.sage_root,
-                        "patched_dir": working_dir,
-                        "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
-                        "sage_binary": os.path.join(self.sage_root, 'sage')
+                    if self.is_git:
+                        # TODO: Exclude dependencies.
+                        patch_dir = tempfile.mkdtemp()
+                        if ticket['id'] != 0:
+                            do_or_die("git format-patch -o '%s' base..ticket" % patch_dir)
+                        
+                        kwds = {
+                            #"original_dir": self.sage_root,
+                            "patched_dir": os.getcwd(),
+                            "patches": [os.path.join(patch_dir, p) for p in os.listdir(patch_dir)],
+                            "sage_binary": os.path.join(os.getcwd(), 'sage')
                         }
+                    else:
+                        working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
+                        # Only the ones on this ticket.
+                        patches = os.popen2('hg --cwd %s qapplied' % working_dir)[1].read().strip().split('\n')[-len(ticket['patches']):]
+                        kwds = {
+                            "original_dir": "%s/devel/sage-0" % self.sage_root,
+                            "patched_dir": working_dir,
+                            "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
+                            "sage_binary": os.path.join(self.sage_root, 'sage')
+                            }
                 
                     for name, plugin in self.config['plugins']:
                         try:
@@ -407,7 +427,7 @@ class Patchbot:
                             else:
                                 baseline = None
                             print plugin_boundary(name)
-                            res = plugin(ticket, baseline=baseline, **kwds)
+                            res = plugin(ticket, is_get=self.is_git, baseline=baseline, **kwds)
                             passed = True
                         except Exception:
                             traceback.print_exc()
@@ -431,16 +451,16 @@ class Patchbot:
                 
                     if self.plugin_only:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
-                    else: 
+                    else:
                         if self.dry_run:
-                            test_dirs = ["$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % (ticket['id'])]
+                            test_target = "$SAGE_SRC/sage/misc/a*.py"
                         else: 
-                            test_dirs = ["--sagenb"] + ["$SAGE_ROOT/devel/sage-%s/%s" % (ticket['id'], dir) for dir in all_test_dirs]
+                            test_target = "--all --long"
                         if conf['parallelism'] > 1:
                             test_cmd = "-tp %s" % conf['parallelism']
                         else: 
                             test_cmd = "-t"
-                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, ' '.join(test_dirs)))
+                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, test_target))
                         t.finish("Tests")
                         state = 'tested'
                     
@@ -468,8 +488,13 @@ class Patchbot:
                 time.sleep(conf['idle'])
         else:
             print "Error reporting", ticket['id']
-        if not conf['keep_open_branches'] and str(ticket['id']) != '0' and not ticket['spkgs']:
-            shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
+        if self.is_git:
+            maybe_temp_root = os.environ['SAGE_ROOT']
+            if maybe_temp_root.endswith("-sage-git-temp-%s" % ticket['id']):
+                shutil.rmtree(maybe_temp_root)
+        else:
+            if not conf['keep_open_branches'] and str(ticket['id']) != '0' and not ticket['spkgs']:
+                shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
         return status[state]
 
     def check_spkg(self, spkg):
@@ -588,6 +613,8 @@ class Patchbot:
         print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
 
     def cleanup(self):
+        if self.is_git:
+            return
         print "Looking up closed tickets."
         # TODO: Get just the list, not the entire rendered page.
         closed_list = urllib2.urlopen(self.server + "?status=closed").read()
@@ -626,7 +653,7 @@ def main(args):
         tickets = None
         count = int(options.count)
 
-    patchbot = Patchbot(options.sage_root, options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only)
+    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only)
     
     conf = patchbot.get_config()
     if options.list:
