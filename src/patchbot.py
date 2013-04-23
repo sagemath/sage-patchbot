@@ -29,7 +29,8 @@ from optparse import OptionParser
 from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
-from util import now_str as datetime, parse_datetime, prune_pending, do_or_die, get_base, compare_version, current_reports, is_git
+from util import (now_str as datetime, parse_datetime, prune_pending, do_or_die,
+        get_base, compare_version, current_reports, is_git, git_commit)
 from plugins import PluginResult
 
 def filter_on_authors(tickets, authors):
@@ -125,7 +126,7 @@ class Timer:
         for label, elapsed in self._history:
             self.print_time(label, elapsed)
 
---alstatus = {
+status = {
     'started'       : 'ApplyFailed',
     'applied'       : 'BuildFailed',
     'built'         : 'TestsFailed',
@@ -187,11 +188,13 @@ class Patchbot:
         self.sage_root = sage_root
         self.server = server
         self.base = get_base(sage_root)
+        self.behind_base = {}
         self.dry_run = dry_run
         self.plugin_only = plugin_only
         self.config_path = config_path
-        self.reload_config()
         self.is_git = is_git(sage_root)
+        self.reload_config()
+        self.last_pull = 0
         
     def load_json_from_server(self, path):
         handle = urllib2.urlopen("%s/%s" % (self.server, path))
@@ -240,6 +243,10 @@ class Patchbot:
             "machine_match": 3,
             "user": getpass.getuser(),
             "keep_open_branches": True,
+            "base_repo": "git://github.com/sagemath/sage.git",
+            "base_branch": "master",
+            "max_behind_commits": 10,
+            "max_behind_days": 2.0,
         }
         default_bonus = {
             "needs_review": 1000,
@@ -248,9 +255,11 @@ class Patchbot:
             "critical": 50,
             "unique": 40,
             "applies": 20,
+            "behind": 1,
         }
         if self.is_git:
             conf["plugins"].append("plugins.trailing_whitespace")
+            conf["plugins"].append("plugins.git_rev_list")
         for key, value in unicode_conf.items():
             conf[str(key)] = value
         for key, value in default_bonus.items():
@@ -272,6 +281,19 @@ class Patchbot:
     def reload_config(self):
         self.config = self.get_config()
         return self.config
+
+    def check_base(self):
+        do_or_die("git fetch %s +%s:upstream" % (self.config['base_repo'], self.config['base_branch']))
+        only_in_base, only_in_upstream = [int(x) for x in subprocess.check_output("git", "rev-list", "--left-right", "--count", "base..upstream").split()]
+        if (only_in_base > 0
+            or only_in_upstream > self.config['max_behind_commits']
+            or (only_in_upstream > 0 and time.time() - self.last_pull < self.config['max_behind_days'] * 60 * 60 * 24)):
+            do_or_die("git checkout upstream")
+            do_or_die("git branch -D base")
+            do_or_die("git checkout -b base")
+            self.last_pull = time.time()
+            self.behind_base = {}
+            return True
 
     def get_ticket(self, return_all=False):
         trusted_authors = self.config.get('trusted_authors')
@@ -323,7 +345,15 @@ class Patchbot:
         prune_pending(ticket)
         if not ticket.get('retry'):
             for report in self.current_reports(ticket, newer=True):
+                if self.is_git():
+                    if 'git_base' in report:
+                        only_in_base, only_in_test = [int(x) for x in subprocess.check_output("git", "rev-list", "--left-right", "--count", "base..%s" % report['git_base']).split()]
+                        rating += bonus['behind'] * only_in_base
+                    else:
+                        continue
                 uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
+                if self.is_git() and only_in_base and not any(uniqueness):
+                    uniqueness = 0, 0, 0, 0, 1
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
                 rating -= bonus.get("unique", 0)
@@ -391,7 +421,7 @@ class Patchbot:
                     state = 'applied'
                 
                     if self.is_git:
-                        do_or_die("make")
+                        do_or_die("echo make")
                     else:
                         do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
                     t.finish("Build")
@@ -453,7 +483,10 @@ class Patchbot:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
                     else:
                         if self.dry_run:
-                            test_target = "$SAGE_SRC/sage/misc/a*.py"
+                            if self.is_git:
+                                test_target = "$SAGE_ROOT/src/sage/misc/a*.py"
+                            else:
+                                test_target = "$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % ticket['id']
                         else: 
                             test_target = "--all --long"
                         if conf['parallelism'] > 1:
@@ -605,6 +638,15 @@ class Patchbot:
             'time': datetime(),
             'plugins': plugins,
         }
+        if self.is_git:
+            try:
+                report['git_branch'] = ticket['git_branch']
+                report['git_base'] = self.git_commit('base')
+                report['git_commit'] = self.git_commit('ticket_pristine')
+                report['git_merge'] = self.git_commit('ticket')
+            except Exception:
+                # perhaps apply failed
+                pass
         fields = {'report': json.dumps(report)}
         if status != 'Pending':
             files = [('log', 'log', bz2.compress(open(log).read()))]
@@ -626,6 +668,9 @@ class Patchbot:
                     print "Deleting closed ticket:", to_delete
                     shutil.rmtree(to_delete)
         print "Done cleaning up."
+
+    def git_commit(self, branch):
+        return git_commit(self.sage_root, branch)
 
 def main(args):
     global conf
@@ -695,6 +740,8 @@ def main(args):
                 ticket = None
             conf = patchbot.reload_config()
             if check_time_of_day(conf['time_of_day']):
+                if patchbot.check_base():
+                    patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
                 if random.random() < 0.01:
                     patchbot.cleanup()

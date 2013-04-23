@@ -34,6 +34,13 @@ class PluginResult:
         self.data = data
         self.baseline = baseline or data
 
+def git_rev_list(ticket, **kwds):
+    before, after = subprocess.check_output(["git", "rev-list", "--left-right", "--count", "base..ticket_pristine"]).split()
+    print "> only in ticket (%s)" % after
+    print "< only in base (%s)" % before
+    print
+    do_or_die("git rev-list --left-right --oneline base..ticket_pristine")
+
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     # TODO: This doesn't check that tests were added to existing doctests for
     # new functionality.

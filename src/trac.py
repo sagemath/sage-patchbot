@@ -2,7 +2,7 @@ TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 
-from util import do_or_die, extract_version, compare_version, get_base, now_str, is_git
+from util import do_or_die, extract_version, compare_version, get_base, now_str, is_git, git_commit
 
 def digest(s):
     """
@@ -229,11 +229,15 @@ def extract_participants(rss):
             all.add(who)
     return list(all)
 
-git_branch_regex = re.compile(r"\b((git|ssh|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b")
+git_branch_regex = re.compile(r"\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b")
+github_regex = re.compile(r"https://github.com/(\w+)/(\w+)/(?:tree/\w+)?")
 def extract_git_branch(rss):
     commit = None
     for m in git_branch_regex.finditer(rss):
         commit = m.group(0)
+    if not commit:
+        for m in github_regex.finditer(rss):
+            commit = "git@github.com:%s/%s.git %s" % (m.group(1), m.group(2), m.group(3) or "master")
     return commit
 
 spkg_url_regex = re.compile(r"(?:(?:http://)|(?:/attachment/)).*?\.spkg")
@@ -290,11 +294,11 @@ def inplace_safe(branch):
         if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt"):
             continue
         else:
+            print "Unsafe file:", file
             return False
     return True
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None):
-    # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
     if is_git(sage_root):
         ticket_id = ticket
         info = scrape(ticket_id)
@@ -303,21 +307,21 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         if ticket_id == 0:
             return
         repo, branch = info['git_branch'].split(' ')
-        do_or_die("git fetch %s +%s:ticket" % (repo, branch))
+        do_or_die("git fetch %s +%s:ticket_pristine" % (repo, branch))
+        do_or_die("git rev-list --left-right --count base..ticket_pristine")
         if inplace is None:
             inplace = inplace_safe("ticket")
-        if inplace:
-            do_or_die("git checkout ticket")
-            do_or_die("git merge base")
-        else:
+        if not inplace:
             tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
             do_or_die("git clone . %s" % tmp_dir)
             os.chdir(tmp_dir)
-            os.environ['SAGE_ROOT'] = tmp_dir
-            do_or_die("git checkout ticket")
-            do_or_die("git merge base")
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+            os.environ['SAGE_ROOT'] = tmp_dir
+        do_or_die("git branch -D ticket")
+        do_or_die("git checkout -b ticket ticket_pristine")
+        do_or_die("git merge -X patience base")
     else:
+        # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
         if branch is None:
             branch = str(ticket)
         if not os.path.exists('%s/devel/sage-%s' % (sage_root, branch)):

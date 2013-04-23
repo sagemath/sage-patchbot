@@ -62,6 +62,13 @@ def current_reports(ticket, base=None, unique=False, newer=False):
 def is_git(sage_root):
     return os.path.exists(sage_root + "/.git")
 
+def git_commit(repo, branch):
+    ref = "refs/heads/%s"%branch
+    try:
+        return subprocess.check_output(["git", "--git_dir=%s/.git" % repo, "show-ref", "--quiet", "--verify", ref])
+    except subprocess.CalledProcessError:
+        return None
+
 def do_or_die(cmd):
     print cmd
     res = os.system(cmd)
