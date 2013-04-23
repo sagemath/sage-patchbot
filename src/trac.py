@@ -230,14 +230,14 @@ def extract_participants(rss):
     return list(all)
 
 git_branch_regex = re.compile(r"\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b")
-github_regex = re.compile(r"https://github.com/(\w+)/(\w+)/(?:tree/\w+)?")
+git_branch_regex = re.compile(r"https://github.com/(\w+)/(\w+)/(?:tree/(\w+))?|(\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b)")
 def extract_git_branch(rss):
     commit = None
     for m in git_branch_regex.finditer(rss):
-        commit = m.group(0)
-    if not commit:
-        for m in github_regex.finditer(rss):
-            commit = "git@github.com:%s/%s.git %s" % (m.group(1), m.group(2), m.group(3) or "master")
+        if m.group(4):
+            commit = m.group(4)
+        else:
+            commit = "git://github.com/%s/%s.git %s" % (m.group(1), m.group(2), m.group(3) or "master")
     return commit
 
 spkg_url_regex = re.compile(r"(?:(?:http://)|(?:/attachment/)).*?\.spkg")
