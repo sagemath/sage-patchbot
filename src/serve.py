@@ -179,7 +179,13 @@ def render_ticket(ticket):
                 pass
             elif key == 'depends_on':
                 deps_status = {}
-                for dep in tickets.find({'id': {'$in': [int(a) for a in value]}}, ['status', 'id']):
+                def is_int(a):
+                    try:
+                        int(a)
+                        return True
+                    except ValueError:
+                        return False
+                for dep in tickets.find({'id': {'$in': [int(a) for a in value if is_int(a)]}}, ['status', 'id']):
                     if 'closed' in dep['status']:
                         dep['style'] = 'text-decoration: line-through'
                     else:

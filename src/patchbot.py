@@ -361,7 +361,7 @@ class Patchbot:
             for report in self.current_reports(ticket, newer=True):
                 if self.is_git:
                     if report.get('git_base'):
-                        only_in_test = int(subprocess.check_output(["git", "rev-list", "--count", "base..%s" % report['git_base']]))
+                        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..base" % report['git_base']]))
                         rating += bonus['behind'] * only_in_base
                     else:
                         continue
