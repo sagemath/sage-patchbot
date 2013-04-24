@@ -203,6 +203,9 @@ def render_ticket(ticket):
             if 'patches' in item:
                 required = info['depends_on'] + info['patches']
                 item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
+            if 'git_base' in item:
+                git_log = item.get('git_log')
+                item['git_log_len'] = '?' if git_log is None else len(git_log)
             item['raw_base'] = item['base']
             if item['base'] != base:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']

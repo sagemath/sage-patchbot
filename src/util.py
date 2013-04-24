@@ -65,7 +65,7 @@ def is_git(sage_root):
 def git_commit(repo, branch):
     ref = "refs/heads/%s"%branch
     try:
-        return subprocess.check_output(["git", "--git_dir=%s/.git" % repo, "show-ref", "--quiet", "--verify", ref])
+        return subprocess.check_output(["git", "--git-dir=%s/.git" % repo, "show-ref", "--verify", ref]).split()[0]
     except subprocess.CalledProcessError:
         return None
 

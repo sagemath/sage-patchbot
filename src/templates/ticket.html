@@ -3,6 +3,9 @@
 {% block head %}
 <title>#{{ticket}} PatchBot Results</title>
 <link rel="shortcut icon" href="/blob/{{status}}" />
+<style>
+.git_commit {color:#555; font-size:80%}
+</style>
 {% endblock %}
 
 {% block body %}
@@ -39,7 +42,14 @@
 <tr>
 <td colspan=2></td>
 <td colspan=3 valign='top'>
+{% if 'git_base' in report %}
+Branch: {{report.git_branch}}<br>
+Commit: <span class='git_commit'>{{report.git_commit}}</span> ({{report.git_log_len}} new commits)<br>
+Base: <span class='git_commit'>{{report.git_base}}</span> ({{report.git_base_human}})<br>
+Merge: <span class='git_commit'>{{report.git_merge}}</span>
+{% else %}
 {{report.patch_list|safe}}
+{% endif %}
 </td>
 <td valign='top'>
 <ul style='list-style-type: none'>

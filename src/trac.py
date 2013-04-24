@@ -229,7 +229,6 @@ def extract_participants(rss):
             all.add(who)
     return list(all)
 
-git_branch_regex = re.compile(r"\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b")
 git_branch_regex = re.compile(r"https://github.com/(\w+)/(\w+)/(?:tree/(\w+))?|(\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b)")
 def extract_git_branch(rss):
     commit = None
@@ -290,7 +289,9 @@ def inplace_safe(branch):
     Returns whether it is safe to test this ticket inplace.
     """
     # TODO: Are removed files sufficiently cleaned up?
-    for file in subprocess.check_output(["git", "diff", "--name-only", "base..ticket"]).split('\n'):
+    for file in subprocess.check_output(["git", "diff", "--name-only", "base..ticket_pristine"]).split('\n'):
+        if not file:
+            continue
         if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt"):
             continue
         else:
@@ -309,6 +310,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         repo, branch = info['git_branch'].split(' ')
         do_or_die("git fetch %s +%s:ticket_pristine" % (repo, branch))
         do_or_die("git rev-list --left-right --count base..ticket_pristine")
+        do_or_die("git log base..ticket_pristine")
         if inplace is None:
             inplace = inplace_safe("ticket")
         if not inplace:
@@ -317,7 +319,10 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
             os.environ['SAGE_ROOT'] = tmp_dir
-        do_or_die("git branch -D ticket")
+        try:
+            do_or_die("git branch -D ticket")
+        except Exception:
+            pass
         do_or_die("git checkout -b ticket ticket_pristine")
         do_or_die("git merge -X patience base")
     else:

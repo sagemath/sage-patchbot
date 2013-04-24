@@ -283,8 +283,14 @@ class Patchbot:
         return self.config
 
     def check_base(self):
+        os.chdir(self.sage_root)
+        try:
+            do_or_die("git checkout base")
+        except Exception:
+            do_or_die("git checkout -b base")
         do_or_die("git fetch %s +%s:upstream" % (self.config['base_repo'], self.config['base_branch']))
-        only_in_base, only_in_upstream = [int(x) for x in subprocess.check_output("git", "rev-list", "--left-right", "--count", "base..upstream").split()]
+        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "upstream..base"]))
+        only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "base..upstream"]))
         if (only_in_base > 0
             or only_in_upstream > self.config['max_behind_commits']
             or (only_in_upstream > 0 and time.time() - self.last_pull < self.config['max_behind_days'] * 60 * 60 * 24)):
@@ -294,6 +300,14 @@ class Patchbot:
             self.last_pull = time.time()
             self.behind_base = {}
             return True
+
+    def human_readable_base(self):
+        # TODO: Is this stable?
+        version = open('VERSION.txt').read().split()[2].strip(',')
+        print version
+        print open('VERSION.txt').read().split()
+        commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..base' % version])
+        return "%s + %s commits" % (version, commit_count)
 
     def get_ticket(self, return_all=False):
         trusted_authors = self.config.get('trusted_authors')
@@ -345,14 +359,14 @@ class Patchbot:
         prune_pending(ticket)
         if not ticket.get('retry'):
             for report in self.current_reports(ticket, newer=True):
-                if self.is_git():
-                    if 'git_base' in report:
-                        only_in_base, only_in_test = [int(x) for x in subprocess.check_output("git", "rev-list", "--left-right", "--count", "base..%s" % report['git_base']).split()]
+                if self.is_git:
+                    if report.get('git_base'):
+                        only_in_test = int(subprocess.check_output(["git", "rev-list", "--count", "base..%s" % report['git_base']]))
                         rating += bonus['behind'] * only_in_base
                     else:
                         continue
                 uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
-                if self.is_git() and only_in_base and not any(uniqueness):
+                if self.is_git and only_in_base and not any(uniqueness):
                     uniqueness = 0, 0, 0, 0, 1
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
@@ -397,7 +411,7 @@ class Patchbot:
                 t = Timer()
                 start_time = time.time()
 
-                if ticket['spkgs']:
+                if not self.is_git and ticket['spkgs']:
                     state = 'spkg'
                     print "\n".join(ticket['spkgs'])
                     print
@@ -419,6 +433,8 @@ class Patchbot:
                     pull_from_trac(self.sage_root, ticket['id'], force=True)
                     t.finish("Apply")
                     state = 'applied'
+                    if not self.plugin_only:
+                        self.report_ticket(ticket, status='Pending', log=None)
                 
                     if self.is_git:
                         do_or_die("echo make")
@@ -426,6 +442,8 @@ class Patchbot:
                         do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
                     t.finish("Build")
                     state = 'built'
+                    if not self.plugin_only:
+                        self.report_ticket(ticket, status='Pending', log=None)
                 
                     if self.is_git:
                         # TODO: Exclude dependencies.
@@ -642,10 +660,14 @@ class Patchbot:
             try:
                 report['git_branch'] = ticket['git_branch']
                 report['git_base'] = self.git_commit('base')
+                report['git_base_human'] = self.human_readable_base()
                 report['git_commit'] = self.git_commit('ticket_pristine')
                 report['git_merge'] = self.git_commit('ticket')
+                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
+                print report
             except Exception:
                 # perhaps apply failed
+                raise
                 pass
         fields = {'report': json.dumps(report)}
         if status != 'Pending':
@@ -718,6 +740,7 @@ def main(args):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     if not options.skip_base:
+        patchbot.check_base()
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
         if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
