@@ -284,6 +284,8 @@ class Patchbot:
         return self.config
 
     def check_base(self):
+        if not self.is_git:
+            return True
         os.chdir(self.sage_root)
         try:
             do_or_die("git checkout base")
@@ -300,7 +302,8 @@ class Patchbot:
             do_or_die("git checkout -b base")
             self.last_pull = time.time()
             self.behind_base = {}
-            return True
+            return False
+        return True
 
     def human_readable_base(self):
         # TODO: Is this stable?
@@ -764,7 +767,7 @@ def main(args):
                 ticket = None
             conf = patchbot.reload_config()
             if check_time_of_day(conf['time_of_day']):
-                if patchbot.check_base():
+                if not patchbot.check_base():
                     patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
                 if random.random() < 0.01:
