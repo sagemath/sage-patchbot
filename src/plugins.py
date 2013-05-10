@@ -102,7 +102,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     
     return PluginResult(status, baseline=current, data=data)
 
-def docbuild(ticket, sage_root, **kwds):
+def docbuild(ticket, **kwds):
     do_or_die('make doc')
     r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Exception occurred|Sphinx error|Segmentation fault', 'logs/dochtml.log'])
     if r != 1:
