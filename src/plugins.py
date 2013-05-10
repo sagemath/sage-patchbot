@@ -102,8 +102,12 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     
     return PluginResult(status, baseline=current, data=data)
 
-def docbuild(ticket, **kwds):
-    do_or_die('$SAGE_ROOT/sage -docbuild --jsmath reference html')
+def docbuild(ticket, sage_root, **kwds):
+    do_or_die('make doc')
+    r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Exception occurred|Sphinx error|Segmentation fault', 'logs/dochtml.log'])
+    if r != 1:
+        # grep returns 1 iff there were no matches
+        raise ValueError
 
 def exclude_new(ticket, regex, msg, patches, **kwds):
     ignore_empty = True
