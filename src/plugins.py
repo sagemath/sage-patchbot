@@ -108,7 +108,10 @@ def docbuild(ticket, **kwds):
 def exclude_new(ticket, regex, msg, patches, **kwds):
     ignore_empty = True
     bad_lines = 0
-    bad = re.compile(r'\+.*' + regex)
+    if regex[0] == '^':
+        bad = re.compile(r'\+' + regex[1:])
+    else:
+        bad = re.compile(r'\+.*' + regex)        
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print patch
@@ -132,6 +135,9 @@ def trailing_whitespace(ticket, **kwds):
 
 def non_ascii(ticket, **kwds):
     exclude_new(ticket, regex=r'[^\x00-\x7F]', msg="Non-ascii characters", **kwds)
+
+def doctest_continuation(ticket, **kwds):
+    exclude_new(ticket, regex=r'^\s*...\s', msg="Old-style doctest continuation", **kwds)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:

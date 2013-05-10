@@ -233,6 +233,7 @@ class Patchbot:
             "plugins": ["plugins.commit_messages",
                         "plugins.coverage",
                         "plugins.non_ascii",
+                        "plugins.doctest_continuation",
 #                        "plugins.trailing_whitespace",
                         "plugins.startup_time",
                         "plugins.startup_modules",
