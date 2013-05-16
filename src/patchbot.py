@@ -495,8 +495,8 @@ class Patchbot:
                                     passed = res.status == PluginResult.Passed
                                     print name, res.status
                                     plugins_results.append((name, passed, res.data))
-                                else:
-                                    plugins_results.append((name, passed, None))
+                            else:
+                                plugins_results.append((name, passed, None))
                             t.finish(name)
                             print plugin_boundary(name, end=True)
                     plugins_passed = all(passed for (name, passed, data) in plugins_results)
@@ -534,8 +534,7 @@ class Patchbot:
         for _ in range(5):
             try:
                 print "Reporting", ticket['id'], status[state]
-                if not self.dry_run:
-                    self.report_ticket(ticket, status=status[state], log=log, plugins=plugins_results)
+                self.report_ticket(ticket, status=status[state], log=log, plugins=plugins_results, dry_run=self.dry_run)
                 print "Done reporting", ticket['id']
                 break
             except urllib2.HTTPError:
@@ -647,8 +646,7 @@ class Patchbot:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def report_ticket(self, ticket, status, log, plugins=[]):
-        print ticket['id'], status
+    def report_ticket(self, ticket, status, log, plugins=[], dry_run=False):
         report = {
             'status': status,
             'patches': ticket['patches'],
@@ -668,17 +666,21 @@ class Patchbot:
                 report['git_commit'] = self.git_commit('ticket_pristine')
                 report['git_merge'] = self.git_commit('ticket')
                 report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
-                print report
             except Exception:
                 # perhaps apply failed
                 raise
                 pass
+        print "REPORT"
+        import pprint
+        pprint.pprint(report)
+        print ticket['id'], status
         fields = {'report': json.dumps(report)}
         if status != 'Pending':
             files = [('log', 'log', bz2.compress(open(log).read()))]
         else:
             files = []
-        print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
+        if not dry_run:
+            print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
 
     def cleanup(self):
         if self.is_git:
