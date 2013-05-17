@@ -104,10 +104,12 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
 def docbuild(ticket, **kwds):
     do_or_die('make doc')
-    r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Exception occurred|Sphinx error|Segmentation fault', 'logs/dochtml.log'])
-    if r != 1:
-        # grep returns 1 iff there were no matches
-        raise ValueError
+    doc_log = 'logs/dochtml.log'
+    if os.path.exists(doc_log):
+        r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Exception occurred|Sphinx error|Segmentation fault', doc_log])
+        if r != 1:
+            # grep returns 1 iff there were no matches
+            raise ValueError
 
 def exclude_new(ticket, regex, msg, patches, **kwds):
     ignore_empty = True
