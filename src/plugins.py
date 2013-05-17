@@ -141,7 +141,7 @@ def non_ascii(ticket, **kwds):
     exclude_new(ticket, regex=r'[^\x00-\x7F]', msg="Non-ascii characters", **kwds)
 
 def doctest_continuation(ticket, **kwds):
-    exclude_new(ticket, regex=r'^\s*...\s', msg="Old-style doctest continuation", **kwds)
+    exclude_new(ticket, regex=r'^\s*\.\.\.\s', msg="Old-style doctest continuation", **kwds)
 
 def commit_messages(ticket, patches, **kwds):
     for patch_path in patches:
