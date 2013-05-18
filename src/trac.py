@@ -180,10 +180,10 @@ def extract_patches(rss):
         m = attachment_regex.search(description)
         comments = description[description.find('</ul>') + 1:]
         # Look for apply... followed by patch names
-        for line in comments.lower().split('\n'):
-            if 'apply' in line:
+        for line in comments.split('\n'):
+            if 'apply' in line.lower():
                 new_patches = []
-                for p in line[line.index('apply'):].split(','):
+                for p in line[line.lower().index('apply') + 5:].split(','):
                     for pp in p.strip().split():
                         if pp in all_patches:
                             new_patches.append(pp)
