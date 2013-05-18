@@ -218,7 +218,7 @@ def startup_time(ticket, is_git=False, loops=5, total_samples=30, **kwds):
         choose_ticket = "$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id
     try:
         def startup_times(samples):
-            do_or_die("sage -c ''")
+            do_or_die("$SAGE_ROOT/sage -c ''")
             all = []
             for k in range(samples):
                 start = time.time()
@@ -230,9 +230,9 @@ def startup_time(ticket, is_git=False, loops=5, total_samples=30, **kwds):
         ticket_timings = []
 
         do_or_die(choose_ticket)
-        do_or_die("sage -c ''")
+        do_or_die("$SAGE_ROOT/sage -c ''")
         do_or_die(choose_base)
-        do_or_die("sage -c ''")
+        do_or_die("$SAGE_ROOT/sage -c ''")
 
         for k in range(loops):
             do_or_die(choose_ticket)
