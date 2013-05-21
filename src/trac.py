@@ -1,6 +1,7 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
 
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
+import pprint
 
 from util import do_or_die, extract_version, compare_version, get_base, now_str, is_git, git_commit
 
@@ -119,6 +120,8 @@ def extract_tag(sgml, tag):
 def extract_description(html):
     start = html.find('<div class="description">')
     end = html.find('<div id="attachments">')
+    if end == -1:
+        end = html.find('<div id="changelog">')
     if -1 < start < end:
         return html[start:end]
     else:
@@ -239,7 +242,7 @@ def extract_git_branch(rss):
             commit = "git://github.com/%s/%s.git %s" % (m.group(1), m.group(2), m.group(3) or "master")
     return commit
 
-spkg_url_regex = re.compile(r"(?:(?:http://)|(?:/attachment/)).*?\.spkg")
+spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
 def extract_spkgs(html):
     """
@@ -442,7 +445,8 @@ if __name__ == '__main__':
             tickets = [int(ticket)]
         for ticket in tickets:
             try:
-                print ticket, scrape(ticket, force=force)
+                print ticket
+                pprint.pprint(scrape(ticket, force=force))
                 if apply:
                     pull_from_trac(os.environ['SAGE_ROOT'], ticket, force=True)
                 time.sleep(1)
