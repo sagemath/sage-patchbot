@@ -659,6 +659,7 @@ class Patchbot:
             'machine': self.config['machine'],
             'time': datetime(),
             'plugins': plugins,
+            'patchbot_version': patchbot_version.get_version(),
         }
         if self.is_git:
             try:
