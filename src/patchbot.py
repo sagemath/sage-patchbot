@@ -31,6 +31,7 @@ from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, parse_datetime, prune_pending, do_or_die,
         get_base, compare_version, current_reports, is_git, git_commit)
+import version
 from plugins import PluginResult
 
 def filter_on_authors(tickets, authors):
@@ -414,6 +415,7 @@ class Patchbot:
             with Tee(log, time=True, timeout=self.config['timeout']):
                 t = Timer()
                 start_time = time.time()
+                print "Sage Patchbot", version.get_version()
 
                 if not self.is_git and ticket['spkgs']:
                     state = 'spkg'

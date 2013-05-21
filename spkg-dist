@@ -48,6 +48,7 @@ fi
 rm -rf .git*
 cp -r $ORIGINAL/.hg .
 mv README.txt src
+echo $VERSION > src/version.txt
 cd ..
 
 sage -spkg patchbot-$VERSION
