@@ -59,14 +59,13 @@ def scrape(ticket_id, force=False, db=None):
         }
 
     rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
+    tsv = parse_tsv(get_url("%s/ticket/%s?format=tab" % (TRAC_URL, ticket_id)))
     page_hash = digest(rss) # rss isn't as brittle
     if db is not None:
         # TODO: perhaps the db caching should be extracted outside of this function...
         db_info = db.lookup_ticket(ticket_id)
         if not force and db_info is not None and db_info['page_hash'] == page_hash:
             return db_info
-    # TODO: Is there a better format that still has all the information?
-    html = get_url("%s/ticket/%s" % (TRAC_URL, ticket_id))
     authors = set()
     patches = []
     for patch, who in extract_patches(rss):
@@ -75,15 +74,15 @@ def scrape(ticket_id, force=False, db=None):
     authors = list(authors)
     data = {
         'id'            : ticket_id,
-        'title'         : extract_title(rss),
+        'title'         : tsv['summary'],
         'page_hash'     : page_hash,
-        'status'        : extract_status(html),
-        'milestone'     : extract_milestone(html),
-        'merged'        : extract_merged(html),
-        'priority'      : extract_priority(html),
-        'component'     : extract_component(html),
-        'depends_on'    : extract_depends_on(html),
-        'spkgs'         : extract_spkgs(html),
+        'status'        : tsv['status'],
+        'milestone'     : tsv['milestone'],
+        'merged'        : tsv['merged'],
+        'priority'      : tsv['priority'],
+        'component'     : tsv['component'],
+        'depends_on'    : extract_depends_on(tsv),
+        'spkgs'         : extract_spkgs(tsv),
         'patches'       : patches,
         'authors'       : authors,
         'participants'  : extract_participants(rss),
@@ -96,6 +95,17 @@ def scrape(ticket_id, force=False, db=None):
         return db_info
     else:
         return data
+
+def parse_tsv(tsv):
+    header, data = tsv.split('\n', 1)
+    def sanitize(items):
+        for item in items:
+            item = item.strip().replace('""', '"')
+            if item and item[0] == '"' and item[-1] == '"':
+                item = item[1:-1]
+            yield item
+    return dict(zip(sanitize(header.split('\t')),
+                    sanitize(data.split('\t'))))
 
 def extract_tag(sgml, tag):
     """
@@ -116,48 +126,6 @@ def extract_tag(sgml, tag):
     if end_ix == -1:
         return None
     return sgml[start_ix + len(tag) : end_ix].strip()
-
-def extract_description(html):
-    start = html.find('<div class="description">')
-    end = html.find('<div id="attachments">')
-    if end == -1:
-        end = html.find('<div id="changelog">')
-    if -1 < start < end:
-        return html[start:end]
-    else:
-        return ""
-
-def extract_status(html):
-    """
-    Extracts the status of a ticket from the html page.
-    """
-    status = extract_tag(html, '<span class="status">')
-    if status is None:
-        return 'unknown'
-    status = status.strip('()')
-    status = status.replace('defect', '').replace('enhancement', '').strip()
-    return status
-    
-def extract_priority(html):
-    """
-    Extracts any spkgs for a ticket from the html page.
-    """
-    return extract_tag(html, '<td headers="h_priority">')
-
-def extract_milestone(html):
-    milestone_field = extract_tag(html, '<td headers="h_milestone">')
-    return extract_version(milestone_field)
-
-def extract_merged(html):
-    merged_field = extract_tag(html, '<td headers="h_merged">')
-    return extract_version(merged_field)
-
-def extract_component(html):
-    return extract_tag(html, '<td headers="h_component">')
-    
-def extract_title(rss):
-    title = extract_tag(rss, '<title>')
-    return re.sub(r'.*#\d+:', '', title).strip()
 
 folded_regex = re.compile('all.*(folded|combined|merged)')
 subsequent_regex = re.compile('second|third|fourth|next|on top|after')
@@ -244,13 +212,13 @@ def extract_git_branch(rss):
 
 spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
-def extract_spkgs(html):
+def extract_spkgs(tsv):
     """
     Extracts any spkgs for a ticket from the html page.
     
     Just searches for urls ending in .spkg.
     """
-    return list(set(spkg_url_regex.findall(extract_description(html))))
+    return list(set(spkg_url_regex.findall(tsv['description'])))
 
 def min_non_neg(*rest):
     non_neg = [a for a in rest if a >= 0]
@@ -262,10 +230,10 @@ def min_non_neg(*rest):
         return min(*non_neg)
 
 ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
-def extract_depends_on(html):
-    deps_field = extract_tag(html, '<td headers="h_dependencies">')
+def extract_depends_on(tsv):
+    deps_field = tsv['dependencies']
     deps = []
-    for dep in re.finditer(r'ticket/(\d+)', deps_field):
+    for dep in re.finditer(r'#(\d+)', deps_field):
         deps.append(int(dep.group(1)))
     version = re.search(r'sage-\d+(\.\d)+(\.\w+)?', deps_field)
     if version:
