@@ -246,7 +246,7 @@ class Patchbot:
             "user": getpass.getuser(),
             "keep_open_branches": True,
             "base_repo": "git://github.com/sagemath/sage.git",
-            "base_branch": "master",
+            "base_branch": "build_system",
             "max_behind_commits": 10,
             "max_behind_days": 2.0,
         }
@@ -314,9 +314,9 @@ class Patchbot:
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..base' % version])
         return "%s + %s commits" % (version, commit_count)
 
-    def get_ticket(self, return_all=False):
+    def get_ticket(self, return_all=False, status='open'):
         trusted_authors = self.config.get('trusted_authors')
-        query = "raw&status=open"
+        query = "raw&status=%s" % status
 #        if trusted_authors:
 #            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
         print "Getting ticket list..."
@@ -443,7 +443,7 @@ class Patchbot:
                         self.report_ticket(ticket, status='Pending', log=None)
                 
                     if self.is_git:
-                        do_or_die("echo make")
+                        do_or_die("$MAKE")
                     else:
                         do_or_die('$SAGE_ROOT/sage -b %s' % ticket['id'])
                     t.finish("Build")
@@ -461,7 +461,8 @@ class Patchbot:
                             #"original_dir": self.sage_root,
                             "patched_dir": os.getcwd(),
                             "patches": [os.path.join(patch_dir, p) for p in os.listdir(patch_dir)],
-                            "sage_binary": os.path.join(os.getcwd(), 'sage')
+                            "sage_binary": os.path.join(os.getcwd(), 'sage'),
+                            "dry_run": self.dry_run,
                         }
                     else:
                         working_dir = "%s/devel/sage-%s" % (self.sage_root, ticket['id'])
@@ -471,7 +472,8 @@ class Patchbot:
                             "original_dir": "%s/devel/sage-0" % self.sage_root,
                             "patched_dir": working_dir,
                             "patches": ["%s/devel/sage-%s/.hg/patches/%s" % (self.sage_root, ticket['id'], p) for p in patches if p],
-                            "sage_binary": os.path.join(self.sage_root, 'sage')
+                            "sage_binary": os.path.join(self.sage_root, 'sage'),
+                            "dry_run": self.dry_run,
                             }
                 
                     for name, plugin in self.config['plugins']:
@@ -663,12 +665,17 @@ class Patchbot:
         }
         if self.is_git:
             try:
-                report['git_branch'] = ticket['git_branch']
                 report['git_base'] = self.git_commit('base')
                 report['git_base_human'] = self.human_readable_base()
-                report['git_commit'] = self.git_commit('ticket_pristine')
-                report['git_merge'] = self.git_commit('ticket')
-                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
+                if ticket['id'] != 0:
+                    report['git_branch'] = ticket.get('git_branch', None)
+                    report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
+                    report['git_commit'] = self.git_commit('ticket_pristine')
+                    report['git_merge'] = self.git_commit('ticket')
+                else:
+                    report['git_branch'] = self.config['base_branch']
+                    report['git_log'] = []
+                    report['git_commit'] = report['git_merge'] = report['git_base']
             except Exception:
                 # perhaps apply failed
                 raise

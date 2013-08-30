@@ -1,6 +1,20 @@
 import os, re, subprocess, time
 
 
+# check_output for Python < 2.7
+
+if "check_output" not in subprocess.__dict__: # duck punch it in!
+    def check_output(args):
+        process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        output, _ = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            raise subprocess.CalledProcessError(retcode, args[0])
+        return output
+    subprocess.check_output = check_output
+
+
+
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 def now_str():
     return time.strftime(DATE_FORMAT)

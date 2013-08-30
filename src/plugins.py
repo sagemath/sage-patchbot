@@ -208,7 +208,11 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, is_git=False, loops=5, total_samples=30, **kwds):
+def startup_time(ticket, is_git=False, loops=5, total_samples=30, dry_run=False, **kwds):
+    if dry_run:
+        loops //= 2
+        total_samples //=5
+    print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
     if is_git:
         choose_base = "git checkout base; make build"
