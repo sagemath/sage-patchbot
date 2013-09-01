@@ -1,4 +1,5 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
+TRAC_REPO = "http://trac.sagemath.org/sage.git"
 
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
@@ -68,9 +69,15 @@ def scrape(ticket_id, force=False, db=None):
             return db_info
     authors = set()
     patches = []
-    for patch, who in extract_patches(rss):
-        authors.add(who)
-        patches.append(patch + "#" + digest(get_patch(ticket_id, patch)))
+    if tsv['branch'].strip():
+        # TODO: query history
+        branch = tsv['branch']
+        if branch.startswith('u/'):
+            authors.add(branch.split('/')[1])
+    else:
+        for patch, who in extract_patches(rss):
+            authors.add(who)
+            patches.append(patch + "#" + digest(get_patch(ticket_id, patch)))
     authors = list(authors)
     data = {
         'id'            : ticket_id,
@@ -86,7 +93,9 @@ def scrape(ticket_id, force=False, db=None):
         'patches'       : patches,
         'authors'       : authors,
         'participants'  : extract_participants(rss),
-        'git_branch'    : extract_git_branch(rss),
+        'git_branch'    : tsv['branch'],
+        'git_repo'      : TRAC_REPO if tsv['branch'].strip() else None,
+        'git_commit'    : git_commit(tsv['branch']),
         'last_activity' : now_str(),
     }
     if db is not None:
@@ -95,6 +104,13 @@ def scrape(ticket_id, force=False, db=None):
         return db_info
     else:
         return data
+
+def git_commit(branch):
+    if branch.strip():
+        try:
+            return subprocess.check_output(['git', 'ls-remote', TRAC_REPO, branch]).split()[0]
+        except Exception:
+            return "unknown"
 
 def parse_tsv(tsv):
     header, data = tsv.split('\n', 1)
@@ -200,16 +216,6 @@ def extract_participants(rss):
             all.add(who)
     return list(all)
 
-git_branch_regex = re.compile(r"https://github.com/(\w+)/(\w+)/(?:tree/(\w+))?|(\b((git|http)://|\w+@)\S+\.git/? [a-zA-Z0-9_./-]+\b)")
-def extract_git_branch(rss):
-    commit = None
-    for m in git_branch_regex.finditer(rss):
-        if m.group(4):
-            commit = m.group(4)
-        else:
-            commit = "git://github.com/%s/%s.git %s" % (m.group(1), m.group(2), m.group(3) or "master")
-    return commit
-
 spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
 def extract_spkgs(tsv):
@@ -255,7 +261,7 @@ def ensure_safe(items):
         for item in items:
             ensure_safe(item)
 
-def inplace_safe(branch):
+def inplace_safe():
     """
     Returns whether it is safe to test this ticket inplace.
     """
@@ -263,7 +269,7 @@ def inplace_safe(branch):
     for file in subprocess.check_output(["git", "diff", "--name-only", "base..ticket_pristine"]).split('\n'):
         if not file:
             continue
-        if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt"):
+        if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
             continue
         else:
             print "Unsafe file:", file
@@ -278,18 +284,20 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         do_or_die("git checkout base")
         if ticket_id == 0:
             return
-        repo, branch = info['git_branch'].split(' ')
+        branch = info['git_branch']
+        repo = info['git_repo']
         do_or_die("git fetch %s +%s:ticket_pristine" % (repo, branch))
         do_or_die("git rev-list --left-right --count base..ticket_pristine")
         do_or_die("git log base..ticket_pristine")
         if inplace is None:
-            inplace = inplace_safe("ticket")
+            inplace = inplace_safe()
         if not inplace:
             tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
-            do_or_die("git clone . %s" % tmp_dir)
+            do_or_die("git clone . '%s'" % tmp_dir)
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
             os.environ['SAGE_ROOT'] = tmp_dir
+            do_or_die("git checkout -b ticket_pristine remotes/origin/ticket_pristine")
         try:
             do_or_die("git branch -D ticket")
         except Exception:

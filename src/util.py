@@ -67,6 +67,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
             or base == report_base
             or (newer and comparable_version(base) <= comparable_version(report_base)))
     return filter(lambda report: (ticket['patches'] == report['patches'] and
+                                  ticket.get('git_commit') == report.get('git_commit') and
                                   ticket['spkgs'] == report['spkgs'] and
                                   ticket['depends_on'] == (report.get('deps') or []) and
                                   base_ok(report['base']) and

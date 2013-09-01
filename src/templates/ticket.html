@@ -20,7 +20,7 @@
 <br><br>
 
 <table>
-{% for key, value in info.items(): %}
+{% for key, value in sort_fields(info.items()): %}
 <tr>
 <td align='right'>{{key}}:</td>
 <td>{{value|safe}}</td>

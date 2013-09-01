@@ -90,6 +90,13 @@ def ticket_list():
         query['participants'] = request.args.get('participant')
     all = patchbot.filter_on_authors(tickets.find(query).sort(order), authors)
     if 'raw' in request.args:
+        def filter_reports(all):
+            for ticket in all:
+                ticket['reports'] = list(reversed(sorted(current_reports(ticket), key=lambda report: report['time'])))[:10]
+                for report in ticket['reports']:
+                    report['plugins'] = '...'
+                yield ticket
+        all = filter_reports(all)
         if 'pretty' in request.args:
             indent = 4
         else:
@@ -222,7 +229,9 @@ def render_ticket(ticket):
         while len(plugin) < 3:
             plugin.append(None)
         return plugin
-    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2], normalize_plugin=normalize_plugin)
+    def sort_fields(items):
+        return sorted(items, key=(lambda x: (x[0] != 'title', x)))
+    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2], normalize_plugin=normalize_plugin, sort_fields=sort_fields)
 
 @timed_cached_function(10)
 def base_reports_by_machine_and_base():
@@ -492,7 +501,7 @@ def get_ticket_status(ticket, base=None, machine=None):
         return len(all), single, composite
     elif ticket['spkgs']:
         return 0, 'Spkg', 'Spkg'
-    elif not ticket['patches']:
+    elif not ticket['patches'] and not ticket.get('git_commit'):
         return 0, 'NoPatch', 'NoPatch'
     else:
         return 0, 'New', 'New'

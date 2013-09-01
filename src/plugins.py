@@ -35,12 +35,13 @@ class PluginResult:
         self.baseline = baseline or data
 
 def git_rev_list(ticket, **kwds):
-    base_only = int(subprocess.check_output(["git", "rev-list", "--count", "ticket_pristine..base"]))
-    ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "base..ticket_pristine"]))
-    print "only in ticket (%s)" % ticket_only
-    print "only in base (%s)" % base_only
-    print
-    do_or_die("git log --oneline base..ticket_pristine")
+    if str(ticket['id']) != '0':
+        base_only = int(subprocess.check_output(["git", "rev-list", "--count", "ticket_pristine..base"]))
+        ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "base..ticket_pristine"]))
+        print "only in ticket (%s)" % ticket_only
+        print "only in base (%s)" % base_only
+        print
+        do_or_die("git log --oneline base..ticket_pristine")
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     # TODO: This doesn't check that tests were added to existing doctests for
@@ -145,7 +146,7 @@ def non_ascii(ticket, **kwds):
 def doctest_continuation(ticket, **kwds):
     exclude_new(ticket, regex=r'^\s*\.\.\.\s', msg="Old-style doctest continuation", **kwds)
 
-def commit_messages(ticket, patches, **kwds):
+def commit_messages(ticket, patches, is_git=False, **kwds):
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print "Looking at", patch
@@ -158,18 +159,19 @@ def commit_messages(ticket, patches, **kwds):
             print ''.join(header[:10])
             raise ValueError("Not a valid patch file: " + patch)
         print ''.join(header)
-        if header[0].strip() != "# HG changeset patch":
-            raise ValueError("Not a mercurial patch file: " + patch)
-        for line in header:
-            if not line.startswith('# '):
-                # First description line
-                if line.startswith('[mq]'):
-                    raise ValueError("Mercurial queue boilerplate")
-#                elif not re.search(r"\b%s\b" % ticket['id'], line):
-#                    print "Ticket number not in first line of comments: " + patch
-                break
-        else:
-            raise ValueError("No patch comments:" + patch)
+        if not is_git:
+            if header[0].strip() != "# HG changeset patch":
+                raise ValueError("Not a mercurial patch file: " + patch)
+            for line in header:
+                if not line.startswith('# '):
+                    # First description line
+                    if line.startswith('[mq]'):
+                        raise ValueError("Mercurial queue boilerplate")
+                    #                elif not re.search(r"\b%s\b" % ticket['id'], line):
+                    #                    print "Ticket number not in first line of comments: " + patch
+                    break
+            else:
+                raise ValueError("No patch comments:" + patch)
         print
     print "All patches good."
 
@@ -297,6 +299,8 @@ def startup_time(ticket, is_git=False, loops=5, total_samples=30, dry_run=False,
         data = dict(confidence_intervals=confidence_intervals,
                     main_timings=main_timings, ticket_timings=ticket_timings,
                     loops=loops, total_samples=total_samples)
+        if str(ticket_id) == '0':
+            status = PluginResult.Passed
         return PluginResult(status, data=data)
 
     finally:

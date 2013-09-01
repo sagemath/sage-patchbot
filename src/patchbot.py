@@ -245,8 +245,8 @@ class Patchbot:
             "machine_match": 3,
             "user": getpass.getuser(),
             "keep_open_branches": True,
-            "base_repo": "git://github.com/sagemath/sage.git",
-            "base_branch": "build_system",
+            "base_repo": "https://github.com/robertwb/sage.git",
+            "base_branch": "build_system-fixed_tests",
             "max_behind_commits": 10,
             "max_behind_days": 2.0,
         }
@@ -435,7 +435,6 @@ class Patchbot:
                     state = 'started'
                     os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
-                    # TODO: Ensure that sage-main is pristine.
                     pull_from_trac(self.sage_root, ticket['id'], force=True)
                     t.finish("Apply")
                     state = 'applied'
@@ -483,7 +482,7 @@ class Patchbot:
                             else:
                                 baseline = None
                             print plugin_boundary(name)
-                            res = plugin(ticket, is_get=self.is_git, baseline=baseline, **kwds)
+                            res = plugin(ticket, is_git=self.is_git, baseline=baseline, **kwds)
                             passed = True
                         except Exception:
                             traceback.print_exc()
@@ -668,17 +667,16 @@ class Patchbot:
                 report['git_base'] = self.git_commit('base')
                 report['git_base_human'] = self.human_readable_base()
                 if ticket['id'] != 0:
-                    report['git_branch'] = ticket.get('git_branch', None)
-                    report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
-                    report['git_commit'] = self.git_commit('ticket_pristine')
-                    report['git_merge'] = self.git_commit('ticket')
+                    if status != 'Pending':
+                        report['git_branch'] = ticket.get('git_branch', None)
+                        report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
+                        report['git_commit'] = self.git_commit('ticket_pristine')
+                        report['git_merge'] = self.git_commit('ticket')
                 else:
                     report['git_branch'] = self.config['base_branch']
                     report['git_log'] = []
                     report['git_commit'] = report['git_merge'] = report['git_base']
             except Exception:
-                # perhaps apply failed
-                raise
                 pass
         print "REPORT"
         import pprint
