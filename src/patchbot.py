@@ -289,18 +289,18 @@ class Patchbot:
             return True
         os.chdir(self.sage_root)
         try:
-            do_or_die("git checkout base")
+            do_or_die("git checkout patchbot/base")
         except Exception:
-            do_or_die("git checkout -b base")
-        do_or_die("git fetch %s +%s:upstream" % (self.config['base_repo'], self.config['base_branch']))
-        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "upstream..base"]))
-        only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "base..upstream"]))
+            do_or_die("git checkout -b patchbot/base")
+        do_or_die("git fetch %s +%s:patchbot/base_upstream" % (self.config['base_repo'], self.config['base_branch']))
+        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base_upstream..patchbot/base"]))
+        only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/base_upstream"]))
         if (only_in_base > 0
             or only_in_upstream > self.config['max_behind_commits']
             or (only_in_upstream > 0 and time.time() - self.last_pull < self.config['max_behind_days'] * 60 * 60 * 24)):
-            do_or_die("git checkout upstream")
-            do_or_die("git branch -D base")
-            do_or_die("git checkout -b base")
+            do_or_die("git checkout patchbot/base_upstream")
+            do_or_die("git branch -f patchbot/base patchbot/base_upstream")
+            do_or_die("git checkout patchbot/base")
             self.last_pull = time.time()
             self.behind_base = {}
             return False
@@ -311,7 +311,7 @@ class Patchbot:
         version = open('VERSION.txt').read().split()[2].strip(',')
         print version
         print open('VERSION.txt').read().split()
-        commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..base' % version])
+        commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
         return "%s + %s commits" % (version, commit_count)
 
     def get_ticket(self, return_all=False, status='open'):
@@ -366,7 +366,7 @@ class Patchbot:
             for report in self.current_reports(ticket, newer=True):
                 if self.is_git:
                     if report.get('git_base'):
-                        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..base" % report['git_base']]))
+                        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
                         rating += bonus['behind'] * only_in_base
                     else:
                         continue
@@ -409,7 +409,7 @@ class Patchbot:
             os.makedirs(log_dir)
         log = '%s/%s-log.txt' % (log_dir, ticket['id'])
         if not self.plugin_only:
-            self.report_ticket(ticket, status='Pending', log=None)
+            self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         try:
             with Tee(log, time=True, timeout=self.config['timeout']):
@@ -439,7 +439,7 @@ class Patchbot:
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
-                        self.report_ticket(ticket, status='Pending', log=None)
+                        self.report_ticket(ticket, status='Pending', log=log, pending_status=state)
                 
                     if self.is_git:
                         do_or_die("$MAKE")
@@ -448,16 +448,16 @@ class Patchbot:
                     t.finish("Build")
                     state = 'built'
                     if not self.plugin_only:
-                        self.report_ticket(ticket, status='Pending', log=None)
+                        self.report_ticket(ticket, status='Pending', log=log, pending_status=state)
                 
                     if self.is_git:
                         # TODO: Exclude dependencies.
                         patch_dir = tempfile.mkdtemp()
                         if ticket['id'] != 0:
-                            do_or_die("git format-patch -o '%s' base..ticket" % patch_dir)
+                            do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
                         
                         kwds = {
-                            #"original_dir": self.sage_root,
+                            "original_dir": self.sage_root,
                             "patched_dir": os.getcwd(),
                             "patches": [os.path.join(patch_dir, p) for p in os.listdir(patch_dir)],
                             "sage_binary": os.path.join(os.getcwd(), 'sage'),
@@ -503,6 +503,7 @@ class Patchbot:
                             t.finish(name)
                             print plugin_boundary(name, end=True)
                     plugins_passed = all(passed for (name, passed, data) in plugins_results)
+                    self.report_ticket(ticket, status='Pending', log=log, pending_status='plugins_passed' if plugins_passed else 'plugins_failed')
                 
                     if self.plugin_only:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
@@ -510,6 +511,8 @@ class Patchbot:
                         if self.dry_run:
                             if self.is_git:
                                 test_target = "$SAGE_ROOT/src/sage/misc/a*.py"
+                                # TODO: Remove
+                                test_target = "$SAGE_ROOT/src/sage/doctest/*.py"
                             else:
                                 test_target = "$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % ticket['id']
                         else: 
@@ -649,7 +652,7 @@ class Patchbot:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def report_ticket(self, ticket, status, log, plugins=[], dry_run=False):
+    def report_ticket(self, ticket, status, log, plugins=[], dry_run=False, pending_status=None):
         report = {
             'status': status,
             'patches': ticket['patches'],
@@ -662,16 +665,19 @@ class Patchbot:
             'plugins': plugins,
             'patchbot_version': patchbot_version.get_version(),
         }
+        if pending_status:
+            report['pending_status'] = pending_status
         if self.is_git:
             try:
-                report['git_base'] = self.git_commit('base')
+                report['git_base'] = self.git_commit('patchbot/base')
                 report['git_base_human'] = self.human_readable_base()
                 if ticket['id'] != 0:
-                    if status != 'Pending':
-                        report['git_branch'] = ticket.get('git_branch', None)
-                        report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'base..ticket_pristine']).strip().split('\n')
-                        report['git_commit'] = self.git_commit('ticket_pristine')
-                        report['git_merge'] = self.git_commit('ticket')
+                    report['git_branch'] = ticket.get('git_branch', None)
+                    report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'patchbot/base..patchbot/ticket_upstream']).strip().split('\n')
+                    # If apply failed, we don't want to be stuck in an infinite loop.
+                    report['git_commit'] = ticket['git_commit']
+                    report['git_commit'] = self.git_commit('patchbot/ticket_upstream')
+                    report['git_merge'] = self.git_commit('patchbot/ticket_merged')
                 else:
                     report['git_branch'] = self.config['base_branch']
                     report['git_log'] = []
@@ -683,11 +689,11 @@ class Patchbot:
         pprint.pprint(report)
         print ticket['id'], status
         fields = {'report': json.dumps(report)}
-        if status != 'Pending':
+        if os.path.exists(log):
             files = [('log', 'log', bz2.compress(open(log).read()))]
         else:
             files = []
-        if not dry_run:
+        if not dry_run or status == 'Pending':
             print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
 
     def cleanup(self):
@@ -749,7 +755,8 @@ def main(args):
                 print
         sys.exit(0)
 
-    print "WARNING: Assuming sage-main is pristine."
+    if not patchbot.is_git:
+        print "WARNING: Assuming sage-main is pristine."
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 

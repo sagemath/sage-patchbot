@@ -294,8 +294,7 @@ def post_report(ticket_id):
             assert fld in report
         patchbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
-        if report['status'] != 'Pending':
-            db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
         if 'retry' in ticket:
             ticket['retry'] = False
         ticket['last_activity'] = now_str()
@@ -306,15 +305,38 @@ def post_report(ticket_id):
         return "error"
 
 def log_name(ticket_id, report):
-    return "/log/%s/%s/%s" % (ticket_id, '/'.join(report['machine']), report['time'])
-
+    return "/log%s/%s/%s/%s" % (
+        ticket_id,
+        '/Pending' if report['status'] == 'Pending' else '',
+        '/'.join(report['machine']),
+        report['time'])
 
 def shorten(lines):
-    timing = re.compile(r'\s*\[\d+\.\d* s\]\s*$')
-    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\))$')
+    timing = re.compile(r'\s*\[(\d+ tests, )?\d+\.\d* s\]\s*$')
+    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*))$')
     gcc = re.compile('(gcc)|(g\+\+)')
     prev = None
+    in_plugin = False
+    from patchbot import plugin_boundary
+    plugin_start = re.compile(plugin_boundary('.*'))
+    plugin_end = re.compile(plugin_boundary('.*', end=True))
     for line in StringIO(lines):
+        if line.startswith('='):
+            if plugin_end.match(line):
+                if prev:
+                    yield prev
+                    prev = None
+                in_plugin = False
+            elif plugin_start.match(line):
+                if prev:
+                    yield prev
+                    prev = None
+                yield line
+                in_plugin = True
+        if in_plugin:
+            prev = line
+            continue
+
         if skip.match(line):
             pass
         elif prev is None:
@@ -326,7 +348,8 @@ def shorten(lines):
         elif gcc.match(prev) and (gcc.match(line) or line.startswith('Time to execute')):
             prev = line
         else:
-            yield prev
+            if prev is not None:
+                yield prev
             prev = line
 
     if prev is not None:

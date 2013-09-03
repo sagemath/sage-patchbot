@@ -265,45 +265,50 @@ def inplace_safe():
     """
     Returns whether it is safe to test this ticket inplace.
     """
+    safe = True
     # TODO: Are removed files sufficiently cleaned up?
-    for file in subprocess.check_output(["git", "diff", "--name-only", "base..ticket_pristine"]).split('\n'):
+    for file in subprocess.check_output(["git", "diff", "--name-only", "patchbot/base..patchbot/ticket_merged"]).split('\n'):
         if not file:
             continue
         if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
             continue
         else:
             print "Unsafe file:", file
-            return False
-    return True
+            safe = False
+    return safe
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None):
+    # There are four branches at play here:
+    # patchbot/base -- the latest release that all tickets are merged into for testing
+    # patchbot/base_upstream -- temporary staging area for patchbot/base
+    # patchbot/ticket_upstream -- pristine clone of the ticket on trac
+    # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
     if is_git(sage_root):
         ticket_id = ticket
         info = scrape(ticket_id)
         os.chdir(sage_root)
-        do_or_die("git checkout base")
+        do_or_die("git checkout patchbot/base")
         if ticket_id == 0:
+            do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
+            do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
             return
         branch = info['git_branch']
         repo = info['git_repo']
-        do_or_die("git fetch %s +%s:ticket_pristine" % (repo, branch))
-        do_or_die("git rev-list --left-right --count base..ticket_pristine")
-        do_or_die("git log base..ticket_pristine")
-        if inplace is None:
-            inplace = inplace_safe()
-        if not inplace:
+        do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
+        do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
+        do_or_die("git log patchbot/base..patchbot/ticket_upstream")
+        do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+        do_or_die("git checkout patchbot/ticket_merged")
+        do_or_die("git merge -X patience patchbot/ticket_upstream")
+        if not inplace_safe():
             tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
             do_or_die("git clone . '%s'" % tmp_dir)
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
             os.environ['SAGE_ROOT'] = tmp_dir
-            do_or_die("git checkout -b ticket_pristine remotes/origin/ticket_pristine")
-        try:
-            do_or_die("git branch -D ticket")
-        except Exception:
-            pass
-        do_or_die("git checkout -b ticket ticket_pristine")
-        do_or_die("git merge -X patience base")
+            do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
+            do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+
     else:
         # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
         if branch is None:

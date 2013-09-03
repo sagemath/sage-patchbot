@@ -36,12 +36,12 @@ class PluginResult:
 
 def git_rev_list(ticket, **kwds):
     if str(ticket['id']) != '0':
-        base_only = int(subprocess.check_output(["git", "rev-list", "--count", "ticket_pristine..base"]))
-        ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "base..ticket_pristine"]))
+        base_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/ticket_upstream..patchbot/base"]))
+        ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/ticket_upstream"]))
         print "only in ticket (%s)" % ticket_only
         print "only in base (%s)" % base_only
         print
-        do_or_die("git log --oneline base..ticket_pristine")
+        do_or_die("git log --oneline patchbot/base..patchbot/ticket_upstream")
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     # TODO: This doesn't check that tests were added to existing doctests for
@@ -210,15 +210,15 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, is_git=False, loops=5, total_samples=30, dry_run=False, **kwds):
+def startup_time(ticket, original_dir, patched_dir, is_git=False, loops=5, total_samples=30, dry_run=False, **kwds):
     if dry_run:
         loops //= 2
         total_samples //=5
     print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
     if is_git:
-        choose_base = "git checkout base; make build"
-        choose_ticket = "git checkout ticket; make build"
+        choose_base = "git checkout patchbot/base; make build"
+        choose_ticket = "git checkout patchbot/ticket_merged; make build"
     else:
         choose_base = "$SAGE_ROOT/sage -b 0 > /dev/null"
         choose_ticket = "$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id
@@ -235,14 +235,18 @@ def startup_time(ticket, is_git=False, loops=5, total_samples=30, dry_run=False,
         main_timings = []
         ticket_timings = []
 
+        os.chdir(patched_dir)
         do_or_die(choose_ticket)
         do_or_die("$SAGE_ROOT/sage -c ''")
+        os.chdir(original_dir)
         do_or_die(choose_base)
         do_or_die("$SAGE_ROOT/sage -c ''")
 
         for k in range(loops):
+            os.chdir(patched_dir)
             do_or_die(choose_ticket)
             ticket_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
+            os.chdir(original_dir)
             do_or_die(choose_base)
             main_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
         print "main_timings =", main_timings
@@ -305,7 +309,8 @@ def startup_time(ticket, is_git=False, loops=5, total_samples=30, dry_run=False,
 
     finally:
         print
-        do_or_die("$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id)
+        os.chdir(patched_dir)
+        do_or_die(choose_ticket)
 
 
 # Some utility functions.
