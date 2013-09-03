@@ -306,8 +306,8 @@ def post_report(ticket_id):
 
 def log_name(ticket_id, report):
     return "/log%s/%s/%s/%s" % (
-        ticket_id,
         '/Pending' if report['status'] == 'Pending' else '',
+        ticket_id,
         '/'.join(report['machine']),
         report['time'])
 
