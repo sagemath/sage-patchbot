@@ -312,7 +312,7 @@ def log_name(ticket_id, report):
         report['time'])
 
 def shorten(lines):
-    timing = re.compile(r'\s*\[(\d+ tests, )?\d+\.\d* s\]\s*$')
+    timing = re.compile(r'\s*\[(\d+ tests?, )?\d+\.\d* s\]\s*$')
     skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*))$')
     gcc = re.compile('(gcc)|(g\+\+)')
     prev = None

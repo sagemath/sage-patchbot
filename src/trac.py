@@ -299,7 +299,11 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         do_or_die("git log patchbot/base..patchbot/ticket_upstream")
         do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
         do_or_die("git checkout patchbot/ticket_merged")
-        do_or_die("git merge -X patience patchbot/ticket_upstream")
+        try:
+            do_or_die("git merge -X patience patchbot/ticket_upstream")
+        except Exception:
+            do_or_die("git merge --abort")
+            raise
         if not inplace_safe():
             tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
             do_or_die("git clone . '%s'" % tmp_dir)

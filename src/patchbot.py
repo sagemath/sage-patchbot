@@ -291,6 +291,7 @@ class Patchbot:
         try:
             do_or_die("git checkout patchbot/base")
         except Exception:
+            raise
             do_or_die("git checkout -b patchbot/base")
         do_or_die("git fetch %s +%s:patchbot/base_upstream" % (self.config['base_repo'], self.config['base_branch']))
         only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base_upstream..patchbot/base"]))
