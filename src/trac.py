@@ -277,13 +277,13 @@ def inplace_safe():
             safe = False
     return safe
 
-def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None):
-    # There are four branches at play here:
-    # patchbot/base -- the latest release that all tickets are merged into for testing
-    # patchbot/base_upstream -- temporary staging area for patchbot/base
-    # patchbot/ticket_upstream -- pristine clone of the ticket on trac
-    # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
+def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False):
     if is_git(sage_root):
+        # There are four branches at play here:
+        # patchbot/base -- the latest release that all tickets are merged into for testing
+        # patchbot/base_upstream -- temporary staging area for patchbot/base
+        # patchbot/ticket_upstream -- pristine clone of the ticket on trac
+        # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
         ticket_id = ticket
         info = scrape(ticket_id)
         os.chdir(sage_root)
@@ -312,6 +312,8 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             os.environ['SAGE_ROOT'] = tmp_dir
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+            if use_ccache:
+                do_or_die("./sage -i ccache")
 
     else:
         # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?

@@ -249,6 +249,7 @@ class Patchbot:
             "base_branch": "build_system-fixed_tests",
             "max_behind_commits": 10,
             "max_behind_days": 2.0,
+            "use_ccache": True,
         }
         default_bonus = {
             "needs_review": 1000,
@@ -436,7 +437,7 @@ class Patchbot:
                     state = 'started'
                     os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
-                    pull_from_trac(self.sage_root, ticket['id'], force=True)
+                    pull_from_trac(self.sage_root, ticket['id'], force=True, use_ccache=self.config['use_ccache'])
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
@@ -760,6 +761,9 @@ def main(args):
         print "WARNING: Assuming sage-main is pristine."
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
+
+    if conf['use_ccache']:
+        do_or_die("'%s'/sage -i ccache" % options.sage_root)
 
     if not options.skip_base:
         patchbot.check_base()
