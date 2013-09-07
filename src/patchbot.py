@@ -68,10 +68,11 @@ def alarm_handler(signum, frame):
     raise Alarm
 
 class Tee:
-    def __init__(self, filepath, time=False, timeout=60*60*24):
+    def __init__(self, filepath, time=False, timeout=60*60*24, timer=None):
         self.filepath = filepath
         self.time = time
         self.timeout = timeout
+        self.timer = timer
         
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
@@ -83,6 +84,8 @@ class Tee:
             self.start_time = time.time()
     
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.timer:
+            self.timer.print_all()
         if exc_type is not None:
             traceback.print_exc()
         if self.time:
@@ -417,14 +420,14 @@ class Patchbot:
             os.makedirs(self.log_dir)
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
         history = open("%s/history.txt" % self.log_dir, "a")
-        history.write("%s\n" % ticket['id'])
+        history.write("%s %s\n" % (datetime(), ticket['id']))
         history.close()
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         try:
-            with Tee(log, time=True, timeout=self.config['timeout']):
-                t = Timer()
+            t = Timer()
+            with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
                 start_time = time.time()
                 print "Sage Patchbot", patchbot_version.get_version()
 
@@ -539,8 +542,6 @@ class Patchbot:
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
 
-                print
-                t.print_all()
         except urllib2.HTTPError:
             # Don't report failure because the network/trac died...
             traceback.print_exc()
@@ -698,7 +699,8 @@ class Patchbot:
 
         if status != 'Pending':
             history = open("%s/history.txt" % self.log_dir, "a")
-            history.write("%s %s%s\n" % (
+            history.write("%s %s %s%s\n" % (
+                    datetime(),
                     ticket['id'],
                     status,
                     " dry_run" if dry_run else ""))

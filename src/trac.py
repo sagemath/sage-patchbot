@@ -296,7 +296,6 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         repo = info['git_repo']
         do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
         do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
-        do_or_die("git log patchbot/base..patchbot/ticket_upstream")
         do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
         do_or_die("git checkout patchbot/ticket_merged")
         try:

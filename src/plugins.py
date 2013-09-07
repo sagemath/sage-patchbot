@@ -41,7 +41,12 @@ def git_rev_list(ticket, **kwds):
         print "only in ticket (%s)" % ticket_only
         print "only in base (%s)" % base_only
         print
+        do_or_die("git diff --stat patchbot/base..patchbot/ticket_upstream")
+        print
         do_or_die("git log --oneline patchbot/base..patchbot/ticket_upstream")
+        print
+        print
+        do_or_die("git log patchbot/base..patchbot/ticket_upstream")
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     # TODO: This doesn't check that tests were added to existing doctests for
