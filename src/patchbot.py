@@ -317,6 +317,7 @@ class Patchbot:
         return "%s + %s commits" % (version, commit_count)
 
     def get_ticket(self, return_all=False, status='open'):
+        os.chdir(self.sage_root)
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status=%s" % status
 #        if trusted_authors:
@@ -368,13 +369,18 @@ class Patchbot:
             for report in self.current_reports(ticket, newer=True):
                 if self.is_git:
                     if report.get('git_base'):
-                        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
+                        try:
+                            only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
+                        except Exception:
+                            # report['git_base'] not in our repo
+                            only_in_base = -1
                         rating += bonus['behind'] * only_in_base
                     else:
                         continue
-                uniqueness = min(uniqueness, compare_machines(report['machine'], self.config['machine'], self.config['machine_match']))
-                if self.is_git and only_in_base and not any(uniqueness):
-                    uniqueness = 0, 0, 0, 0, 1
+                report_uniqueness = compare_machines(report['machine'], self.config['machine'], self.config['machine_match'])
+                if self.is_git and only_in_base and not any(report_uniqueness):
+                    report_uniqueness = 0, 0, 0, 0, 1
+                uniqueness = min(uniqueness, report_uniqueness)
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
                 rating -= bonus.get("unique", 0)
@@ -406,10 +412,13 @@ class Patchbot:
         print ticket['title']
         print "score", rating
         print "\n" * 2
-        log_dir = self.sage_root + "/logs/patchbot"
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        log = '%s/%s-log.txt' % (log_dir, ticket['id'])
+        self.log_dir = self.sage_root + "/logs/patchbot"
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
+        history = open("%s/history.txt" % self.log_dir, "a")
+        history.write("%s\n" % ticket['id'])
+        history.close()
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
@@ -479,8 +488,8 @@ class Patchbot:
                 
                     for name, plugin in self.config['plugins']:
                         try:
-                            if ticket['id'] != 0 and os.path.exists(os.path.join(log_dir, '0', name)):
-                                baseline = pickle.load(open(os.path.join(log_dir, '0', name)))
+                            if ticket['id'] != 0 and os.path.exists(os.path.join(self.log_dir, '0', name)):
+                                baseline = pickle.load(open(os.path.join(self.log_dir, '0', name)))
                             else:
                                 baseline = None
                             print plugin_boundary(name)
@@ -493,7 +502,7 @@ class Patchbot:
                         finally:
                             if isinstance(res, PluginResult):
                                 if res.baseline is not None:
-                                    plugin_dir = os.path.join(log_dir, str(ticket['id']))
+                                    plugin_dir = os.path.join(self.log_dir, str(ticket['id']))
                                     if not os.path.exists(plugin_dir):
                                         os.mkdir(plugin_dir)
                                     pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
@@ -686,6 +695,15 @@ class Patchbot:
                     report['git_commit'] = report['git_merge'] = report['git_base']
             except Exception:
                 pass
+
+        if status != 'Pending':
+            history = open("%s/history.txt" % self.log_dir, "a")
+            history.write("%s %s%s\n" % (
+                    ticket['id'],
+                    status,
+                    " dry_run" if dry_run else ""))
+            history.close()
+
         print "REPORT"
         import pprint
         pprint.pprint(report)
@@ -764,6 +782,8 @@ def main(args):
 
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" % options.sage_root)
+        # If we rebuild the (same) compiler we still want to share the cache.
+        os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
     if not options.skip_base:
         patchbot.check_base()
@@ -797,7 +817,7 @@ def main(args):
             else:
                 print "Idle."
                 time.sleep(conf['idle'])
-        except urllib2.HTTPError:
+        except Exception:
                 traceback.print_exc()
                 time.sleep(conf['idle'])
 
