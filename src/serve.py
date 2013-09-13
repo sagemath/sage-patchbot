@@ -39,6 +39,10 @@ def trusted_authors():
     for ticket in tickets.find({'status': 'closed : fixed'}):
         for author in ticket["authors"]:
             authors[author] += 1
+    for ticket in tickets.find({'status': 'closed'}):
+        if ticket["resolution"] == 'fixed':
+            for author in ticket["authors"]:
+                authors[author] += 1
     if 'pretty' in request.args:
         indent = 4
     else:
