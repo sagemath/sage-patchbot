@@ -23,14 +23,14 @@ import getpass, platform
 import random, re, os, shutil, sys, subprocess, time, traceback
 import tempfile
 import cPickle as pickle
-import bz2, urllib2, urllib, json
+import bz2, urllib2, urllib, json, socket
 from optparse import OptionParser
 
 from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, parse_datetime, prune_pending, do_or_die,
-        get_base, compare_version, current_reports, is_git, git_commit)
+        get_version, compare_version, current_reports, is_git, git_commit)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -137,8 +137,9 @@ status = {
     'tested'        : 'TestsPassed',
     'tests_passed_plugins_failed': 'PluginFailed',
     'plugins'       : 'PluginOnly',
-    'plugins_failed' : 'PluginOnlyFailed',
+    'plugins_failed': 'PluginOnlyFailed',
     'spkg'          : 'Spkg',
+    'network_error' : 'Pending',
 }
 
 def plugin_boundary(name, end=False):
@@ -191,7 +192,7 @@ class Patchbot:
     def __init__(self, sage_root, server, config_path, dry_run=False, plugin_only=False):
         self.sage_root = sage_root
         self.server = server
-        self.base = get_base(sage_root)
+        self.base = get_version(sage_root)
         self.behind_base = {}
         self.dry_run = dry_run
         self.plugin_only = plugin_only
@@ -295,7 +296,6 @@ class Patchbot:
         try:
             do_or_die("git checkout patchbot/base")
         except Exception:
-            raise
             do_or_die("git checkout -b patchbot/base")
         do_or_die("git fetch %s +%s:patchbot/base_upstream" % (self.config['base_repo'], self.config['base_branch']))
         only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base_upstream..patchbot/base"]))
@@ -313,9 +313,7 @@ class Patchbot:
 
     def human_readable_base(self):
         # TODO: Is this stable?
-        version = open('VERSION.txt').read().split()[2].strip(',')
-        print version
-        print open('VERSION.txt').read().split()
+        version = get_version(self.sage_root)
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
         return "%s + %s commits" % (version, commit_count)
 
@@ -347,11 +345,11 @@ class Patchbot:
         else:
             if not ticket['spkgs'] and not ticket['patches']:
                 return # nothing to do
-        for dep in ticket['depends_on']:
-            if isinstance(dep, basestring) and '.' in dep:
-                if compare_version(self.base, dep) < 0:
-                    # Depends on a newer version of Sage than we're running.
-                    return None
+            for dep in ticket['depends_on']:
+                if isinstance(dep, basestring) and '.' in dep:
+                    if compare_version(self.base, dep) < 0:
+                        # Depends on a newer version of Sage than we're running.
+                        return None
         bonus = self.config['bonus']
         for author in ticket['authors'] or ticket['participants']:
             if author not in self.config['trusted_authors']:
@@ -542,10 +540,12 @@ class Patchbot:
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
 
-        except urllib2.HTTPError:
+        except (urllib2.HTTPError, socket.error):
             # Don't report failure because the network/trac died...
+            print
+            t.print_all()
             traceback.print_exc()
-            return 'Pending'
+            state = 'network_error'
         except Exception:
             traceback.print_exc()
         
@@ -555,7 +555,7 @@ class Patchbot:
                 self.report_ticket(ticket, status=status[state], log=log, plugins=plugins_results, dry_run=self.dry_run)
                 print "Done reporting", ticket['id']
                 break
-            except urllib2.HTTPError:
+            except IOError:
                 traceback.print_exc()
                 time.sleep(conf['idle'])
         else:

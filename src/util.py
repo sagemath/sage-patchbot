@@ -107,9 +107,6 @@ def comparable_version(version):
 def compare_version(a, b):
     return cmp(comparable_version(a), comparable_version(b))
 
-def get_base(sage_root):
-    p = subprocess.Popen([os.path.join(sage_root, 'sage'), '-v'], stdout=subprocess.PIPE)
-    if p.wait():
-        raise ValueError, "Invalid sage_root='%s'" % sage_root
-    version_info = p.stdout.read()
-    return re.search(r'Sage Version ([\d.]+\w*)', version_info).groups()[0]
+def get_version(sage_root):
+    # TODO: Is this stable?
+    return open(os.path.join(sage_root, 'VERSION.txt')).read().split()[2].strip(',')

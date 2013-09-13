@@ -4,7 +4,7 @@ TRAC_REPO = "http://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, extract_version, compare_version, get_base, now_str, is_git, git_commit
+from util import do_or_die, extract_version, compare_version, get_version, now_str, is_git, git_commit
 
 def digest(s):
     """
@@ -18,7 +18,7 @@ def get_url(url):
     """
     try:
         url = url.replace(' ', '%20')
-        handle = urllib2.urlopen(url, timeout=5)
+        handle = urllib2.urlopen(url, timeout=15)
         data = handle.read()
         handle.close()
         return data
@@ -332,7 +332,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         else:
             series = open('.hg/patches/series').read().split('\n')
 
-        base = get_base(sage_root)
+        base = get_version(sage_root)
         desired_series = []
         seen_deps = []
         def append_patch_list(ticket, dependency=False):
