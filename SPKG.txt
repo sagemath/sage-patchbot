@@ -24,6 +24,10 @@ https://github.com/robertwb/sage-patchbot/
 
 == Changelog ==
 
+=== Sage Patchbot 2.0 (Robert Bradshaw, September 2013) ===
+
+ * Git support.
+
 === Sage Patchbot 1.3.1 (Robert Bradshaw, May 2013) ===
 
  * Minor fixes to plugins, patch detection.
