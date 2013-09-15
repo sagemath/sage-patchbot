@@ -31,12 +31,15 @@ app = Flask(__name__)
 @app.route("/reports")
 def reports():
     pass
-    
+
 @app.route("/trusted")
 @app.route("/trusted/")
 def trusted_authors():
     authors = collections.defaultdict(int)
     for ticket in tickets.find({'status': 'closed : fixed'}):
+        for author in ticket["authors"]:
+            authors[author] += 1
+    for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket["authors"]:
             authors[author] += 1
     if 'pretty' in request.args:

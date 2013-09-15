@@ -84,6 +84,7 @@ def scrape(ticket_id, force=False, db=None):
         'title'         : tsv['summary'],
         'page_hash'     : page_hash,
         'status'        : tsv['status'],
+        'resolution'    : tsv['resolution'],
         'milestone'     : tsv['milestone'],
         'merged'        : tsv['merged'],
         'priority'      : tsv['priority'],
