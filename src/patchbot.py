@@ -404,7 +404,7 @@ class Patchbot:
             ticket = None, scrape(int(ticket))
         if not ticket:
             print "No more tickets."
-            time.sleep(conf['idle'])
+            time.sleep(self.config['idle'])
             return
 
         rating, ticket = ticket
@@ -529,8 +529,8 @@ class Patchbot:
                                 test_target = "$SAGE_ROOT/devel/sage-%s/sage/misc/a*.py" % ticket['id']
                         else: 
                             test_target = "--all --long"
-                        if conf['parallelism'] > 1:
-                            test_cmd = "-tp %s" % conf['parallelism']
+                        if self.config['parallelism'] > 1:
+                            test_cmd = "-tp %s" % self.config['parallelism']
                         else: 
                             test_cmd = "-t"
                         do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, test_target))
@@ -557,7 +557,7 @@ class Patchbot:
                 break
             except IOError:
                 traceback.print_exc()
-                time.sleep(conf['idle'])
+                time.sleep(self.config['idle'])
         else:
             print "Error reporting", ticket['id']
         if self.is_git:
@@ -565,7 +565,7 @@ class Patchbot:
             if maybe_temp_root.endswith("-sage-git-temp-%s" % ticket['id']):
                 shutil.rmtree(maybe_temp_root)
         else:
-            if not conf['keep_open_branches'] and str(ticket['id']) != '0' and not ticket['spkgs']:
+            if not self.config['keep_open_branches'] and str(ticket['id']) != '0' and not ticket['spkgs']:
                 shutil.rmtree(os.path.join(self.sage_root, "devel", "sage-%s" %ticket['id']))
         return status[state]
 
