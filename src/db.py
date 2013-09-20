@@ -1,7 +1,6 @@
-import os
 
 # mongod --port=21000 --dbpath=data
-import pymongo, gridfs
+import gridfs
 from pymongo import Connection
 mongo_port = 21002
 
@@ -18,10 +17,18 @@ tickets.ensure_index('reports.time')
 
 logs = gridfs.GridFS(mongodb, 'logs')
 
+
 def lookup_ticket(ticket_id):
+    """
+    Look up for a ticket in the database
+    """
     return tickets.find_one({'id': ticket_id})
 
+
 def save_ticket(ticket_data):
+    """
+    Save ticket data in the database
+    """
     old = lookup_ticket(ticket_data['id'])
     if old:
         old.update(ticket_data)
