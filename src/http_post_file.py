@@ -1,6 +1,7 @@
 # http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
 
-import httplib, mimetypes, mimetools, urllib2
+import mimetypes, mimetools, urllib2
+
 
 def post_multipart(url, fields, files):
     """
@@ -14,6 +15,7 @@ def post_multipart(url, fields, files):
                'Content-Length': str(len(body))}
     r = urllib2.Request(url, body, headers)
     return urllib2.urlopen(r).read()
+
 
 def encode_multipart_formdata(fields, files):
     """
@@ -42,6 +44,7 @@ def encode_multipart_formdata(fields, files):
     body = CRLF.join(L)
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
+
 
 def get_content_type(filename):
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
