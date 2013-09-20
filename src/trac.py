@@ -4,7 +4,7 @@ TRAC_REPO = "http://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, extract_version, compare_version, get_version, now_str, is_git, git_commit
+from util import do_or_die, compare_version, get_version, now_str, is_git, git_commit
 
 def digest(s):
     """
