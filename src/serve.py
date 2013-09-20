@@ -3,13 +3,12 @@ import difflib
 from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
-import pymongo
 import trac
 import patchbot
 import db
 
 from db import tickets, logs
-from util import now_str, current_reports, comparable_version, latest_version
+from util import now_str, current_reports, latest_version
 
 def timed_cached_function(refresh_rate=60):
     def decorator(func):
@@ -35,6 +34,11 @@ def reports():
 @app.route("/trusted")
 @app.route("/trusted/")
 def trusted_authors():
+    """
+    Defines the set of trusted authors
+    
+    Currently, somebody is trusted if he/she is the author of a closed patch with 'fixed' status
+    """
     authors = collections.defaultdict(int)
     for ticket in tickets.find({'status': 'closed : fixed'}):
         for author in ticket["authors"]:
