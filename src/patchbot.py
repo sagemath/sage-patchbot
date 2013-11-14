@@ -447,6 +447,9 @@ class Patchbot:
                     state = 'started'
                     os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
+                    os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
+                    os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
+                    os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
                     pull_from_trac(self.sage_root, ticket['id'], force=True, use_ccache=self.config['use_ccache'])
                     t.finish("Apply")
                     state = 'applied'
