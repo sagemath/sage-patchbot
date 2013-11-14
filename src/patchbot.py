@@ -429,7 +429,7 @@ class Patchbot:
                 start_time = time.time()
                 print "Sage Patchbot", patchbot_version.get_version()
 
-                if not self.is_git and ticket['spkgs']:
+                if ticket['spkgs']:
                     state = 'spkg'
                     print "\n".join(ticket['spkgs'])
                     print
@@ -443,7 +443,7 @@ class Patchbot:
                             traceback.print_exc()
                         t.finish(spkg)
 
-                else:
+                if self.is_git or not ticket['spkgs']:
                     state = 'started'
                     os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
