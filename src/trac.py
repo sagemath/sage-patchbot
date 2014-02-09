@@ -4,7 +4,7 @@ TRAC_REPO = "http://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, compare_version, get_version, now_str, is_git, git_commit
+from util import do_or_die, compare_version, get_version, now_str, git_commit
 
 def digest(s):
     """
@@ -129,7 +129,7 @@ def extract_tag(sgml, tag):
     Find the first occurance of the tag start (including attributes) and
     return the contents of that tag (really, up until the next end tag
     of that type).
-    
+
     Crude but fast.
     """
     tag_name = tag[1:-1]
@@ -151,9 +151,9 @@ rebased_regex = re.compile(r"([-.]?rebased?)|(-v\d)")
 def extract_patches(rss):
     """
     Extracts the list of patches for a ticket from the rss feed.
-    
+
     Tries to deduce the subset of attached patches to apply based on
-    
+
         (1) "Apply ..." in comment text
         (2) Mercurial .N naming
         (3) "rebased" in name
@@ -222,7 +222,7 @@ spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 def extract_spkgs(tsv):
     """
     Extracts any spkgs for a ticket from the html page.
-    
+
     Just searches for urls ending in .spkg.
     """
     return list(set(spkg_url_regex.findall(tsv['description'])))
@@ -279,135 +279,40 @@ def inplace_safe():
     return safe
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False):
-    if is_git(sage_root):
-        # There are four branches at play here:
-        # patchbot/base -- the latest release that all tickets are merged into for testing
-        # patchbot/base_upstream -- temporary staging area for patchbot/base
-        # patchbot/ticket_upstream -- pristine clone of the ticket on trac
-        # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
-        ticket_id = ticket
-        info = scrape(ticket_id)
-        os.chdir(sage_root)
-        do_or_die("git checkout patchbot/base")
-        if ticket_id == 0:
-            do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
-            do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
-            return
-        branch = info['git_branch']
-        repo = info['git_repo']
-        do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
-        do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
+    # There are four branches at play here:
+    # patchbot/base -- the latest release that all tickets are merged into for testing
+    # patchbot/base_upstream -- temporary staging area for patchbot/base
+    # patchbot/ticket_upstream -- pristine clone of the ticket on trac
+    # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
+    ticket_id = ticket
+    info = scrape(ticket_id)
+    os.chdir(sage_root)
+    do_or_die("git checkout patchbot/base")
+    if ticket_id == 0:
+        do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
         do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
-        do_or_die("git checkout patchbot/ticket_merged")
-        try:
-            do_or_die("git merge -X patience patchbot/ticket_upstream")
-        except Exception:
-            do_or_die("git merge --abort")
-            raise
-        if not inplace_safe():
-            tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
-            do_or_die("git clone . '%s'" % tmp_dir)
-            os.chdir(tmp_dir)
-            os.symlink(os.path.join(sage_root, "upstream"), "upstream")
-            os.environ['SAGE_ROOT'] = tmp_dir
-            do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
-            do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
-            if use_ccache:
-                do_or_die("./sage -i ccache")
-
-    else:
-        # Should we set/unset SAGE_ROOT and SAGE_BRANCH here? Fork first?
-        if branch is None:
-            branch = str(ticket)
-        if not os.path.exists('%s/devel/sage-%s' % (sage_root, branch)):
-            do_or_die('%s/sage -b main' % (sage_root,))
-            do_or_die('%s/sage -clone %s' % (sage_root, branch))
-        os.chdir('%s/devel/sage-%s' % (sage_root, branch))
-        if interactive:
-            raise NotImplementedError
-        if not os.path.exists('.hg/patches'):
-            do_or_die('hg qinit')
-            series = []
-        elif not os.path.exists('.hg/patches/series'):
-            series = []
-        else:
-            series = open('.hg/patches/series').read().split('\n')
-
-        base = get_version(sage_root)
-        desired_series = []
-        seen_deps = []
-        def append_patch_list(ticket, dependency=False):
-            if ticket in seen_deps:
-                return
-            print "Looking at #%s" % ticket
-            seen_deps.append(ticket)
-            data = scrape(ticket)
-            if dependency and 'closed' in data['status']:
-                merged = data.get('merged')
-                if merged is None:
-                    merged = data.get('milestone')
-                if merged is None or compare_version(merged, base) <= 0:
-                    print "#%s already applied (%s <= %s)" % (ticket, merged, base)
-                    return
-            if data['spkgs']:
-                raise NotImplementedError, "Spkgs not yet handled."
-            if data['depends_on']:
-                for dep in data['depends_on']:
-                    if isinstance(dep, basestring) and '.' in dep:
-                        if compare_version(base, dep) < 0:
-                            raise ValueError, "%s < %s for %s" % (base, dep, ticket)
-                        continue
-                    append_patch_list(dep, dependency=True)
-            print "Patches for #%s:" % ticket
-            print "    " + "\n    ".join(data['patches'])
-            for patch in data['patches']:
-                patchfile, hash = patch.split('#')
-                desired_series.append((hash, patchfile, get_patch_url(ticket, patchfile)))
-        append_patch_list(ticket)
-        
-        ensure_safe(series)
-        ensure_safe(patch for hash, patch, url in desired_series)
-
-        last_good_patch = '-a'
-        to_push = list(desired_series)
-        for series_patch, (hash, patch, url) in zip(series, desired_series):
-            if not series_patch:
-                break
-            next_hash = digest(open('.hg/patches/%s' % series_patch).read())
-    #        print next_hash, hash, series_patch
-            if next_hash == hash:
-                to_push.pop(0)
-                last_good_patch = series_patch
-            else:
-                break
-
-        try:
-            if last_good_patch != '-a':
-                # In case it's not yet pushed...
-                if last_good_patch not in os.popen2('hg qapplied')[1].read().split('\n'):
-                    do_or_die('hg qpush %s' % last_good_patch)
-            do_or_die('hg qpop %s' % last_good_patch)
-            for hash, patch, url in to_push:
-                if patch in series:
-                    if not force:
-                        raise Exception, "Duplicate patch: %s" % patch
-                    old_patch = patch
-                    while old_patch in series:
-                        old_patch += '-old'
-                    do_or_die('hg qrename %s %s' % (patch, old_patch))
-                try:
-                    do_or_die('hg qimport %s' % url)
-                except Exception, exn:
-                    time.sleep(30)
-                    try:
-                        do_or_die('hg qimport %s' % url)
-                    except Exception, exn:
-                        raise urllib2.HTTPError(exn)
-                do_or_die('hg qpush')
-            do_or_die('hg qapplied')
-        except:
-            os.system('hg qpop -a')
-            raise
+        return
+    branch = info['git_branch']
+    repo = info['git_repo']
+    do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
+    do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
+    do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+    do_or_die("git checkout patchbot/ticket_merged")
+    try:
+        do_or_die("git merge -X patience patchbot/ticket_upstream")
+    except Exception:
+        do_or_die("git merge --abort")
+        raise
+    if not inplace_safe():
+        tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
+        do_or_die("git clone . '%s'" % tmp_dir)
+        os.chdir(tmp_dir)
+        os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+        os.environ['SAGE_ROOT'] = tmp_dir
+        do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
+        do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+        if use_ccache:
+            do_or_die("./sage -i ccache")
 
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
