@@ -9,7 +9,7 @@
 #
 #          Author: Robert Bradshaw <robertwb@gmail.com>
 #
-#               Copyright 2010-11 (C) Google, Inc.
+#               Copyright 2010-14 (C) Google, Inc.
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
