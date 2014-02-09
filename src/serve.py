@@ -463,17 +463,17 @@ def create_status_image(status, base=None):
                     status_list[ix] = 'PluginFailed'
         if len(set(status_list)) == 1:
             status = status_list[0]
-            path = status_image(status)
+            path = status_image_path(status)
         else:
             try:
                 from PIL import Image
                 import numpy
                 path = 'images/_cache/' + ','.join(status_list) + '-blob.png'
                 if not os.path.exists(path):
-                    composite = numpy.asarray(Image.open(status_image(status_list[0]))).copy()
+                    composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
                     height, width, _ = composite.shape
                     for ix, status in enumerate(reversed(status_list)):
-                        slice = numpy.asarray(Image.open(status_image(status)))
+                        slice = numpy.asarray(Image.open(status_image_path(status)))
                         start = ix * width / len(status_list)
                         end = (ix + 1) * width / len(status_list)
                         composite[:,start:end,:] = slice[:,start:end,:]
@@ -483,9 +483,9 @@ def create_status_image(status, base=None):
             except ImportError, exn:
                 print exn
                 status = min_status(status_list)
-                path = status_image(status)
+                path = status_image_path(status)
     else:
-        path = status_image(status)
+        path = status_image_path(status)
     if base is not None:
         try:
             from PIL import Image
@@ -500,7 +500,7 @@ def create_status_image(status, base=None):
     else:
         return open(path).read()
 
-def status_image(status):
+def status_image_path(status):
     return 'images/%s-blob.png' % status_colors[status]
 
 def min_status(status_list):
