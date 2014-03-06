@@ -215,18 +215,14 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
-def startup_time(ticket, original_dir, patched_dir, is_git=False, loops=5, total_samples=30, dry_run=False, **kwds):
+def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=30, dry_run=False, **kwds):
     if dry_run:
         loops //= 2
         total_samples //= 5
     print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
-    if is_git:
-        choose_base = "git checkout patchbot/base; make build"
-        choose_ticket = "git checkout patchbot/ticket_merged; make build"
-    else:
-        choose_base = "$SAGE_ROOT/sage -b 0 > /dev/null"
-        choose_ticket = "$SAGE_ROOT/sage -b %s > /dev/null" % ticket_id
+    choose_base = "git checkout patchbot/base; make build > /dev/null"
+    choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
     try:
         def startup_times(samples):
             do_or_die("$SAGE_ROOT/sage -c ''")
