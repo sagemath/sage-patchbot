@@ -8,7 +8,7 @@ import patchbot
 import db
 
 from db import tickets, logs
-from util import now_str, current_reports, latest_version
+from util import now_str, current_reports, latest_version, compare_version
 
 def timed_cached_function(refresh_rate=60):
     def decorator(func):
@@ -25,6 +25,14 @@ def timed_cached_function(refresh_rate=60):
         return wrap
     return decorator
 
+@timed_cached_function()
+def latest_base(betas=False):
+    versions = list(db.tickets.find({'id': 0}).distinct('reports.base'))
+    if not betas:
+        versions = filter(re.compile(r'[0-9.]+$').match, versions)
+    versions.sort(compare_version)
+    return versions[-1]
+
 app = Flask(__name__)
 
 @app.route("/reports")
@@ -36,7 +44,7 @@ def reports():
 def trusted_authors():
     """
     Defines the set of trusted authors
-    
+
     Currently, somebody is trusted if he/she is the author of a closed patch with 'fixed' status
     """
     authors = collections.defaultdict(int)
@@ -90,7 +98,7 @@ def ticket_list():
         if base == 'all':
             base = None
     else:
-        base = 'latest'
+        base = latest_base()
     if 'author' in request.args:
         query['authors'] = request.args.get('author')
     if 'participant' in request.args:
@@ -121,9 +129,10 @@ def ticket_list():
             yield ticket
     ticket0 = db.lookup_ticket(0)
     versions = list(set(report['base'] for report in ticket0['reports']))
-    versions.sort(trac.compare_version)
+    versions.sort(compare_version)
+    versions[:-25] = []
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order)
+    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
 
 def format_patches(ticket, patches, deps=None, required=None):
     if deps is None:
@@ -144,9 +153,9 @@ def format_patches(ticket, patches, deps=None, required=None):
             title = 'sage-%s' % item
         else:
             url = '/ticket/%s' % item
-            title = '#%s' % item            
+            title = '#%s' % item
         return "<a href='%s'>%s</a> %s" % (url, title, note)
-        
+
     missing_deps = missing_patches = ''
     if required is not None:
         required_patches_count = len([p for p in required if '#' in str(p)])
@@ -154,10 +163,12 @@ def format_patches(ticket, patches, deps=None, required=None):
             missing_deps = "<li><span style='color: red'>(missing deps)</span>\n"
         if len(patches) < required_patches_count:
             missing_patches = "<li><span style='color: red'>(missing patches)</span>\n"
+    if not missing_deps and not deps and not patches and not missing_patches:
+        return ''
     return ("<ol>"
         + missing_deps
         + "<li>\n"
-        + "\n<li>".join(format_item(patch) for patch in (deps + patches)) 
+        + "\n<li>".join(format_item(patch) for patch in (deps + patches))
         + missing_patches
         + "</ol>")
 
@@ -176,9 +187,9 @@ def render_ticket(ticket):
         info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
     else:
         info['reports'] = []
-    
+
     base_reports = base_reports_by_machine_and_base()
-        
+
     old_reports = list(info['reports'])
     patchbot.prune_pending(info)
     if old_reports != info['reports']:
@@ -215,6 +226,7 @@ def render_ticket(ticket):
             elif key not in ('id', '_id'):
                 new_info[key] = value
         return new_info
+    base = latest_base()
     def preprocess_reports(all):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
@@ -227,7 +239,7 @@ def render_ticket(ticket):
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
             item['raw_base'] = item['base']
-            if item['base'] != base:
+            if compare_version(item['base'], base) < 0:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
@@ -266,10 +278,8 @@ def render_ticket_status(ticket):
         info = tickets.find_one({'id': ticket})
     if 'base' in request.args:
         base = request.args.get('base')
-    elif 'reports' in info:
-        base = latest_version(current_reports(info))
     else:
-        base = None
+        base = latest_base()
     status = get_ticket_status(info, base=base)[2]
     if 'fast' in request.args:
         display_base = None
@@ -402,7 +412,7 @@ def get_log(log):
             if not data:
                 data = "No change."
             data = header + "\n\n" + data
-            
+
     if 'short' in request.args:
         response = Response(shorten(data), direct_passthrough=True)
     else:
@@ -543,8 +553,8 @@ def main(args):
     parser.add_option("--debug", dest="debug", default=False)
     (options, args) = parser.parse_args(args)
 
-    global global_base, base
-    global_base = base = options.base
+    global base
+    base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
 
 if __name__ == '__main__':

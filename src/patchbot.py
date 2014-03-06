@@ -310,7 +310,7 @@ class Patchbot:
         # TODO: Is this stable?
         version = get_version(self.sage_root)
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
-        return "%s + %s commits" % (version, commit_count)
+        return "%s + %s commits" % (version, commit_count.strip())
 
     def get_ticket(self, return_all=False, status='open'):
         os.chdir(self.sage_root)
@@ -464,6 +464,7 @@ class Patchbot:
                             else:
                                 baseline = None
                             print plugin_boundary(name)
+                            do_or_die("git checkout patchbot/ticket_merged")
                             res = plugin(ticket, is_git=True, baseline=baseline, **kwds)
                             passed = True
                         except Exception:
