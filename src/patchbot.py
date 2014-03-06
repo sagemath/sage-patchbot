@@ -20,7 +20,7 @@
 import hashlib
 import signal
 import getpass, platform
-import random, re, os, shutil, sys, subprocess, time, traceback
+import re, os, shutil, sys, subprocess, time, traceback
 import tempfile
 import cPickle as pickle
 import bz2, urllib2, urllib, json, socket
@@ -30,7 +30,7 @@ from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
-        get_version, compare_version, current_reports, git_commit)
+        get_version, current_reports, git_commit)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -409,7 +409,6 @@ class Patchbot:
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                start_time = time.time()
                 print "Sage Patchbot", patchbot_version.get_version()
 
                 if ticket['spkgs']:
@@ -584,7 +583,7 @@ class Patchbot:
                 p = subprocess.Popen(r"%s/sage -i --info %s" % (self.sage_root, base),
                                      shell=True, stdout=subprocess.PIPE)
                 for line in p.communicate()[0].split('\n'):
-                    m = re.match("Found package %s in (\S+)" % base, line)
+                    m = re.match(r"Found package %s in (\S+)" % base, line)
                     if m:
                         old_path = os.path.join(self.sage_root, m.group(1))
                         break
@@ -628,7 +627,7 @@ class Patchbot:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def report_ticket(self, ticket, status, log, plugins=[], dry_run=False, pending_status=None):
+    def report_ticket(self, ticket, status, log, plugins=(), dry_run=False, pending_status=None):
         report = {
             'status': status,
             'patches': ticket['patches'],
@@ -764,8 +763,8 @@ def main(args):
                 print "Idle."
                 time.sleep(conf['idle'])
         except Exception:
-                traceback.print_exc()
-                time.sleep(conf['idle'])
+            traceback.print_exc()
+            time.sleep(conf['idle'])
 
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and the server

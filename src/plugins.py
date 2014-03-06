@@ -1,12 +1,12 @@
 """
-A plugin is any callable. 
+A plugin is any callable.
 
 It is called after the ticket has been successfully applied and built,
 but before tests are run. It should print out any analysis to stdout,
 raising an exception if anything went wrong.  Alternatively, it may return
 a PluginResult indicating success or failure, along with other data.
 
-The parameters are as follows: 
+The parameters are as follows:
 
    ticket -- a dictionary of all the ticket informaton
    original_dir -- pristine sage-main directory
@@ -15,8 +15,8 @@ The parameters are as follows:
    sage_binary -- the path to $SAGE_ROOT/sage
    baseline -- if a PluginResult was returned with a baseline for ticket 0,
                it will be returned here for comparison
-   
-It is recommended that a plugin ignore extra keywords to be 
+
+It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
 """
 
@@ -105,7 +105,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
         print "=" * 20
     print
     print all
-    
+
     return PluginResult(status, baseline=current, data=data)
 
 def docbuild(ticket, **kwds):
@@ -123,7 +123,7 @@ def exclude_new(ticket, regex, msg, patches, **kwds):
     if regex[0] == '^':
         bad = re.compile(r'\+' + regex[1:])
     else:
-        bad = re.compile(r'\+.*' + regex)        
+        bad = re.compile(r'\+.*' + regex)
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print patch
@@ -218,7 +218,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
 def startup_time(ticket, original_dir, patched_dir, is_git=False, loops=5, total_samples=30, dry_run=False, **kwds):
     if dry_run:
         loops //= 2
-        total_samples //=5
+        total_samples //= 5
     print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
     if is_git:
@@ -286,7 +286,7 @@ def startup_time(ticket, original_dir, patched_dir, is_git=False, loops=5, total
         confidence_intervals = []
         for lower_bound in (1, .5, .25, .1, .05, .025, .01, 0.005, .0025, .001):
             z = mann_whitney_U(main_timings, ticket_timings, offset=base*lower_bound)
-            confidence = CDF(z) 
+            confidence = CDF(z)
             if confidence > 0.25:
                 confidence_intervals.append((confidence, lower_bound))
             if len(confidence_intervals) >= 5:
