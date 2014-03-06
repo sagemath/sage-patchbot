@@ -130,7 +130,6 @@ def ticket_list():
     ticket0 = db.lookup_ticket(0)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
-    versions[:-25] = []
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
 

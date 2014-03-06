@@ -23,16 +23,16 @@ if [ "$VERSION" == "UNCOMMITTED" ]; then
     git diff > $TMP/uncommitted.patch
     HEAD=$(git rev-parse HEAD)
 else
-    status=$(sage -hg status)
-    if [ -n "$status" ]; then
-	echo "Uncommitted hg changes."
-	echo "$status"
-	exit 1
-    fi
+#    status=$(sage -hg status)
+#    if [ -n "$status" ]; then
+#        echo "Uncommitted hg changes."
+#        echo "$status"
+#        exit 1
+#    fi
     HEAD=$(git rev-parse $VERSION)
     if [ "$?" -ne "0" ]; then
-	echo "Unknown tag or commit: $VERSION"
-	exit 1
+        echo "Unknown tag or commit: $VERSION"
+        exit 1
     fi
 fi
 
