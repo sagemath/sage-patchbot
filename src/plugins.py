@@ -117,21 +117,21 @@ def docbuild(ticket, **kwds):
             # grep returns 1 iff there were no matches
             raise ValueError
 
-def exclude_new(ticket, regex, msg, patches, **kwds):
+def exclude_new(ticket, regex, msg, **kwds):
     ignore_empty = True
     bad_lines = 0
     if regex[0] == '^':
         bad = re.compile(r'\+' + regex[1:])
     else:
         bad = re.compile(r'\+.*' + regex)
-    for patch_path in patches:
-        patch = os.path.basename(patch_path)
-        print patch
-        for ix, line in enumerate(open(patch_path)):
+    for line in subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout:
+        if line[:3] in ('+++', '---', '@@ '):
+            print line
+        else:
             line = line.strip("\n")
             m = bad.match(line)
             if m:
-                print "    %s:%s %s$" % (patch, ix+1, line)
+                print line
                 if line.strip() == '+' and ignore_empty:
                     pass
                 else:
