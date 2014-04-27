@@ -315,6 +315,8 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
             if use_ccache:
+                if not os.path.exists('logs'):
+                    os.mkdir('logs')
                 do_or_die("./sage -i ccache")
     except Exception, exn:
         if merge_failure:
