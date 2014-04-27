@@ -30,7 +30,7 @@ from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
-        get_version, current_reports, git_commit)
+        get_version, current_reports, git_commit, ConfigException)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -508,7 +508,7 @@ class Patchbot:
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
 
-        except (urllib2.HTTPError, socket.error):
+        except (urllib2.HTTPError, socket.error, ConfigException):
             # Don't report failure because the network/trac died...
             print
             t.print_all()
@@ -729,7 +729,7 @@ def main(args):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     if conf['use_ccache']:
-        do_or_die("'%s'/sage -i ccache" % options.sage_root)
+        do_or_die("'%s'/sage -i ccache" % options.sage_root, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 

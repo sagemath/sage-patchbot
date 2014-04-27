@@ -4,7 +4,7 @@ TRAC_REPO = "http://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, now_str
+from util import do_or_die, now_str, ConfigException
 
 def digest(s):
     """
@@ -284,36 +284,43 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
     # patchbot/base_upstream -- temporary staging area for patchbot/base
     # patchbot/ticket_upstream -- pristine clone of the ticket on trac
     # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
-    ticket_id = ticket
-    info = scrape(ticket_id)
-    os.chdir(sage_root)
-    do_or_die("git checkout patchbot/base")
-    if ticket_id == 0:
-        do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
-        do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
-        return
-    branch = info['git_branch']
-    repo = info['git_repo']
-    do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
-    do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
-    do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
-    do_or_die("git checkout patchbot/ticket_merged")
+    merge_failure = False
     try:
-        do_or_die("git merge -X patience patchbot/ticket_upstream")
-    except Exception:
-        do_or_die("git merge --abort")
-        raise
-    if not inplace_safe():
-        tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
-        do_or_die("git clone . '%s'" % tmp_dir)
-        os.chdir(tmp_dir)
-        os.symlink(os.path.join(sage_root, "upstream"), "upstream")
-        os.environ['SAGE_ROOT'] = tmp_dir
-        do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
-        do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
-        if use_ccache:
-            do_or_die("./sage -i ccache")
-
+        ticket_id = ticket
+        info = scrape(ticket_id)
+        os.chdir(sage_root)
+        do_or_die("git checkout patchbot/base")
+        if ticket_id == 0:
+            do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
+            do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+            return
+        branch = info['git_branch']
+        repo = info['git_repo']
+        do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
+        do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
+        do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+        do_or_die("git checkout patchbot/ticket_merged")
+        try:
+            do_or_die("git merge -X patience patchbot/ticket_upstream")
+        except Exception:
+            do_or_die("git merge --abort")
+            merge_failure = True
+            raise
+        if not inplace_safe():
+            tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
+            do_or_die("git clone . '%s'" % tmp_dir)
+            os.chdir(tmp_dir)
+            os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+            os.environ['SAGE_ROOT'] = tmp_dir
+            do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
+            do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+            if use_ccache:
+                do_or_die("./sage -i ccache")
+    except Exception, exn:
+        if merge_failure:
+            raise
+        else:
+            raise ConfigException, exn.message
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
     raise NotImplementedError

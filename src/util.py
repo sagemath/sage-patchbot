@@ -63,7 +63,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     if base == 'latest':
         base = latest_version(reports)
     def base_ok(report_base):
-        return (not base 
+        return (not base
             or base == report_base
             or (newer and comparable_version(base) <= comparable_version(report_base)))
     return filter(lambda report: (ticket['patches'] == report['patches'] and
@@ -84,11 +84,11 @@ def git_commit(repo, branch):
     except subprocess.CalledProcessError:
         return None
 
-def do_or_die(cmd):
+def do_or_die(cmd, exn_class=Exception):
     print cmd
     res = os.system(cmd)
     if res:
-        raise Exception, "%s %s" % (res, cmd)
+        raise exn_class, "%s %s" % (res, cmd)
 
 def extract_version(s):
     m = re.search(r'\d+(\.\d+)+(\.\w+)', s)
@@ -110,3 +110,9 @@ def compare_version(a, b):
 def get_version(sage_root):
     # TODO: Is this stable?
     return open(os.path.join(sage_root, 'VERSION.txt')).read().split()[2].strip(',')
+
+class ConfigException(Exception):
+    """
+    An exception to raise to abort the patchbot without implicating a ticket.
+    """
+    pass
