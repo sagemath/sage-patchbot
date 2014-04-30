@@ -729,8 +729,8 @@ def main(args):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
 
     log_dir = options.sage_root + "/logs"
-    if not os.path.exists(self.log_dir):
-        os.makedirs(self.log_dir)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     # Make sure this file is writable.
     handle = open(os.path.join(log_dir, 'install.log'), 'a')
     handle.close()

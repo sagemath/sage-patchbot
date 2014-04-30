@@ -46,7 +46,7 @@ fi
 
 # Format as an spkg.
 rm -rf .git*
-cp -r $ORIGINAL/.hg .
+#cp -r $ORIGINAL/.hg .
 mv README.txt src
 echo $VERSION > src/version.txt
 cd ..
