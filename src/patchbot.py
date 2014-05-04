@@ -249,7 +249,7 @@ class Patchbot:
             "machine_match": 3,
             "user": getpass.getuser(),
             "keep_open_branches": True,
-            "base_repo": "https://github.com/sagemath/sage.git",
+            "base_repo": "git://github.com/sagemath/sage.git",
             "base_branch": "master",
             "max_behind_commits": 10,
             "max_behind_days": 2.0,
@@ -599,7 +599,7 @@ class Patchbot:
                     print "Unable to locate existing package %s." % base
 
             if old_path is not None and old_path.startswith('/attachment/'):
-                old_url = 'http://trac.sagemath.org/sage_trac' + old_path
+                old_url = 'git://trac.sagemath.org/sage_trac' + old_path
             if old_url is not None:
                 old_basename = os.path.basename(old_url)
                 old_path = os.path.join(temp_dir, old_basename)

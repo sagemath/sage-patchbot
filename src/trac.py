@@ -1,5 +1,5 @@
 TRAC_URL = "http://trac.sagemath.org/sage_trac"
-TRAC_REPO = "http://trac.sagemath.org/sage.git"
+TRAC_REPO = "git://trac.sagemath.org/sage.git"
 
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
