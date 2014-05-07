@@ -179,6 +179,9 @@ def check_time_of_day(hours):
     return False
 
 def sha1file(path, blocksize=2**16):
+    """
+    Return SHA-1 of file.
+    """
     h = hashlib.sha1()
     handle = open(path)
     buf = handle.read(blocksize)
