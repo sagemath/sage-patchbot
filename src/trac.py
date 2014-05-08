@@ -323,8 +323,9 @@ def clone_sandbox(ticket_id, use_ccache=False):
         tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
         do_or_die("git clone . '%s'" % tmp_dir)
         os.chdir(tmp_dir)
+        fetch_from_trac(ticket_id)
         merge_ticket(ticket_id)
-        os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+        os.symlink(os.path.join(os.environ['SAGE_ROOT'], "upstream"), "upstream")
         os.environ['SAGE_ROOT'] = tmp_dir
         do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
         do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
