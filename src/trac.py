@@ -268,37 +268,43 @@ def inplace_safe():
     """
     safe = True
     # TODO: Are removed files sufficiently cleaned up?
-    for file in subprocess.check_output(["git", "diff", "--name-only", "patchbot/base..patchbot/ticket_merged"]).split('\n'):
+    commit = subprocess.check_output(['git', 'merge-base', 'patchbot/base', 'patchbot/ticket_upstream']).split('\n')[0]
+    for file in subprocess.check_output(["git", "diff", "--name-only", "%s..patchbot/ticket_upstream" % commit]).split('\n'):
         if not file:
             continue
-        if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
+        if file.startswith("src/sage") or file.startswith("src/doc") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
             continue
         else:
             print "Unsafe file:", file
             safe = False
     return safe
 
-def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False):
+def fetch_from_trac(ticket_id):
     # There are four branches at play here:
     # patchbot/base -- the latest release that all tickets are merged into for testing
     # patchbot/base_upstream -- temporary staging area for patchbot/base
     # patchbot/ticket_upstream -- pristine clone of the ticket on trac
     # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
-    merge_failure = False
     try:
-        ticket_id = ticket
-        info = scrape(ticket_id)
-        os.chdir(sage_root)
+        info = scrape(ticket_id)        
         do_or_die("git checkout patchbot/base")
         if ticket_id == 0:
             do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
-            do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
             return
         branch = info['git_branch']
         repo = info['git_repo']
         do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
-        do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
-        do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+    except Exception, exn:
+        raise ConfigException, exn.message
+        
+        
+def merge_ticket(ticket_id):
+    merge_failure = False
+    try:
+        if ticket_id == 0:
+            do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
+            return
+        do_or_die("git branch -f patchbot/ticket_merged patchbot/base")        
         do_or_die("git checkout patchbot/ticket_merged")
         try:
             do_or_die("git merge -X patience patchbot/ticket_upstream")
@@ -306,23 +312,28 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             do_or_die("git merge --abort")
             merge_failure = True
             raise
-        if not inplace_safe():
-            tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
-            do_or_die("git clone . '%s'" % tmp_dir)
-            os.chdir(tmp_dir)
-            os.symlink(os.path.join(sage_root, "upstream"), "upstream")
-            os.environ['SAGE_ROOT'] = tmp_dir
-            do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
-            do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
-            if use_ccache:
-                if not os.path.exists('logs'):
-                    os.mkdir('logs')
-                do_or_die("./sage -i ccache")
     except Exception, exn:
         if merge_failure:
             raise
         else:
             raise ConfigException, exn.message
+
+def clone_sandbox(ticket_id, use_ccache=False):
+    try:
+        tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
+        do_or_die("git clone . '%s'" % tmp_dir)
+        os.chdir(tmp_dir)
+        merge_ticket(ticket_id)
+        os.symlink(os.path.join(sage_root, "upstream"), "upstream")
+        os.environ['SAGE_ROOT'] = tmp_dir
+        do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
+        do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+        if use_ccache:
+            if not os.path.exists('logs'):
+                os.mkdir('logs')
+            do_or_die("./sage -i ccache")
+    except Exception, exn:
+        raise Exception, exn.message
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
     raise NotImplementedError

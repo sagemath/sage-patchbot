@@ -28,7 +28,7 @@ from optparse import OptionParser
 
 from http_post_file import post_multipart
 
-from trac import scrape, pull_from_trac
+from trac import scrape, fetch_from_trac, merge_ticket, inplace_safe, clone_sandbox
 from util import (now_str as datetime, prune_pending, do_or_die,
         get_version, current_reports, git_commit, ConfigException)
 import version as patchbot_version
@@ -254,6 +254,7 @@ class Patchbot:
             "max_behind_commits": 10,
             "max_behind_days": 2.0,
             "use_ccache": True,
+            "safe_only": False,
         }
         default_bonus = {
             "needs_review": 1000,
@@ -432,7 +433,17 @@ class Patchbot:
                     os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
                     os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
                     os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
-                    pull_from_trac(self.sage_root, ticket['id'], force=True, use_ccache=self.config['use_ccache'])
+                    ticket_id = ticket['id']
+                    fetch_from_trac(ticket_id)
+                    ticket_is_safe = inplace_safe()
+                    if self.config['safe_only'] and not ticket_is_safe:
+                        print "Unsafe ticket and --safe-only set. Bailing out..."
+                        return
+                    if ticket_is_safe:
+                        os.chdir(self.sage_root)
+                        merge_ticket(ticket_id)
+                    else:
+                        clone_sandbox(ticket_id, use_ccache=self.config['use_ccache'])
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
@@ -700,6 +711,7 @@ def main(args):
     parser.add_option("--skip-base", action="store_true", dest="skip_base", default=False)
     parser.add_option("--dry-run", action="store_true", dest="dry_run", default=False)
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
+    parser.add_option("--safe-only", action="store_true", dest="safe_only", default=False)
     (options, args) = parser.parse_args(args)
 
     conf_path = options.config and os.path.abspath(options.config)
