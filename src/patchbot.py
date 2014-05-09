@@ -392,6 +392,7 @@ class Patchbot:
         rating, ticket = ticket
         if len(ticket['depends_on']) > 0:
             for dep_id in ticket['depends_on']:
+                time.sleep(1)
                 dep = self.lookup_ticket(dep_id)
                 if dep['status'] <> 'closed':
                     print "Ticket has open dependency. Ignoring..."
