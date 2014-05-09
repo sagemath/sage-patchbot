@@ -389,8 +389,14 @@ class Patchbot:
             print "No more tickets."
             time.sleep(self.config['idle'])
             return
-
         rating, ticket = ticket
+        if len(ticket['depends_on']) > 0:
+            for dep_id in ticket['depends_on']:
+                dep = self.lookup_ticket(dep_id)
+                if dep['status'] <> 'closed':
+                    print "Ticket has open dependency. Ignoring..."
+                    return
+
         print "\n" * 2
         print "=" * 30, ticket['id'], "=" * 30
         print ticket['title']
