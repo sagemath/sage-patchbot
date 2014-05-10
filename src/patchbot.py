@@ -438,6 +438,7 @@ class Patchbot:
                     if not self.plugin_only:
                         self.report_ticket(ticket, status='Pending', log=log, pending_status=state)
 
+                    do_or_die("$MAKE doc-clean")
                     do_or_die("$MAKE")
                     t.finish("Build")
                     state = 'built'
