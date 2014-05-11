@@ -28,7 +28,7 @@ from optparse import OptionParser
 
 from http_post_file import post_multipart
 
-from trac import scrape, pull_from_trac
+from trac import scrape, fetch_from_trac, merge_ticket, inplace_safe, clone_sandbox
 from util import (now_str as datetime, prune_pending, do_or_die,
         get_version, current_reports, git_commit, ConfigException)
 import version as patchbot_version
@@ -189,13 +189,14 @@ def sha1file(path, blocksize=2**16):
 
 class Patchbot:
 
-    def __init__(self, sage_root, server, config_path, dry_run=False, plugin_only=False):
+    def __init__(self, sage_root, server, config_path, dry_run=False, plugin_only=False, safe_only=False):
         self.sage_root = sage_root
         self.server = server
         self.base = get_version(sage_root)
         self.behind_base = {}
         self.dry_run = dry_run
         self.plugin_only = plugin_only
+        self.safe_only = safe_only
         self.config_path = config_path
         self.reload_config()
         self.last_pull = 0
@@ -403,6 +404,14 @@ class Patchbot:
         history = open("%s/history.txt" % self.log_dir, "a")
         history.write("%s %s\n" % (datetime(), ticket['id']))
         history.close()
+        if not ticket['spkgs']:
+            ticket_id = ticket['id']
+            fetch_from_trac(ticket_id)
+            ticket_is_safe = inplace_safe()
+            if self.safe_only and not ticket_is_safe:
+                print "Unsafe ticket and --safe-only set. Bailing out..."
+                time.sleep(10)
+                return
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
@@ -432,7 +441,12 @@ class Patchbot:
                     os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
                     os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
                     os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
-                    pull_from_trac(self.sage_root, ticket['id'], force=True, use_ccache=self.config['use_ccache'])
+                    ticket_id = ticket['id']
+                    if ticket_is_safe:
+                        os.chdir(self.sage_root)
+                        merge_ticket(ticket_id)
+                    else:
+                        clone_sandbox(ticket_id, use_ccache=self.config['use_ccache'])
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
@@ -700,6 +714,7 @@ def main(args):
     parser.add_option("--skip-base", action="store_true", dest="skip_base", default=False)
     parser.add_option("--dry-run", action="store_true", dest="dry_run", default=False)
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
+    parser.add_option("--safe-only", action="store_true", dest="safe_only", default=False)
     (options, args) = parser.parse_args(args)
 
     conf_path = options.config and os.path.abspath(options.config)
@@ -710,7 +725,7 @@ def main(args):
         tickets = None
         count = int(options.count)
 
-    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only)
+    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only, safe_only=options.safe_only)
 
     conf = patchbot.get_config()
     if options.list:
