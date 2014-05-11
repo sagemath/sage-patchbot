@@ -410,6 +410,7 @@ class Patchbot:
             ticket_is_safe = inplace_safe()
             if self.safe_only and not ticket_is_safe:
                 print "Unsafe ticket and --safe-only set. Bailing out..."
+                time.sleep(10)
                 return
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
