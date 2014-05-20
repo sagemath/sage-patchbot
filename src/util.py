@@ -24,6 +24,10 @@ def parse_datetime(s):
     return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60*int(s[-5:].strip())
 
 def prune_pending(ticket, machine=None, timeout=6*60*60):
+    """
+    Remove pending reports from ticket.reports if machine is matched
+    and report.time is longer than timeout old.
+    """
     if 'reports' in ticket:
         reports = ticket['reports']
     else:
@@ -40,12 +44,20 @@ def prune_pending(ticket, machine=None, timeout=6*60*60):
     return reports
 
 def latest_version(reports):
+    """
+    Return newest report.base in reports.
+    """
     if reports:
         return max([r['base'] for r in reports], key=comparable_version)
     else:
         return None
 
 def current_reports(ticket, base=None, unique=False, newer=False):
+    """
+    Return list of reports of the ticket optionally filtered by base.
+    If unique, add only unique reports. If newer, filter out reports
+    that are older than current base.
+    """
     if 'reports' not in ticket:
         return []
     if unique:
@@ -75,9 +87,13 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                       reports)
 
 def is_git(sage_root):
+    """
+    True if sage_root has a .git directory.
+    """
     return os.path.exists(sage_root + "/.git")
 
 def git_commit(repo, branch):
+    # Note: see also the same function in trac.py
     ref = "refs/heads/%s"%branch
     try:
         return subprocess.check_output(["git", "--git-dir=%s/.git" % repo, "show-ref", "--verify", ref]).split()[0]

@@ -114,6 +114,9 @@ def git_commit(branch):
             return "unknown"
 
 def parse_tsv(tsv):
+    """
+    Convert tsv to dict.
+    """
     header, data = tsv.split('\n', 1)
     def sanitize(items):
         for item in items:
@@ -208,7 +211,7 @@ def extract_patches(rss):
 participant_regex = re.compile("<strong>attachment</strong>\w*set to <em>(.*)</em>")
 def extract_participants(rss):
     """
-    Extracts any spkgs for a ticket from the html page.
+    Extracts any authors for a ticket from the html page.
     """
     all = set()
     for item in rss.split('<item>'):
@@ -279,11 +282,17 @@ def inplace_safe():
     return safe
 
 def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False):
-    # There are four branches at play here:
-    # patchbot/base -- the latest release that all tickets are merged into for testing
-    # patchbot/base_upstream -- temporary staging area for patchbot/base
-    # patchbot/ticket_upstream -- pristine clone of the ticket on trac
-    # patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
+    """
+    Create four branches from base and ticket. If ticket deemed unsafe then
+    clone git repo to temp directory; additionally, if use_ccache then install
+    ccache. Set some global and environment variables.
+    
+    There are four branches at play here:
+    patchbot/base -- the latest release that all tickets are merged into for testing
+    patchbot/base_upstream -- temporary staging area for patchbot/base
+    patchbot/ticket_upstream -- pristine clone of the ticket on trac
+    patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
+    """
     merge_failure = False
     try:
         ticket_id = ticket
