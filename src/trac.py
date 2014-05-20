@@ -271,7 +271,7 @@ def inplace_safe():
     for file in subprocess.check_output(["git", "diff", "--name-only", "patchbot/base..patchbot/ticket_merged"]).split('\n'):
         if not file:
             continue
-        if file.startswith("src/sage") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
+        if file.startswith("src/sage") or file.startswith("src/doc") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
             continue
         else:
             print "Unsafe file:", file
