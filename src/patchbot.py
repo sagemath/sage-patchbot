@@ -394,7 +394,7 @@ class Patchbot:
             for dep_id in ticket['depends_on']:
                 time.sleep(1)
                 dep = self.lookup_ticket(dep_id)
-                if dep['status'] <> 'closed':
+                if dep['status'] <> 'closed' and dep['status'] <> 'unknown':
                     print "Ticket has open dependency. Ignoring..."
                     return
 
