@@ -754,7 +754,12 @@ def main(args):
                 print "\n\n"
                 while True:
                     print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
-                    ans = sys.stdin.readline().lower().strip()
+                    try:
+                        ans = sys.stdin.readline().lower().strip()
+                    except IOError:
+                        # Might not be interactive.
+                        print "Non interactive, not continuing."
+                        ans = 'n'
                     if ans == '' or ans[0] == 'n':
                         sys.exit(1)
                     elif ans[0] == 'y':
