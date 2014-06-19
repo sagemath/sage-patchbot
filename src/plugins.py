@@ -291,6 +291,8 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=30, d
         status = PluginResult.Passed
         if not confidence_intervals:
             print "No statistically significant difference."
+        else:
+            print "May have caused a slowdown."
         for confidence, lower_bound, in confidence_intervals:
             if increased and confidence >= .9 and lower_bound >= .001:
                 status = PluginResult.Failed
@@ -305,6 +307,7 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=30, d
                     main_timings=main_timings, ticket_timings=ticket_timings,
                     loops=loops, total_samples=total_samples)
         if str(ticket_id) == '0':
+            # Never fail the initial startup.
             status = PluginResult.Passed
         return PluginResult(status, data=data)
 
