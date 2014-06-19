@@ -294,7 +294,7 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=30, d
         else:
             print "May have caused a slowdown."
         for confidence, lower_bound, in confidence_intervals:
-            if increased and confidence >= .9 and lower_bound >= .001:
+            if increased and confidence >= .999 and lower_bound >= .001:
                 status = PluginResult.Failed
             # Print 99.999x%.
             confidence = 1 - float(("%0.1g" if confidence > .9 else "%0.2g") % (1 - confidence))
