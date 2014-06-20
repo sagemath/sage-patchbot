@@ -333,7 +333,6 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             raise
         else:
             raise ConfigException, exn.message
-    raise RuntimeError
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
     raise NotImplementedError
