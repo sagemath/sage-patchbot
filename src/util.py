@@ -140,3 +140,11 @@ class ConfigException(Exception):
     An exception to raise to abort the patchbot without implicating a ticket.
     """
     pass
+
+class SkipTicket(Exception):
+    """
+    An exception to raise to abort this ticket without reporting failure or re-trying it again for a while.
+    """
+    def __init__(self, msg, seconds_till_retry=float('inf')):
+        super(SkipTicket, self).__init__(msg)
+        self.seconds_till_retry = seconds_till_retry

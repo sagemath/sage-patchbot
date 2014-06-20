@@ -32,8 +32,9 @@ from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
-        get_version, current_reports, git_commit, ConfigException,
-        describe_branch, compare_version, temp_build_suffix)
+        get_version, current_reports, git_commit,
+        describe_branch, compare_version, temp_build_suffix,
+        ConfigException, SkipTicket)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -143,6 +144,7 @@ status = {
     'plugins_failed': 'PluginOnlyFailed',
     'spkg'          : 'Spkg',
     'network_error' : 'Pending',
+    'skipped'       : 'Pending',
 }
 
 def plugin_boundary(name, end=False):
@@ -205,6 +207,7 @@ class Patchbot:
         self.config_path = config_path
         self.reload_config()
         self.last_pull = 0
+        self.to_skip = {}
 
     def load_json_from_server(self, path):
         handle = urllib2.urlopen("%s/%s" % (self.server, path))
@@ -319,6 +322,7 @@ class Patchbot:
         return "%s + %s commits" % (version, commit_count.strip())
 
     def get_ticket(self, return_all=False, status='open'):
+        print self.to_skip
         os.chdir(self.sage_root)
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status=%s" % status
@@ -376,6 +380,11 @@ class Patchbot:
                 rating -= bonus.get("unique", 0)
         if not any(uniqueness):
             return # already did this one
+        if ticket['id'] in self.to_skip:
+            if self.to_skip[ticket['id']] < time.time():
+                del self.to_skip[ticket['id']]
+            else:
+                return
         return uniqueness, rating, -int(ticket['id'])
 
     def current_reports(self, ticket, newer=False):
@@ -521,6 +530,10 @@ class Patchbot:
             t.print_all()
             traceback.print_exc()
             state = 'network_error'
+        except SkipTicket, exn:
+            self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
+            state = 'skipped'
+            print "Skipping", ticket['id'], "for", exn.seconds_till_retry, "seconds", exn
         except Exception:
             traceback.print_exc()
 
