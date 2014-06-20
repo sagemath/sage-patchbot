@@ -530,6 +530,8 @@ class Patchbot:
             print
             t.print_all()
             traceback.print_exc()
+            # Don't try this again for at least an hour.
+            self.to_skip[ticket['id']] = time.time() + 60 * 60
             state = 'network_error'
         except SkipTicket, exn:
             self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
@@ -537,6 +539,10 @@ class Patchbot:
             print "Skipping", ticket['id'], "for", exn.seconds_till_retry, "seconds", exn
         except Exception:
             traceback.print_exc()
+        except:
+            # Don't try this again for a while.
+            self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
+            raise
 
         for _ in range(5):
             try:
