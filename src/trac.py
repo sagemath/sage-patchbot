@@ -4,7 +4,7 @@ TRAC_REPO = "git://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, now_str, describe_branch, ConfigException
+from util import do_or_die, now_str, describe_branch, temp_build_suffix, ConfigException
 
 def digest(s):
     """
@@ -317,7 +317,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             merge_failure = True
             raise
         if not inplace_safe():
-            tmp_dir = tempfile.mkdtemp("-sage-git-temp-%s" % ticket_id)
+            tmp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
             do_or_die("git clone . '%s'" % tmp_dir)
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")

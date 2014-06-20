@@ -13,7 +13,7 @@ if "check_output" not in subprocess.__dict__: # duck punch it in!
         return output
     subprocess.check_output = check_output
 
-
+temp_build_suffix = "-sage-git-temp-"
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 def now_str():
@@ -133,6 +133,7 @@ def describe_branch(branch, tag_only=False):
         return res.split('-')[0]
     else:
         return res
+
 
 class ConfigException(Exception):
     """

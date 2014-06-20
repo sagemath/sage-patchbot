@@ -20,9 +20,11 @@
 import hashlib
 import signal
 import getpass, platform
+import glob
 import re, os, shutil, sys, subprocess, time, traceback
 import tempfile
 import cPickle as pickle
+import shutil
 import bz2, urllib2, urllib, json, socket
 from optparse import OptionParser
 
@@ -31,7 +33,7 @@ from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
         get_version, current_reports, git_commit, ConfigException,
-        describe_branch, compare_version)
+        describe_branch, compare_version, temp_build_suffix)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -709,6 +711,7 @@ def main(args):
     parser.add_option("--skip-base", action="store_true", dest="skip_base", default=False)
     parser.add_option("--dry-run", action="store_true", dest="dry_run", default=False)
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
+    parser.add_option("--cleanup", action="store_true", dest="cleanup", default=False)
     (options, args) = parser.parse_args(args)
 
     conf_path = options.config and os.path.abspath(options.config)
@@ -771,6 +774,10 @@ def main(args):
                         break
 
     for k in range(count):
+        if options.cleanup:
+            for path in glob.glob(os.path.join(tempfile.gettempdir(), "*%s*" % temp_build_suffix)):
+                print "Cleaning up ", path
+                shutil.rmtree(path)
         try:
             if tickets:
                 ticket = tickets.pop(0)
