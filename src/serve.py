@@ -226,6 +226,18 @@ def render_ticket(ticket):
                 new_info[key] = value
         return new_info
     base = latest_base()
+    def format_git_describe(res):
+        if res:
+            if '-' in res:
+                tag, commits = res.split('-')[:2]
+                return "%s + %s commits" % (tag, commits)
+            elif 'commits' in res:
+                # old style
+                return res
+            else:
+                return res + " + 0 commits"
+        else:
+            return '?'
     def preprocess_reports(all):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
@@ -242,6 +254,12 @@ def render_ticket(ticket):
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
+            if 'git_commit_human' not in item:
+                item['git_commit_human'] = "%s new commits" % len(item['log'])
+            for x in ('commit', 'base', 'merge'):
+                field = 'git_%s_human' % x
+                print field, item.get(field, None)
+                item[field] = format_git_describe(item.get(field, None))
             yield item
     def normalize_plugin(plugin):
         while len(plugin) < 3:
