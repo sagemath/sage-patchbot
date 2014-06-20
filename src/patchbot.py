@@ -30,7 +30,8 @@ from http_post_file import post_multipart
 
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
-        get_version, current_reports, git_commit, ConfigException)
+        get_version, current_reports, git_commit, ConfigException,
+        describe_branch, compare_version)
 import version as patchbot_version
 from plugins import PluginResult
 
@@ -648,21 +649,25 @@ class Patchbot:
         if pending_status:
             report['pending_status'] = pending_status
         try:
+            report['base'] = ticket_base = sorted([
+                describe_branch('patchbot/base', tag_only=True),
+                describe_branch('patchbot/ticket_upstream', tag_only=True)], compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
-            report['git_base_human'] = self.human_readable_base()
+            report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:
                 report['git_branch'] = ticket.get('git_branch', None)
-                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', 'patchbot/base..patchbot/ticket_upstream']).strip().split('\n')
+                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base]).strip().split('\n')
                 # If apply failed, we don't want to be stuck in an infinite loop.
-                report['git_commit'] = ticket['git_commit']
                 report['git_commit'] = self.git_commit('patchbot/ticket_upstream')
+                report['git_commit_human'] = describe_branch('patchbot/ticket_upstream')
                 report['git_merge'] = self.git_commit('patchbot/ticket_merged')
+                report['git_merge_human'] = describe_branch('patchbot/ticket_merged')
             else:
                 report['git_branch'] = self.config['base_branch']
                 report['git_log'] = []
                 report['git_commit'] = report['git_merge'] = report['git_base']
         except Exception:
-            pass
+            traceback.print_exc()
 
         if status != 'Pending':
             history = open("%s/history.txt" % self.log_dir, "a")

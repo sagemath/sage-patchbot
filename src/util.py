@@ -127,6 +127,13 @@ def get_version(sage_root):
     # TODO: Is this stable?
     return open(os.path.join(sage_root, 'VERSION.txt')).read().split()[2].strip(',')
 
+def describe_branch(branch, tag_only=False):
+    res = subprocess.check_output(['git', 'describe', '--tags', '--match', '[0-9].[0-9]*', branch]).strip()
+    if tag_only:
+        return res.split('-')[0]
+    else:
+        return res
+
 class ConfigException(Exception):
     """
     An exception to raise to abort the patchbot without implicating a ticket.

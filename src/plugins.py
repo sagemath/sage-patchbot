@@ -24,6 +24,7 @@ import math
 import re, os, sys, subprocess, time
 
 from trac import do_or_die
+from util import describe_branch
 
 class PluginResult:
     Passed = "Passed"
@@ -41,12 +42,13 @@ def git_rev_list(ticket, **kwds):
         print "only in ticket (%s)" % ticket_only
         print "only in base (%s)" % base_only
         print
-        do_or_die("git diff --stat patchbot/base..patchbot/ticket_upstream")
+        base = describe_branch('patchbot/ticket_upstream', tag_only=True)
+        do_or_die("git diff --stat %s..patchbot/ticket_upstream" % base)
         print
-        do_or_die("git log --oneline patchbot/base..patchbot/ticket_upstream")
+        do_or_die("git log --oneline %s..patchbot/ticket_upstream" % base)
         print
         print
-        do_or_die("git log patchbot/base..patchbot/ticket_upstream")
+        do_or_die("git log %s..patchbot/ticket_upstream" % base)
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     # TODO: This doesn't check that tests were added to existing doctests for

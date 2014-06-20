@@ -4,7 +4,7 @@ TRAC_REPO = "git://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, now_str, ConfigException
+from util import do_or_die, now_str, describe_branch, ConfigException
 
 def digest(s):
     """
@@ -286,7 +286,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
     Create four branches from base and ticket. If ticket deemed unsafe then
     clone git repo to temp directory; additionally, if use_ccache then install
     ccache. Set some global and environment variables.
-    
+
     There are four branches at play here:
     patchbot/base -- the latest release that all tickets are merged into for testing
     patchbot/base_upstream -- temporary staging area for patchbot/base
@@ -306,7 +306,8 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         branch = info['git_branch']
         repo = info['git_repo']
         do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
-        do_or_die("git rev-list --left-right --count patchbot/base..patchbot/ticket_upstream")
+        base = describe_branch('patchbot/ticket_upstream', tag_only=True)
+        do_or_die("git rev-list --left-right --count %s..patchbot/ticket_upstream" % base)
         do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
         do_or_die("git checkout patchbot/ticket_merged")
         try:
@@ -332,6 +333,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             raise
         else:
             raise ConfigException, exn.message
+    raise RuntimeError
 
 def push_from_trac(sage_root, ticket, branch=None, force=None, interactive=None):
     raise NotImplementedError
