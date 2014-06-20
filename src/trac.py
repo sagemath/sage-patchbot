@@ -4,7 +4,7 @@ TRAC_REPO = "git://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, now_str, describe_branch, temp_build_suffix, ConfigException
+from util import do_or_die, now_str, describe_branch, temp_build_suffix, ConfigException, SkipTicket
 
 def digest(s):
     """
@@ -281,7 +281,7 @@ def inplace_safe():
             safe = False
     return safe
 
-def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False):
+def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False, safe_only=False):
     """
     Create four branches from base and ticket. If ticket deemed unsafe then
     clone git repo to temp directory; additionally, if use_ccache then install
@@ -317,6 +317,8 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             merge_failure = True
             raise
         if not inplace_safe():
+            if safe_only:
+                raise SkipTicket("unsafe")
             tmp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
             do_or_die("git clone . '%s'" % tmp_dir)
             os.chdir(tmp_dir)
