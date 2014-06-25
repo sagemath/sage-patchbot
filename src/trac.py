@@ -4,7 +4,8 @@ TRAC_REPO = "git://trac.sagemath.org/sage.git"
 import re, hashlib, urllib2, os, sys, tempfile, traceback, time, subprocess
 import pprint
 
-from util import do_or_die, now_str, describe_branch, temp_build_suffix, ConfigException, SkipTicket
+from util import (do_or_die, now_str, describe_branch, temp_build_suffix, ensure_free_space,
+    ConfigException, SkipTicket)
 
 def digest(s):
     """
@@ -298,6 +299,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
         ticket_id = ticket
         info = scrape(ticket_id)
         os.chdir(sage_root)
+        ensure_free_space(sage_root)
         do_or_die("git checkout patchbot/base")
         if ticket_id == 0:
             do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
@@ -320,6 +322,7 @@ def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None,
             if safe_only:
                 raise SkipTicket("unsafe")
             tmp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
+            ensure_free_space(tmp_dir)
             do_or_die("git clone . '%s'" % tmp_dir)
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")

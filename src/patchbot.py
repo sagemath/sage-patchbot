@@ -33,7 +33,7 @@ from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
         get_version, current_reports, git_commit,
-        describe_branch, compare_version, temp_build_suffix,
+        describe_branch, compare_version, temp_build_suffix, ensure_free_space,
         ConfigException, SkipTicket)
 import version as patchbot_version
 from plugins import PluginResult
@@ -760,6 +760,7 @@ def main(args):
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
+    ensure_free_space(options.sage_root)
 
     log_dir = options.sage_root + "/logs"
     if not os.path.exists(log_dir):
