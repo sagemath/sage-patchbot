@@ -21,7 +21,8 @@ def now_str():
 
 def parse_datetime(s):
     # The one thing Python can't do is parse dates...
-    return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60*int(s[-5:].strip())
+    tz = int(s[-5:].strip()[:-2])
+    return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + 60 * 60 * tz
 
 def prune_pending(ticket, machine=None, timeout=6*60*60):
     """
@@ -33,7 +34,7 @@ def prune_pending(ticket, machine=None, timeout=6*60*60):
     else:
         return []
     # TODO: is there a better way to handle time zones?
-    now = time.time() + 60 * int(time.strftime('%z'))
+    now = time.time() + 60 * 60 * int(time.strftime('%z')[:-2])
     for report in list(reports):
         if report['status'] == 'Pending':
             t = parse_datetime(report['time'])
