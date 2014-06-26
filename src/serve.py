@@ -6,9 +6,10 @@ from flask import Flask, render_template, make_response, request, Response
 import trac
 import patchbot
 import db
+import pprint
 
 from db import tickets, logs
-from util import now_str, current_reports, latest_version, compare_version
+from util import now_str, current_reports, latest_version, compare_version, parse_datetime
 
 def timed_cached_function(refresh_rate=60):
     def decorator(func):
@@ -62,16 +63,11 @@ def trusted_authors():
     response.headers['Content-type'] = 'text/plain'
     return response
 
-@app.route("/")
-@app.route("/ticket")
-@app.route("/ticket/")
-def ticket_list():
-    authors = None
-    machine = None
-    if 'query' in request.args:
-        query = json.loads(request.args.get('query'))
+def get_query(args):
+    if 'query' in args:
+        query = json.loads(args.get('query'))
     else:
-        status = request.args.get('status', 'needs_review')
+        status = args.get('status', 'needs_review')
         if status == 'all':
             query = {}
         elif status in ('new', 'closed'):
@@ -80,34 +76,51 @@ def ticket_list():
             query = {'status': {'$regex': 'needs_.*|positive_review' }}
         else:
             query = {'status': status}
-        if 'todo' in request.args:
+        if 'todo' in args:
             query['patches'] = {'$not': {'$size': 0}}
             query['spkgs'] = {'$size': 0}
-        if 'authors' in request.args:
-            authors = request.args.get('authors').split(':')
+        if 'authors' in args:
             query['authors'] = {'$in': authors}
-        if 'machine' in request.args:
-            machine = request.args.get('machine').split('/')
-            query['reports.machine'] = machine
+        if 'machine' in args:
+            query['reports.machine'] = args['machine'].split('/')
+        if 'ticket' in args:
+            query['id'] = int(args['ticket'])
+    if 'author' in args:
+        query['authors'] = args.get('author')
+    if 'participant' in args:
+        query['participants'] = args.get('participant')
+    print query
+    return query
+
+
+@app.route("/")
+@app.route("/ticket")
+@app.route("/ticket/")
+def ticket_list():
+    authors = None
+    machine = None
+    query = get_query(request.args)
+    if 'machine' in request.args:
+        machine = request.args.get('machine').split('/')
+    if 'authors' in request.args:
+        authors = request.args.get('authors').split(':')
     if 'order' in request.args:
         order = request.args.get('order')
     else:
         order = 'last_activity'
+    limit = int(request.args.get('limit', 10000))
+    print query
     if 'base' in request.args:
         base = request.args.get('base')
         if base == 'all':
             base = None
     else:
         base = latest_base()
-    if 'author' in request.args:
-        query['authors'] = request.args.get('author')
-    if 'participant' in request.args:
-        query['participants'] = request.args.get('participant')
-    all = patchbot.filter_on_authors(tickets.find(query).sort(order), authors)
+    all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
         def filter_reports(all):
             for ticket in all:
-                ticket['reports'] = list(reversed(sorted(current_reports(ticket), key=lambda report: report['time'])))[:10]
+                ticket['reports'] = list(reversed(sorted(current_reports(ticket), key=lambda report: parse_datetime(report['time']))))[:10]
                 for report in ticket['reports']:
                     report['plugins'] = '...'
                 yield ticket
@@ -132,6 +145,44 @@ def ticket_list():
     versions.sort(compare_version)
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
+
+class MachineStats:
+    def __init__(self, name):
+        self.name = name
+        self.fresh_tickets = set()
+        self.all_tickets = set()
+        self.report_count = 0
+        self.last_report = ''
+    def add_report(self, report, ticket):
+        self.report_count += 1
+        self.all_tickets.add(ticket['id'])
+        if report.get('git_commit') == ticket.get('git_commit'):
+            self.fresh_tickets.add(ticket['id'])
+        self.last_report = max(report['time'], self.last_report)
+    def __cmp__(self, other):
+        return cmp(self.last_report, other.last_report)
+
+@app.route("/machines")
+def machines():
+    # aggregate requires server version >= 2.1.0
+    query = get_query(request.args)
+    if 'authors' in request.args:
+        authors = request.args.get('authors').split(':')
+    else:
+        authors = None
+    all = patchbot.filter_on_authors(tickets.find(query).limit(100), authors)
+    machines = {}
+    for ticket in all:
+        for report in ticket.get('reports', []):
+            machine = tuple(report['machine'])
+            if machine in machines:
+                stats = machines[machine]
+            else:
+                stats = machines[machine] = MachineStats(machine)
+            stats.add_report(report, ticket)
+    all = []
+    return render_template("machines.html", machines=reversed(sorted(machines.values())), len=len, status=request.args.get('status', 'needs_review'))
+
 
 def format_patches(ticket, patches, deps=None, required=None):
     if deps is None:
@@ -258,7 +309,6 @@ def render_ticket(ticket):
                 item['git_commit_human'] = "%s new commits" % len(item['log'])
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
-                print field, item.get(field, None)
                 item[field] = format_git_describe(item.get(field, None))
             yield item
     def normalize_plugin(plugin):

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Sage PatchBot Machines</title>
+{% endblock %}
+
+{% block body %}
+
+<h1>Machines</h1>
+
+<table width=80%>
+<tr>
+<th>Machine</th>
+<th>Last report</th>
+<th align='right'>Fresh tickets</th>
+<th align='right'>Total tickets</th>
+<th align='right'>Total reports</th>
+</tr>
+{% for machine in machines: %}
+<tr>
+<td><a href='/?machine={{'/'.join(machine.name)}}&status={{status}}'>{{'/'.join(machine.name)}}</a></td>
+<td>{{machine.last_report}}</td>
+<td align='right'>{{len(machine.fresh_tickets)}}</td>
+<td align='right'>{{len(machine.all_tickets)}}</td>
+<td align='right'>{{machine.report_count}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<hr>
+
+{% endblock %}
