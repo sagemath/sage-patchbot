@@ -82,7 +82,7 @@ def get_query(args):
         if 'authors' in args:
             query['authors'] = {'$in': authors}
         if 'machine' in args:
-            query['reports.machine'] = args['machine'].split('/')
+            query['reports.machine'] = args['machine'].split(':')
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
     if 'author' in args:
@@ -101,7 +101,7 @@ def ticket_list():
     machine = None
     query = get_query(request.args)
     if 'machine' in request.args:
-        machine = request.args.get('machine').split('/')
+        machine = request.args.get('machine').split(':')
     if 'authors' in request.args:
         authors = request.args.get('authors').split(':')
     if 'order' in request.args:

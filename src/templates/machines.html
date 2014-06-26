@@ -18,7 +18,7 @@
 </tr>
 {% for machine in machines: %}
 <tr>
-<td><a href='/?machine={{'/'.join(machine.name)}}&status={{status}}'>{{'/'.join(machine.name)}}</a></td>
+<td><a href='/?machine={{':'.join(machine.name)}}&status={{status}}'>{{'/'.join(machine.name)}}</a></td>
 <td>{{machine.last_report}}</td>
 <td align='right'>{{len(machine.fresh_tickets)}}</td>
 <td align='right'>{{len(machine.all_tickets)}}</td>

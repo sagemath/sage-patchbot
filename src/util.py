@@ -84,7 +84,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                                   ticket['spkgs'] == report['spkgs'] and
                                   ticket['depends_on'] == (report.get('deps') or []) and
                                   base_ok(report['base']) and
-                                  first('/'.join(report['machine']))),
+                                  first(':'.join(report['machine']))),
                       reports)
 
 def is_git(sage_root):
