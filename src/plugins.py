@@ -111,6 +111,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=current, data=data)
 
 def docbuild(ticket, **kwds):
+    do_or_die('make doc-clean')
     do_or_die('make doc')
     doc_log = 'logs/dochtml.log'
     if os.path.exists(doc_log):
