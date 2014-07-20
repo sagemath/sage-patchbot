@@ -121,6 +121,11 @@ def docbuild(ticket, **kwds):
             raise ValueError
 
 def exclude_new(ticket, regex, msg, **kwds):
+    """
+    Search in new code for patterns that should be avoided.
+
+    See the next functions for several such patterns.
+    """
     ignore_empty = True
     bad_lines = 0
     if regex[0] == '^':
@@ -146,13 +151,31 @@ def exclude_new(ticket, regex, msg, **kwds):
         raise ValueError(full_msg)
 
 def trailing_whitespace(ticket, **kwds):
+    """
+    Look for the presence of trailing whitespaces.
+    """
     exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
 
 def non_ascii(ticket, **kwds):
-    exclude_new(ticket, regex=r'[^\x00-\x7F]', msg="Non-ascii characters", **kwds)
+    """
+    Look for the presence of non-ascii characters.
+    """
+    exclude_new(ticket, regex=r'[^\x00-\x7F]',
+                msg="Non-ascii characters", **kwds)
 
 def doctest_continuation(ticket, **kwds):
-    exclude_new(ticket, regex=r'^\s*\.\.\.\s', msg="Old-style doctest continuation", **kwds)
+    """
+    Make sure that doctest continuation use syntax `....:`.
+    """
+    exclude_new(ticket, regex=r'^\s*\.\.\.\s',
+                msg="Old-style doctest continuation", **kwds)
+
+def raise_statements(ticket, **kwds):
+    """
+    Make sure that raise statements use python3 syntax.
+    """
+    exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error,',
+                msg="Old-style raise statement", **kwds)
 
 def commit_messages(ticket, patches, is_git=False, **kwds):
     for patch_path in patches:
