@@ -734,6 +734,7 @@ def main(args):
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
     parser.add_option("--cleanup", action="store_true", dest="cleanup", default=False)
     parser.add_option("--safe-only", action="store_true", dest="safe_only", default=False)
+    parser.add_option("--interactive", action="store_true", dest="interactive", default=False)
     (options, args) = parser.parse_args(args)
 
     conf_path = options.config and os.path.abspath(options.config)
@@ -783,8 +784,12 @@ def main(args):
             res = patchbot.test_a_ticket(0)
             if res not in  ('TestsPassed', 'PluginOnly'):
                 print "\n\n"
+                print "Current base:", conf['base_repo'], conf['base_branch']
+                if not options.interactive:
+                    print "Failing tests in your base install: exiting."
+                    sys.exit(1)
                 while True:
-                    print "Failing tests in your install: %s. Continue anyways? [y/N] " % res
+                    print "Failing tests in your base install: %s. Continue anyways? [y/N] " % res
                     try:
                         ans = sys.stdin.readline().lower().strip()
                     except IOError:
