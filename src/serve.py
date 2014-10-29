@@ -346,7 +346,7 @@ def render_ticket_status(ticket):
     if 'base' in request.args:
         base = request.args.get('base')
     else:
-        base = 'latest'
+        base = latest_version(info['reports'] or [])
     status = get_ticket_status(info, base=base)[2]
     if 'fast' in request.args:
         display_base = None
