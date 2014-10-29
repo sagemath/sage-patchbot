@@ -115,7 +115,7 @@ def ticket_list():
         if base == 'all':
             base = None
     else:
-        base = latest_base()
+        base = 'latest'
     all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
         def filter_reports(all):
@@ -346,7 +346,7 @@ def render_ticket_status(ticket):
     if 'base' in request.args:
         base = request.args.get('base')
     else:
-        base = latest_base()
+        base = 'latest'
     status = get_ticket_status(info, base=base)[2]
     if 'fast' in request.args:
         display_base = None
