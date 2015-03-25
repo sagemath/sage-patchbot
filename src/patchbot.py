@@ -345,8 +345,15 @@ class Patchbot:
         return self.get_ticket(return_all=True)
 
     def rate_ticket(self, ticket):
+        """
+        Evaluate the interest to test this ticket.
+
+        Return nothing when the ticket should not be tested.
+        """
         rating = 0
         if not ticket.get('git_branch'):
+            return
+        if ticket['milestone'] == 'sage-duplicate/invalid/wontfix':
             return
         bonus = self.config['bonus']
         for author in ticket['authors'] or ticket['participants']:
