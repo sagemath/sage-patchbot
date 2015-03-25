@@ -43,6 +43,7 @@
 <td colspan=2></td>
 <td colspan=3 valign='top'>
 {% if 'git_base' in report %}
+Patchbot version: {{report.patchbot_version}}<br/>
 Branch: {{report.git_branch}}<br>
 Commit: <span class='git_commit'>{{report.git_commit}}</span> ({{report.git_commit_human}})<br>
 Base: <span class='git_commit'>{{report.git_base}}</span> ({{report.git_base_human}})<br>

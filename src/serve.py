@@ -46,6 +46,8 @@ def trusted_authors():
     Defines the set of trusted authors
 
     Currently, somebody is trusted if he/she is the author of a closed patch with 'fixed' status
+    
+    See http://patchbot.sagemath.org/trusted/
     """
     authors = collections.defaultdict(int)
     for ticket in tickets.find({'status': 'closed : fixed'}):
@@ -521,12 +523,30 @@ status_colors = {
 
 @app.route("/blob/<status>")
 def status_image(status):
+    """
+    Return the blob image (as a web page) for a single status or a concatenation of several ones
+    
+    For example, see http://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
+    
+    or http://patchbot.sagemath.org/blob/TestsPassed
+    """
     response = make_response(create_status_image(status))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
+def status_image_path(status):
+    """
+    Return the blob image address for a single status
+    
+    For example, the result for TestsPassed should be images/green-blob.png
+    """
+    return 'images/%s-blob.png' % status_colors[status]
+
 def create_status_image(status, base=None):
+    """
+    Return a composite blob image for a concatenation of status
+    """
     if ',' in status:
         status_list = status.split(',')
         # Ignore plugin only...
@@ -544,6 +564,8 @@ def create_status_image(status, base=None):
             try:
                 from PIL import Image
                 import numpy
+                if not os.path.exists('images/_cache'):
+                    os.mkdir('images/_cache')
                 path = 'images/_cache/' + ','.join(status_list) + '-blob.png'
                 if not os.path.exists(path):
                     composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
@@ -553,8 +575,6 @@ def create_status_image(status, base=None):
                         start = ix * width / len(status_list)
                         end = (ix + 1) * width / len(status_list)
                         composite[:,start:end,:] = slice[:,start:end,:]
-                    if not os.path.exists('images/_cache'):
-                        os.mkdir('images/_cache')
                     Image.fromarray(composite, 'RGBA').save(path)
             except ImportError, exn:
                 print exn
@@ -576,19 +596,31 @@ def create_status_image(status, base=None):
     else:
         return open(path).read()
 
-def status_image_path(status):
-    return 'images/%s-blob.png' % status_colors[status]
-
 def min_status(status_list):
+    """
+    Return the minimal status among a list of status.
+
+    The order is deduced from a total order encoded in status_order.
+    """
     index = min(status_order.index(status) for status in status_list)
     return status_order[index]
 
 @app.route("/robots.txt")
 def robots():
+    """
+    Return a robot instruction web page
+    
+    See http://patchbot.sagemath.org/robots.txt for the result
+    """
     return render_template("robots.txt")
 
 @app.route("/favicon.ico")
 def favicon():
+    """
+    Return the favicon image as a web page (green blob)
+
+    See http://patchbot.sagemath.org/favicon.ico
+    """
     response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
     response.headers['Content-type'] = 'image/png'
     return response
