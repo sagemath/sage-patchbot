@@ -64,11 +64,13 @@ def latest_version(reports):
 def current_reports(ticket, base=None, unique=False, newer=False):
     """
     Return list of reports of the ticket optionally filtered by base.
+
     If unique, add only unique reports. If newer, filter out reports
     that are older than current base.
     """
     if 'reports' not in ticket:
         return []
+
     if unique:
         seen = set()
 
@@ -80,8 +82,10 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 return True
     else:
         first = lambda x: True
+
     reports = list(ticket['reports'])
-    reports.sort(lambda a, b: cmp(b['time'], a['time']))
+    reports.sort(key=lambda a: a['time'])
+
     if base == 'latest':
         base = latest_version(reports)
 
@@ -90,13 +94,14 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 or (newer and comparable_version(base) <=
                     comparable_version(report_base)))
 
-    return filter(lambda report: (ticket['patches'] == report['patches'] and
-                                  ticket.get('git_commit') == report.get('git_commit') and
-                                  ticket['spkgs'] == report['spkgs'] and
-                                  ticket['depends_on'] == (report.get('deps') or []) and
-                                  base_ok(report['base']) and
-                                  first(':'.join(report['machine']))),
-                  reports)
+    def filtre_fun(report):
+        return (ticket.get('git_commit') == report.get('git_commit') and
+                ticket['spkgs'] == report['spkgs'] and
+                ticket['depends_on'] == report.get('deps', []) and
+                base_ok(report['base']) and
+                first(':'.join(report['machine'])))
+
+    return filter(filtre_fun, reports)
 
 
 def is_git(sage_root):

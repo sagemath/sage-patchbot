@@ -53,17 +53,23 @@ def no_unicode(s):
     return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
 
 def compare_machines(a, b, machine_match=None):
-    if isinstance(a, dict) or isinstance(b, dict):
-        # old format, remove
-        return (1,)
-    else:
-        if machine_match is not None:
-            a = a[:machine_match]
-            b = b[:machine_match]
-        diff = [x != y for x, y in zip(a, b)]
-        if len(a) != len(b):
-            diff.append(1)
-        return diff
+    """
+    Compare two machines and b.
+
+    Return a list.
+
+    machine_match is a number of initial things to look at.
+
+    m1 = ["Ubuntu", "14.04", "i686", "3.13.0-40-generic", "arando"]
+    m2 = ["Fedora", "19", "x86_64", "3.10.4-300.fc19.x86_64", "desktop"]
+    """
+    if machine_match is not None:
+        a = a[:machine_match]
+        b = b[:machine_match]
+    diff = [x != y for x, y in zip(a, b)]
+    if len(a) != len(b):
+        diff.append(1)
+    return diff
 
 class TimeOut(Exception):
     pass
@@ -257,7 +263,7 @@ class Patchbot:
                         ],
             "bonus": {},
             "machine": machine_data(),
-            "machine_match": 3,
+            "machine_match": 5,
             "user": getpass.getuser(),
             "keep_open_branches": True,
             "base_repo": "git://github.com/sagemath/sage.git",
@@ -351,24 +357,38 @@ class Patchbot:
         Return nothing when the ticket should not be tested.
         """
         rating = 0
+
         if not ticket.get('git_branch'):
+            # do not test if there is no git branch
             return
-        if ticket['milestone'] == 'sage-duplicate/invalid/wontfix':
+
+        if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
+                                   'sage-feature', 'sage-pending',
+                                   'sage-wishlist'):
+            # do not test if the milestone is not good
             return
-        bonus = self.config['bonus']
-        for author in ticket['authors'] or ticket['participants']:
+
+        bonus = self.config['bonus']  # load the dict of bonus
+
+        for author in ticket['authors']:
+            # do not test if some author is not trusted
             if author not in self.config['trusted_authors']:
                 return
-            rating += bonus.get(author, 0)
+            rating += 2 * bonus.get(author, 0)  # bonus for authors
+
         for participant in ticket['participants']:
-            rating += bonus.get(participant, 0) # doubled for authors
-        rating += len(ticket['participants'])
-        # TODO: remove condition
+            # do not test if some participant is not trusted ?
+            if participant not in self.config['trusted_authors']:
+                return
+            rating += bonus.get(participant, 0)  # bonus for participants
+
         if 'component' in ticket:
-            rating += bonus.get(ticket['component'], 0)
+            rating += bonus.get(ticket['component'], 0) # bonus for components
+
         rating += bonus.get(ticket['status'], 0)
         rating += bonus.get(ticket['priority'], 0)
         rating += bonus.get(str(ticket['id']), 0)
+
         uniqueness = (100,)
         prune_pending(ticket)
         if not ticket.get('retry'):
@@ -380,20 +400,26 @@ class Patchbot:
                         # report['git_base'] not in our repo
                         only_in_base = -1
                     rating += bonus['behind'] * only_in_base
+
                 report_uniqueness = compare_machines(report['machine'], self.config['machine'], self.config['machine_match'])
                 if only_in_base and not any(report_uniqueness):
-                    report_uniqueness = 0, 0, 0, 0, 1
+                    report_uniqueness = (0, 0, 0, 0, 1)
                 uniqueness = min(uniqueness, report_uniqueness)
+
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
                 rating -= bonus.get("unique", 0)
+
         if not any(uniqueness):
-            return # already did this one
+            return  # already did this one
+
         if ticket['id'] in self.to_skip:
+            # are we still in the skip delay for this ticket ?
             if self.to_skip[ticket['id']] < time.time():
                 del self.to_skip[ticket['id']]
             else:
                 return
+
         return uniqueness, rating, -int(ticket['id'])
 
     def current_reports(self, ticket, newer=False):
@@ -657,7 +683,6 @@ class Patchbot:
                 do_or_die("head -n 100 %s/SPKG.txt" % local_spkg[:-5])
             else:
                 do_or_die("cat %s/SPKG.txt" % local_spkg[:-5])
-
 
         finally:
             if temp_dir and os.path.exists(temp_dir):
