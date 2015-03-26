@@ -272,7 +272,7 @@ class Patchbot:
                         ],
             "bonus": {},
             "machine": machine_data(),
-            "machine_match": None,
+            "machine_match": 3,
             "user": getpass.getuser(),
             "keep_open_branches": True,
             "base_repo": "git://github.com/sagemath/sage.git",
@@ -392,7 +392,7 @@ class Patchbot:
             rating += bonus.get(participant, 0)  # bonus for participants
 
         if 'component' in ticket:
-            rating += bonus.get(ticket['component'], 0) # bonus for components
+            rating += bonus.get(ticket['component'], 0)  # bonus for components
 
         rating += bonus.get(ticket['status'], 0)
         rating += bonus.get(ticket['priority'], 0)
