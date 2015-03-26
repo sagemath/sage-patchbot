@@ -54,7 +54,7 @@ def no_unicode(s):
 
 def compare_machines(a, b, machine_match=None):
     """
-    Compare two machines and b.
+    Compare two machines a and b.
 
     Return a list.
 
@@ -160,12 +160,21 @@ def plugin_boundary(name, end=False):
 
 
 def machine_data():
+    """
+    Return the machine data as a list of strings
+
+    This uses uname to find the data.
+
+    m1 = ["Ubuntu", "14.04", "i686", "3.13.0-40-generic", "arando"]
+    m2 = ["Fedora", "19", "x86_64", "3.10.4-300.fc19.x86_64", "desktop"]
+    """
     system, node, release, version, arch = os.uname()
     if system.lower() == "linux":
         dist_name, dist_version, dist_id = platform.linux_distribution()
         if dist_name:
             return [dist_name, dist_version, arch, release, node]
     return [system, arch, release, node]
+
 
 def parse_time_of_day(s):
     def parse_interval(ss):
@@ -263,7 +272,7 @@ class Patchbot:
                         ],
             "bonus": {},
             "machine": machine_data(),
-            "machine_match": 5,
+            "machine_match": None,
             "user": getpass.getuser(),
             "keep_open_branches": True,
             "base_repo": "git://github.com/sagemath/sage.git",
@@ -749,10 +758,11 @@ class Patchbot:
         return git_commit(self.sage_root, branch)
 
 def main(args):
+    """
+    Most configuration is done in the config file, which is reread between
+    each ticket for live configuration of the patchbot.
+    """
     global conf
-
-    # Most configuration is done in the config file, which is reread between
-    # each ticket for live configuration of the patchbot.
     parser = OptionParser()
     parser.add_option("--config", dest="config")
     parser.add_option("--sage-root", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
