@@ -6,9 +6,8 @@ from flask import Flask, render_template, make_response, request, Response
 import trac
 import patchbot
 import db
-import pprint
 
-from db import tickets, logs
+from db import tickets
 from util import now_str, current_reports, latest_version, compare_version, parse_datetime
 
 def timed_cached_function(refresh_rate=60):
@@ -80,7 +79,7 @@ def get_query(args):
             query['patches'] = {'$not': {'$size': 0}}
             query['spkgs'] = {'$size': 0}
         if 'authors' in args:
-            query['authors'] = {'$in': authors}
+            query['authors'] = {'$in': args.get('authors')}
         if 'machine' in args:
             query['reports.machine'] = args['machine'].split(':')
         if 'ticket' in args:
@@ -461,10 +460,10 @@ def get_ticket_log(id, log):
 @app.route("/log/<path:log>")
 def get_log(log):
     path = "/log/" + log
-    if not logs.exists(path):
+    if not db.logs.exists(path):
         data = "No such log!"
     else:
-        data = bz2.decompress(logs.get(path).read())
+        data = bz2.decompress(db.logs.get(path).read())
     if 'plugin' in request.args:
         plugin = request.args.get('plugin')
         data = extract_plugin_log(data, plugin)
@@ -472,7 +471,7 @@ def get_log(log):
             header = data[:data.find('\n')]
             base = request.args.get('base')
             ticket_id = request.args.get('ticket')
-            base_data = bz2.decompress(logs.get(request.args.get('diff')).read())
+            base_data = bz2.decompress(db.logs.get(request.args.get('diff')).read())
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
             data = data = '\n'.join(('' if item[0] == '@' else item) for item in diff)
