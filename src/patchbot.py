@@ -392,6 +392,11 @@ class Patchbot:
                 print ('do not test if there is no git branch')
             return
 
+        if not(ticket['status'] == 'needs_review'):
+            if verbose:
+                print ('only test needs_review tickets')
+            return
+
         if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                    'sage-feature', 'sage-pending',
                                    'sage-wishlist'):
