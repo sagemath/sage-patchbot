@@ -45,11 +45,16 @@ def trusted_authors():
     """
     Defines the set of trusted authors
 
-    Currently, somebody is trusted if he/she is the author of a closed patch with 'fixed' status
-    
+    Currently, somebody is trusted if he/she is the author of a closed patch
+    with 'fixed' status
+
     See http://patchbot.sagemath.org/trusted/
+
+    'git' and 'vbraun_spam' are added
     """
     authors = collections.defaultdict(int)
+    authors['git'] += 1
+    authors['vbraun_spam'] += 1
     for ticket in tickets.find({'status': 'closed : fixed'}):
         for author in ticket["authors"]:
             authors[author] += 1

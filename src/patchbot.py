@@ -19,17 +19,26 @@
 
 import hashlib
 import signal
-import getpass, platform
+import getpass
+import platform
 import glob
-import re, os, shutil, sys, subprocess, time, traceback
+import re
+import os
+import shutil
+import sys
+import subprocess
+import time
+import traceback
 import tempfile
 import cPickle as pickle
-import shutil
-import bz2, urllib2, urllib, json, socket
+import bz2
+import urllib2
+import urllib
+import json
+import socket
+
 from optparse import OptionParser
-
 from http_post_file import post_multipart
-
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
         get_version, current_reports, git_commit,
@@ -153,6 +162,7 @@ status = {
     'skipped'       : 'Pending',
 }
 
+
 def plugin_boundary(name, end=False):
     if end:
         name = 'end ' + name
@@ -186,6 +196,7 @@ def parse_time_of_day(s):
             return float(ss), float(ss) + 1
     return [parse_interval(ss) for ss in s.split(',')]
 
+
 def check_time_of_day(hours):
     from datetime import datetime
     now = datetime.now()
@@ -198,6 +209,7 @@ def check_time_of_day(hours):
             return True
     return False
 
+
 def sha1file(path, blocksize=2**16):
     """
     Return SHA-1 of file.
@@ -209,6 +221,7 @@ def sha1file(path, blocksize=2**16):
         h.update(buf)
         buf = handle.read(blocksize)
     return h.hexdigest()
+
 
 class Patchbot:
 
@@ -233,11 +246,18 @@ class Patchbot:
             handle.close()
 
     def default_trusted_authors(self):
+        """
+        Define the default trusted authors.
+
+        They are computed in serve.py
+        """
         try:
             return self._default_trusted
         except:
             print "Getting trusted author list..."
-            self._default_trusted = self.load_json_from_server("trusted").keys()
+            trusted = self.load_json_from_server("trusted").keys()
+            trusted += ['git', 'vbraun_spam']
+            self._default_trusted = trusted
             return self._default_trusted
 
     def lookup_ticket(self, id):
@@ -359,7 +379,7 @@ class Patchbot:
     def get_ticket_list(self):
         return self.get_ticket(return_all=True)
 
-    def rate_ticket(self, ticket):
+    def rate_ticket(self, ticket, verbose=False):
         """
         Evaluate the interest to test this ticket.
 
@@ -368,26 +388,30 @@ class Patchbot:
         rating = 0
 
         if not ticket.get('git_branch'):
-            # do not test if there is no git branch
+            if verbose:
+                print ('do not test if there is no git branch')
             return
 
         if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                    'sage-feature', 'sage-pending',
                                    'sage-wishlist'):
-            # do not test if the milestone is not good
+            if verbose:
+                print('do not test if the milestone is not good')
             return
 
         bonus = self.config['bonus']  # load the dict of bonus
 
         for author in ticket['authors']:
-            # do not test if some author is not trusted
             if author not in self.config['trusted_authors']:
+                if verbose:
+                    print('do not test if some author is not trusted')
                 return
             rating += 2 * bonus.get(author, 0)  # bonus for authors
 
         for participant in ticket['participants']:
-            # do not test if some participant is not trusted ?
             if participant not in self.config['trusted_authors']:
+                if verbose:
+                    print('do not test if some participant is not trusted ?')
                 return
             rating += bonus.get(participant, 0)  # bonus for participants
 
@@ -420,13 +444,16 @@ class Patchbot:
                 rating -= bonus.get("unique", 0)
 
         if not any(uniqueness):
+            if verbose:
+                print('do not test if already done')
             return  # already did this one
 
         if ticket['id'] in self.to_skip:
-            # are we still in the skip delay for this ticket ?
             if self.to_skip[ticket['id']] < time.time():
                 del self.to_skip[ticket['id']]
             else:
+                if verbose:
+                    print('do not test if still in the skip delay')
                 return
 
         return uniqueness, rating, -int(ticket['id'])
