@@ -30,11 +30,13 @@ def parse_datetime(s):
     return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + tz
 
 
-def prune_pending(ticket, machine=None, timeout=6*60*60):
+def prune_pending(ticket, machine=None, timeout=None):
     """
-    Remove pending reports from ticket.reports if machine is matched
-    and report.time is longer than timeout old.
+    Remove pending reports from ``ticket.reports`` if ``machine`` is matched
+    and ``report.time`` is longer than ``timeout`` old.
     """
+    if timeout is None:
+        timeout = 6 * 60 * 60
     if 'reports' in ticket:
         reports = ticket['reports']
     else:
