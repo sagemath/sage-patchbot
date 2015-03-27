@@ -1,13 +1,17 @@
 # http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
 
-import mimetypes, mimetools, urllib2
+import mimetypes
+import mimetools
+import urllib2
 
 
 def post_multipart(url, fields, files):
     """
     Post fields and files to an http host as multipart/form-data.
-    fields is a sequence of (name, value) elements for regular form fields.
-    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    fields is a sequence of (name, value) elements for regular form
+    fields.  files is a sequence of (name, filename, value) elements
+    for data to be uploaded as files
+
     Return the server's response page.
     """
     content_type, body = encode_multipart_formdata(fields, files)
@@ -19,8 +23,10 @@ def post_multipart(url, fields, files):
 
 def encode_multipart_formdata(fields, files):
     """
-    fields is a sequence of (name, value) elements for regular form fields.
-    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    fields is a sequence of (name, value) elements for regular form
+    fields.  files is a sequence of (name, filename, value) elements
+    for data to be uploaded as files
+
     Return (content_type, body) ready for httplib.HTTP instance
     """
     BOUNDARY = mimetools.choose_boundary()
