@@ -19,21 +19,27 @@ The parameters are as follows:
 It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
 """
-
 import math
-import re, os, sys, subprocess, time
+import re
+import os
+import sys
+import subprocess
+import time
 
 from trac import do_or_die
 from util import describe_branch
 
+
 class PluginResult:
     Passed = "Passed"
     Failed = "Failed"
+
     def __init__(self, status, data=None, baseline=None):
         assert status in (self.Passed, self.Failed)
         self.status = status
         self.data = data
         self.baseline = baseline or data
+
 
 def git_rev_list(ticket, **kwds):
     if str(ticket['id']) != '0':
@@ -50,14 +56,18 @@ def git_rev_list(ticket, **kwds):
         print
         do_or_die("git log %s..patchbot/ticket_upstream" % base)
 
+
 def coverage(ticket, sage_binary, baseline=None, **kwds):
-    # TODO: This doesn't check that tests were added to existing doctests for
-    # new functionality.
+    """
+    TODO: This doesn't check that tests were added to existing doctests for
+    new functionality.
+    """
     all = subprocess.check_output([sage_binary, '-coverageall'])
     current = {}
     total_funcs = 0
     total_docs = 0
     status = "Passed"
+
     def format(docs, funcs, prec=None):
         if funcs == 0:
             return "N/A"
@@ -86,10 +96,10 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
                     else:
                         print "Full doctests ", module, format(docs, funcs)
                 elif funcs - docs > old_funcs - old_docs:
-                    print     "Decreased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
+                    print "Decreased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
                     status = "Failed"
                 elif funcs - docs < old_funcs - old_docs:
-                    print     "Increased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
+                    print "Increased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
 
     current[None] = total_docs, total_funcs
     if baseline:
@@ -110,6 +120,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
     return PluginResult(status, baseline=current, data=data)
 
+
 def docbuild(ticket, **kwds):
     do_or_die('make doc-clean')
     do_or_die('make doc')
@@ -119,6 +130,7 @@ def docbuild(ticket, **kwds):
         if r != 1:
             # grep returns 1 iff there were no matches
             raise ValueError
+
 
 def exclude_new(ticket, regex, msg, **kwds):
     """
@@ -150,11 +162,13 @@ def exclude_new(ticket, regex, msg, **kwds):
     if bad_lines > 0:
         raise ValueError(full_msg)
 
+
 def trailing_whitespace(ticket, **kwds):
     """
     Look for the presence of trailing whitespaces.
     """
     exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
+
 
 def non_ascii(ticket, **kwds):
     """
@@ -163,6 +177,7 @@ def non_ascii(ticket, **kwds):
     exclude_new(ticket, regex=r'[^\x00-\x7F]',
                 msg="Non-ascii characters", **kwds)
 
+
 def doctest_continuation(ticket, **kwds):
     """
     Make sure that doctest continuation use syntax `....:`.
@@ -170,12 +185,14 @@ def doctest_continuation(ticket, **kwds):
     exclude_new(ticket, regex=r'^\s*\.\.\.\s',
                 msg="Old-style doctest continuation", **kwds)
 
+
 def raise_statements(ticket, **kwds):
     """
     Make sure that raise statements use python3 syntax.
     """
     exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error,',
                 msg="Old-style raise statement", **kwds)
+
 
 def commit_messages(ticket, patches, is_git=False, **kwds):
     for patch_path in patches:
@@ -205,6 +222,7 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
                 raise ValueError("No patch comments:" + patch)
         print
     print "All patches good."
+
 
 def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # Sometimes the first run does something different...
@@ -241,6 +259,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
+
 def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=50, dry_run=False, **kwds):
     if dry_run:
         loops //= 2
@@ -250,6 +269,7 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=50, d
     choose_base = "git checkout patchbot/base; make build > /dev/null"
     choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
     try:
+
         def startup_times(samples):
             do_or_die("$SAGE_ROOT/sage -c ''")
             all = []
@@ -272,10 +292,12 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=50, d
         for k in range(loops):
             os.chdir(patched_dir)
             do_or_die(choose_ticket)
-            ticket_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
+            ticket_timings.extend(startup_times(total_samples //
+                                                loops + 2 * k - loops + 1))
             os.chdir(original_dir)
             do_or_die(choose_base)
-            main_timings.extend(startup_times(total_samples // loops + 2*k - loops + 1))
+            main_timings.extend(startup_times(total_samples //
+                                              loops + 2 * k - loops + 1))
         print "main_timings =", main_timings
         print "ticket_timings =", ticket_timings
 
@@ -307,7 +329,8 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=50, d
         z = mann_whitney_U(main_timings, ticket_timings)
         confidence_intervals = []
         for lower_bound in (1, .5, .25, .1, .05, .025, .01, 0.005, .0025, .001):
-            z = mann_whitney_U(main_timings, ticket_timings, offset=base*lower_bound)
+            z = mann_whitney_U(main_timings, ticket_timings,
+                               offset=base * lower_bound)
             confidence = CDF(z)
             if confidence > 0.25:
                 confidence_intervals.append((confidence, lower_bound))
@@ -345,6 +368,7 @@ def startup_time(ticket, original_dir, patched_dir, loops=5, total_samples=50, d
 
 # Some utility functions.
 
+
 def mann_whitney_U(a, b, offset=0):
     all = [(x, 0) for x in a] + [(x - offset, 1) for x in b]
     all.sort()
@@ -354,20 +378,25 @@ def mann_whitney_U(a, b, offset=0):
     n0 = len(a)
     n1 = len(b)
     U = [R[0] - n1 * (n0 + 1) / 2, R[1] - n1 * (n1 + 1) / 2]
-    mU = n0*n1/2
-    sU = math.sqrt(n0 * n1 * (n0+n1+1) / 12.0)
+    mU = n0 * n1 / 2
+    sU = math.sqrt(n0 * n1 * (n0 + n1 + 1) / 12.0)
     return (U[1] - mU) / sU
 
 sqrt_pi_over_8 = math.sqrt(math.pi / 8)
+
+
 def mean(a):
     return 1.0 * sum(a) / len(a)
 
+
 def std_dev(a):
     xbar = mean(a)
-    return math.sqrt(sum((x-xbar)**2 for x in a) / (len(a) - 1.0))
+    return math.sqrt(sum((x - xbar) ** 2 for x in a) / (len(a) - 1.0))
 
-# Aludaat, K.M. and Alodat, M.T. (2008). A note on approximating the normal
-# distribution function. Applied Mathematical Sciences, Vol 2, no 9, pgs 425-429.
+# Aludaat, K.M. and Alodat, M.T. (2008). A note on approximating the
+# normal distribution function. Applied Mathematical Sciences, Vol 2,
+# no 9, pgs 425-429.
+
 
 def CDF(x):
     """
@@ -375,7 +404,8 @@ def CDF(x):
     """
     if x < 0:
         return 1 - CDF(-x)
-    return 0.5 + 0.5 * math.sqrt(1 - math.exp(-sqrt_pi_over_8 * x*x))
+    return 0.5 + 0.5 * math.sqrt(1 - math.exp(-sqrt_pi_over_8 * x * x))
+
 
 def ICDF(p):
     """
@@ -383,8 +413,7 @@ def ICDF(p):
     """
     if p < 0.5:
         return -ICDF(1 - p)
-    return math.sqrt(-math.log(1 - (2 * p - 1)**2) / sqrt_pi_over_8)
-
+    return math.sqrt(-math.log(1 - (2 * p - 1) ** 2) / sqrt_pi_over_8)
 
 
 if __name__ == '__main__':
@@ -402,4 +431,3 @@ if __name__ == '__main__':
             value = eval(m.group(2))
         kwds[key] = value
     plugin(**kwds)
-
