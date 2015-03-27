@@ -1,5 +1,14 @@
-import os, sys, bz2, json, traceback, re, collections, urllib, time
+import os
+import sys
+import bz2
+import json
+import traceback
+import re
+import collections
+import urllib
+import time
 import difflib
+
 from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
@@ -8,11 +17,15 @@ import patchbot
 import db
 
 from db import tickets
-from util import now_str, current_reports, latest_version, compare_version, parse_datetime
+from util import (now_str, current_reports, latest_version,
+                  compare_version, parse_datetime)
+
 
 def timed_cached_function(refresh_rate=60):
+
     def decorator(func):
         cache = {}
+
         def wrap(*args):
             now = time.time()
             if args in cache:
@@ -25,6 +38,7 @@ def timed_cached_function(refresh_rate=60):
         return wrap
     return decorator
 
+
 @timed_cached_function()
 def latest_base(betas=False):
     versions = list(db.tickets.find({'id': 0}).distinct('reports.base'))
@@ -35,9 +49,11 @@ def latest_base(betas=False):
 
 app = Flask(__name__)
 
+
 @app.route("/reports")
 def reports():
     pass
+
 
 @app.route("/trusted")
 @app.route("/trusted/")
@@ -69,6 +85,7 @@ def trusted_authors():
     response.headers['Content-type'] = 'text/plain'
     return response
 
+
 def get_query(args):
     if 'query' in args:
         query = json.loads(args.get('query'))
@@ -77,9 +94,9 @@ def get_query(args):
         if status == 'all':
             query = {}
         elif status in ('new', 'closed'):
-            query = {'status': {'$regex': status + '.*' }}
+            query = {'status': {'$regex': status + '.*'}}
         elif status in ('open'):
-            query = {'status': {'$regex': 'needs_.*|positive_review' }}
+            query = {'status': {'$regex': 'needs_.*|positive_review'}}
         else:
             query = {'status': status}
         if 'todo' in args:
@@ -139,6 +156,7 @@ def ticket_list():
         response.headers['Content-type'] = 'text/plain'
         return response
     summary = dict((key, 0) for key in status_order)
+
     def preprocess(all):
         for ticket in all:
             ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine, base=base or 'latest')
@@ -152,6 +170,7 @@ def ticket_list():
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
 
+
 class MachineStats:
     def __init__(self, name):
         self.name = name
@@ -159,14 +178,17 @@ class MachineStats:
         self.all_tickets = set()
         self.report_count = 0
         self.last_report = ''
+
     def add_report(self, report, ticket):
         self.report_count += 1
         self.all_tickets.add(ticket['id'])
         if report.get('git_commit') == ticket.get('git_commit'):
             self.fresh_tickets.add(ticket['id'])
         self.last_report = max(report['time'], self.last_report)
+
     def __cmp__(self, other):
         return cmp(self.last_report, other.last_report)
+
 
 @app.route("/machines")
 def machines():
@@ -195,6 +217,7 @@ def format_patches(ticket, patches, deps=None, required=None):
         deps = []
     if required is not None:
         required = set(required)
+
     def format_item(item):
         if required is None or item in required:
             note = ""
@@ -222,11 +245,12 @@ def format_patches(ticket, patches, deps=None, required=None):
     if not missing_deps and not deps and not patches and not missing_patches:
         return ''
     return ("<ol>"
-        + missing_deps
-        + "<li>\n"
-        + "\n<li>".join(format_item(patch) for patch in (deps + patches))
-        + missing_patches
-        + "</ol>")
+            + missing_deps
+            + "<li>\n"
+            + "\n<li>".join(format_item(patch) for patch in (deps + patches))
+            + missing_patches
+            + "</ol>")
+
 
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
@@ -260,6 +284,7 @@ def render_ticket(ticket):
                 pass
             elif key == 'depends_on':
                 deps_status = {}
+
                 def is_int(a):
                     try:
                         int(a)
@@ -274,15 +299,16 @@ def render_ticket(ticket):
                     deps_status[dep['id']] = dep
                 new_info[key] = ', '.join("<img src='/ticket/%s/status.png?fast' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
             elif key == 'authors':
-                new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a,a) for a in value)
+                new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'participants':
-                new_info[key] = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a,a) for a in value)
+                new_info[key] = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
             elif key not in ('id', '_id'):
                 new_info[key] = value
         return new_info
     base = latest_base()
+
     def format_git_describe(res):
         if res:
             if '-' in res:
@@ -295,6 +321,7 @@ def render_ticket(ticket):
                 return res + " + 0 commits"
         else:
             return '?'
+
     def preprocess_reports(all):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
@@ -317,17 +344,22 @@ def render_ticket(ticket):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
             yield item
+
     def normalize_plugin(plugin):
         while len(plugin) < 3:
             plugin.append(None)
         return plugin
+
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
+
     return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2], normalize_plugin=normalize_plugin, sort_fields=sort_fields)
+
 
 @timed_cached_function(10)
 def base_reports_by_machine_and_base():
     return reports_by_machine_and_base(tickets.find_one({'id': 0}))
+
 
 def reports_by_machine_and_base(ticket):
     all = {}
@@ -338,8 +370,10 @@ def reports_by_machine_and_base(ticket):
             all[report['base'] + "/" + "/".join(report['machine'])] = report
     return all
 
-# The fact that this image is in the trac template lets the patchbot know
-# when a page gets updated.
+# The fact that this image is in the trac template lets the patchbot
+# know when a page gets updated.
+
+
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
     try:
@@ -363,12 +397,14 @@ def render_ticket_status(ticket):
     response.headers['Cache-Control'] = 'no-cache'
     return response
 
+
 def get_or_set(ticket, key, default):
     if key in ticket:
         value = ticket[key]
     else:
         value = ticket[key] = default
     return value
+
 
 @app.route("/report/<int:ticket_id>", methods=['POST'])
 def post_report(ticket_id):
@@ -394,12 +430,14 @@ def post_report(ticket_id):
         traceback.print_exc()
         return "error"
 
+
 def log_name(ticket_id, report):
     return "/log%s/%s/%s/%s" % (
         '/Pending' if report['status'] == 'Pending' else '',
         ticket_id,
         '/'.join(report['machine']),
         report['time'])
+
 
 def shorten(lines):
     timing = re.compile(r'\s*\[(\d+ tests?, )?\d+\.\d* s\]\s*$')
@@ -445,6 +483,7 @@ def shorten(lines):
     if prev is not None:
         yield prev
 
+
 def extract_plugin_log(data, plugin):
     from patchbot import plugin_boundary
     start = plugin_boundary(plugin) + "\n"
@@ -460,9 +499,11 @@ def extract_plugin_log(data, plugin):
             break
     return ''.join(all)
 
+
 @app.route("/ticket/<id>/log/<path:log>")
 def get_ticket_log(id, log):
     return get_log(log)
+
 
 @app.route("/log/<path:log>")
 def get_log(log):
@@ -493,6 +534,7 @@ def get_log(log):
     response.headers['Content-type'] = 'text/plain'
     return response
 
+
 @app.route("/ticket/<id>/plugin/<plugin_name>/<timestamp>/")
 def get_plugin_data(id, plugin_name, timestamp):
     ticket = tickets.find_one({'id': int(id)})
@@ -512,27 +554,26 @@ status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFaile
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
-status_colors = {
-    'New'        : 'white',
-    'ApplyFailed': 'red',
-    'BuildFailed': 'orange',
-    'TestsFailed': 'yellow',
-    'TestsPassed': 'green',
-    'PluginFailed': 'blue',
-    'Pending'    : 'white',
-    'PluginOnly' : 'lightgreen',
-    'PluginOnlyFailed' : 'lightblue',
-    'NoPatch'    : 'purple',
-    'Spkg'       : 'purple',
-}
+status_colors = {'New': 'white',
+                 'ApplyFailed': 'red',
+                 'BuildFailed': 'orange',
+                 'TestsFailed': 'yellow',
+                 'TestsPassed': 'green',
+                 'PluginFailed': 'blue',
+                 'Pending': 'white',
+                 'PluginOnly': 'lightgreen',
+                 'PluginOnlyFailed': 'lightblue',
+                 'NoPatch': 'purple',
+                 'Spkg': 'purple'}
+
 
 @app.route("/blob/<status>")
 def status_image(status):
     """
     Return the blob image (as a web page) for a single status or a concatenation of several ones
-    
+
     For example, see http://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
-    
+
     or http://patchbot.sagemath.org/blob/TestsPassed
     """
     response = make_response(create_status_image(status))
@@ -540,13 +581,15 @@ def status_image(status):
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
+
 def status_image_path(status):
     """
     Return the blob image address for a single status
-    
+
     For example, the result for TestsPassed should be images/green-blob.png
     """
     return 'images/%s-blob.png' % status_colors[status]
+
 
 def create_status_image(status, base=None):
     """
@@ -579,7 +622,7 @@ def create_status_image(status, base=None):
                         slice = numpy.asarray(Image.open(status_image_path(status)))
                         start = ix * width / len(status_list)
                         end = (ix + 1) * width / len(status_list)
-                        composite[:,start:end,:] = slice[:,start:end,:]
+                        composite[:, start:end, :] = slice[:, start:end, :]
                     Image.fromarray(composite, 'RGBA').save(path)
             except ImportError, exn:
                 print exn
@@ -601,6 +644,7 @@ def create_status_image(status, base=None):
     else:
         return open(path).read()
 
+
 def min_status(status_list):
     """
     Return the minimal status among a list of status.
@@ -610,14 +654,16 @@ def min_status(status_list):
     index = min(status_order.index(status) for status in status_list)
     return status_order[index]
 
+
 @app.route("/robots.txt")
 def robots():
     """
     Return a robot instruction web page
-    
+
     See http://patchbot.sagemath.org/robots.txt for the result
     """
     return render_template("robots.txt")
+
 
 @app.route("/favicon.ico")
 def favicon():
@@ -629,6 +675,7 @@ def favicon():
     response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
     response.headers['Content-type'] = 'image/png'
     return response
+
 
 def get_ticket_status(ticket, base=None, machine=None):
     all = current_reports(ticket, base=base)
@@ -648,6 +695,7 @@ def get_ticket_status(ticket, base=None, machine=None):
         return 0, 'NoPatch', 'NoPatch'
     else:
         return 0, 'New', 'New'
+
 
 def main(args):
     parser = OptionParser()
