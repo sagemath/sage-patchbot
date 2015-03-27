@@ -41,11 +41,13 @@ from optparse import OptionParser
 from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
 from util import (now_str as datetime, prune_pending, do_or_die,
-        get_version, current_reports, git_commit,
-        describe_branch, compare_version, temp_build_suffix, ensure_free_space,
-        ConfigException, SkipTicket)
+                  get_version, current_reports, git_commit,
+                  describe_branch, compare_version, temp_build_suffix,
+                  ensure_free_space,
+                  ConfigException, SkipTicket)
 import version as patchbot_version
 from plugins import PluginResult
+
 
 def filter_on_authors(tickets, authors):
     if authors is not None:
@@ -54,12 +56,15 @@ def filter_on_authors(tickets, authors):
         if authors is None or set(ticket['authors']).issubset(authors):
             yield ticket
 
+
 def contains_any(key, values):
     clauses = [{'key': value} for value in values]
     return {'$or': clauses}
 
+
 def no_unicode(s):
     return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
+
 
 def compare_machines(a, b, machine_match=None):
     """
@@ -80,14 +85,19 @@ def compare_machines(a, b, machine_match=None):
         diff.append(1)
     return diff
 
+
 class TimeOut(Exception):
     pass
+
 
 def alarm_handler(signum, frame):
     raise Alarm
 
+
 class Tee:
-    def __init__(self, filepath, time=False, timeout=60*60*24, timer=None):
+    def __init__(self, filepath, time=False, timeout=None, timer=None):
+        if timeout is None:
+            timeout = 60 * 60 * 24
         self.filepath = filepath
         self.time = time
         self.timeout = timeout
@@ -95,7 +105,8 @@ class Tee:
 
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
-        self.tee = subprocess.Popen(["tee", self.filepath], stdin=subprocess.PIPE)
+        self.tee = subprocess.Popen(["tee", self.filepath],
+                                    stdin=subprocess.PIPE)
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
@@ -133,8 +144,10 @@ class Timer:
         self._starts = {}
         self._history = []
         self.start()
+
     def start(self, label=None):
         self._last_activity = self._starts[label] = time.time()
+
     def finish(self, label=None):
         try:
             elapsed = time.time() - self._starts[label]
@@ -143,30 +156,30 @@ class Timer:
         self._last_activity = time.time()
         self.print_time(label, elapsed)
         self._history.append((label, elapsed))
+
     def print_time(self, label, elapsed):
         print label, '--', int(elapsed), 'seconds'
+
     def print_all(self):
         for label, elapsed in self._history:
             self.print_time(label, elapsed)
 
-status = {
-    'started'       : 'ApplyFailed',
-    'applied'       : 'BuildFailed',
-    'built'         : 'TestsFailed',
-    'tested'        : 'TestsPassed',
-    'tests_passed_plugins_failed': 'PluginFailed',
-    'plugins'       : 'PluginOnly',
-    'plugins_failed': 'PluginOnlyFailed',
-    'spkg'          : 'Spkg',
-    'network_error' : 'Pending',
-    'skipped'       : 'Pending',
-}
+status = {'started': 'ApplyFailed',
+          'applied': 'BuildFailed',
+          'built': 'TestsFailed',
+          'tested': 'TestsPassed',
+          'tests_passed_plugins_failed': 'PluginFailed',
+          'plugins': 'PluginOnly',
+          'plugins_failed': 'PluginOnlyFailed',
+          'spkg': 'Spkg',
+          'network_error': 'Pending',
+          'skipped': 'Pending'}
 
 
 def plugin_boundary(name, end=False):
     if end:
         name = 'end ' + name
-    return ' '.join(('='*10, name, '='*10))
+    return ' '.join(('=' * 10, name, '=' * 10))
 
 
 def machine_data():
@@ -210,10 +223,12 @@ def check_time_of_day(hours):
     return False
 
 
-def sha1file(path, blocksize=2**16):
+def sha1file(path, blocksize=None):
     """
     Return SHA-1 of file.
     """
+    if blocksize is None:
+        blocksize = 2 ** 16
     h = hashlib.sha1()
     handle = open(path)
     buf = handle.read(blocksize)
@@ -274,58 +289,57 @@ class Patchbot:
         else:
             unicode_conf = json.load(open(self.config_path))
         # defaults
-        conf = {
-            "idle": 300,
-            "time_of_day": "0-0", # midnight-midnight
-            "parallelism": 3,
-            "timeout": 3 * 60 * 60,
-            "plugins": ["plugins.commit_messages",
-                        "plugins.coverage",
-                        "plugins.non_ascii",
-                        "plugins.doctest_continuation",
-                        "plugins.raise_statements",
-#                        "plugins.trailing_whitespace",
-                        "plugins.startup_time",
-                        "plugins.startup_modules",
-                        "plugins.docbuild",
-                        "plugins.git_rev_list",
-                        ],
-            "bonus": {},
-            "machine": machine_data(),
-            "machine_match": 3,
-            "user": getpass.getuser(),
-            "keep_open_branches": True,
-            "base_repo": "git://github.com/sagemath/sage.git",
-            "base_branch": "master",
-            "max_behind_commits": 10,
-            "max_behind_days": 2.0,
-            "use_ccache": True,
-        }
-        default_bonus = {
-            "needs_review": 1000,
-            "positive_review": 500,
-            "blocker": 100,
-            "critical": 50,
-            "unique": 40,
-            "applies": 20,
-            "behind": 1,
-        }
+        conf = {"idle": 300,
+                "time_of_day": "0-0",  # midnight-midnight
+                "parallelism": 3,
+                "timeout": 3 * 60 * 60,
+                "plugins": ["plugins.commit_messages",
+                            "plugins.coverage",
+                            "plugins.non_ascii",
+                            "plugins.doctest_continuation",
+                            "plugins.raise_statements",
+                            # "plugins.trailing_whitespace",
+                            "plugins.startup_time",
+                            "plugins.startup_modules",
+                            "plugins.docbuild",
+                            "plugins.git_rev_list"],
+                "bonus": {},
+                "machine": machine_data(),
+                "machine_match": 3,
+                "user": getpass.getuser(),
+                "keep_open_branches": True,
+                "base_repo": "git://github.com/sagemath/sage.git",
+                "base_branch": "master",
+                "max_behind_commits": 10,
+                "max_behind_days": 2.0,
+                "use_ccache": True}
+        default_bonus = {"needs_review": 1000,
+                         "positive_review": 500,
+                         "blocker": 100,
+                         "critical": 50,
+                         "unique": 40,
+                         "applies": 20,
+                         "behind": 1}
+
         for key, value in unicode_conf.items():
             conf[str(key)] = value
+
         for key, value in default_bonus.items():
             if key not in conf['bonus']:
                 conf['bonus'][key] = value
+
         if "trusted_authors" not in conf:
             conf["trusted_authors"] = self.default_trusted_authors()
 
         def locate_plugin(name):
             ix = name.rindex('.')
             module = name[:ix]
-            name = name[ix+1:]
+            name = name[ix + 1:]
             plugin = getattr(__import__(module, fromlist=[name]), name)
             assert callable(plugin)
             return plugin
-        conf["plugins"] = [(name, locate_plugin(name)) for name in conf["plugins"]]
+        conf["plugins"] = [(name, locate_plugin(name))
+                           for name in conf["plugins"]]
         return conf
 
     def reload_config(self):
@@ -341,9 +355,12 @@ class Patchbot:
         do_or_die("git fetch %s +%s:patchbot/base_upstream" % (self.config['base_repo'], self.config['base_branch']))
         only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base_upstream..patchbot/base"]))
         only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/base_upstream"]))
+
+        max_behind_time = self.config['max_behind_days'] * 60 * 60 * 24
         if (only_in_base > 0
-            or only_in_upstream > self.config['max_behind_commits']
-            or (only_in_upstream > 0 and time.time() - self.last_pull < self.config['max_behind_days'] * 60 * 60 * 24)):
+                or only_in_upstream > self.config['max_behind_commits']
+                or (only_in_upstream > 0 and
+                    time.time() - self.last_pull < max_behind_time)):
             do_or_die("git checkout patchbot/base_upstream")
             do_or_die("git branch -f patchbot/base patchbot/base_upstream")
             do_or_die("git checkout patchbot/base")
@@ -656,7 +673,7 @@ class Patchbot:
             print "Comparing to previous spkg."
 
             # Compare to the current version.
-            base = basename.split('-')[0] # the reset is the version
+            base = basename.split('-')[0]  # the reset is the version
             old_path = old_url = listing = None
             if False:
                 # There seems to be a bug...
@@ -664,13 +681,14 @@ class Patchbot:
                 #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
 
                 import pexpect
-                p = pexpect.spawn("%s/sage" % self.sage_root,  ['-i', '--info', base])
+                p = pexpect.spawn("%s/sage" % self.sage_root,
+                                  ['-i', '--info', base])
                 while True:
                     index = p.expect([
-                            r"Found package %s in (\S+)" % base,
-                            r">>> Checking online list of (\S+) packages.",
-                            r">>> Found (%s-\S+)" % base,
-                            r"Error: could not find a package"])
+                        r"Found package %s in (\S+)" % base,
+                        r">>> Checking online list of (\S+) packages.",
+                        r">>> Found (%s-\S+)" % base,
+                        r"Error: could not find a package"])
                     if index == 0:
                         old_path = "$SAGE_ROOT/" + p.match.group(1)
                         break
@@ -767,11 +785,10 @@ class Patchbot:
 
         if status != 'Pending':
             history = open("%s/history.txt" % self.log_dir, "a")
-            history.write("%s %s %s%s\n" % (
-                    datetime(),
-                    ticket['id'],
-                    status,
-                    " dry_run" if dry_run else ""))
+            history.write("%s %s %s%s\n" % (datetime(),
+                                            ticket['id'],
+                                            status,
+                                            " dry_run" if dry_run else ""))
             history.close()
 
         print "REPORT"
@@ -788,6 +805,7 @@ class Patchbot:
 
     def git_commit(self, branch):
         return git_commit(self.sage_root, branch)
+
 
 def main(args):
     """
@@ -852,11 +870,12 @@ def main(args):
 
     if not options.skip_base:
         patchbot.check_base()
+
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
         if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
-            if res not in  ('TestsPassed', 'PluginOnly'):
+            if res not in ('TestsPassed', 'PluginOnly'):
                 print "\n\n"
                 print "Current base:", conf['base_repo'], conf['base_branch']
                 if not options.interactive:
