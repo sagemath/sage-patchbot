@@ -898,7 +898,8 @@ def main(args):
             time.sleep(conf['idle'])
 
 if __name__ == '__main__':
-    # allow this script to serve as a single entry point for bots and the server
+    # allow this script to serve as a single entry point for bots and
+    # the server
     args = list(sys.argv)
     if len(args) > 1 and args[1] == '--serve':
         del args[1]
