@@ -50,6 +50,17 @@ from plugins import PluginResult
 
 
 def filter_on_authors(tickets, authors):
+    """
+    Keep only tickets with authors among the given ones.
+
+    INPUT:
+
+    a list of tickets
+
+    OUTPUT:
+
+    a list of tickets
+    """
     if authors is not None:
         authors = set(authors)
     for ticket in tickets:
@@ -177,6 +188,9 @@ status = {'started': 'ApplyFailed',
 
 
 def plugin_boundary(name, end=False):
+    """
+    Return the text that bounds the plugins in the reports.
+    """
     if end:
         name = 'end ' + name
     return ' '.join(('=' * 10, name, '=' * 10))
@@ -276,7 +290,11 @@ class Patchbot:
             return self._default_trusted
 
     def lookup_ticket(self, id):
-        path = "ticket/?" + urllib.urlencode({'raw': True, 'query': json.dumps({'id': id})})
+        """
+        Retrieve information about one ticket from the server.
+        """
+        path = "ticket/?" + urllib.urlencode({'raw': True,
+                                              'query': json.dumps({'id': id})})
         res = self.load_json_from_server(path)
         if res:
             return res[0]
@@ -376,6 +394,11 @@ class Patchbot:
         return "%s + %s commits" % (version, commit_count.strip())
 
     def get_ticket(self, return_all=False, status='open'):
+        """
+        Either return one ticket or the list of all tickets
+
+        Every ticket is returned as a pair (rating, ticket data)
+        """
         print self.to_skip
         os.chdir(self.sage_root)
         trusted_authors = self.config.get('trusted_authors')
@@ -384,9 +407,15 @@ class Patchbot:
 #            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
         print "Getting ticket list..."
         all = self.load_json_from_server("ticket/?" + query)
+
+        # keep only tickets with trusted authors
         if trusted_authors:
             all = filter_on_authors(all, trusted_authors)
+
+        # remove all tickets with 0 or None rating
         all = filter(lambda x: x[0], ((self.rate_ticket(t), t) for t in all))
+
+        # sort tickets using their ratings
         all.sort()
         if return_all:
             return reversed(all)
@@ -394,6 +423,9 @@ class Patchbot:
             return all[-1]
 
     def get_ticket_list(self):
+        """
+        Return the list of all testable tickets.
+        """
         return self.get_ticket(return_all=True)
 
     def rate_ticket(self, ticket, verbose=False):
@@ -456,7 +488,9 @@ class Patchbot:
                         only_in_base = -1
                     rating += bonus['behind'] * only_in_base
 
-                report_uniqueness = compare_machines(report['machine'], self.config['machine'], self.config['machine_match'])
+                report_uniqueness = compare_machines(report['machine'],
+                                                     self.config['machine'],
+                                                     self.config['machine_match'])
                 if only_in_base and not any(report_uniqueness):
                     report_uniqueness = (0, 0, 0, 0, 1)
                 uniqueness = min(uniqueness, report_uniqueness)
@@ -468,7 +502,7 @@ class Patchbot:
         if not any(uniqueness):
             if verbose:
                 print('do not test if already done')
-            return  # already did this one
+            return
 
         if ticket['id'] in self.to_skip:
             if self.to_skip[ticket['id']] < time.time():
@@ -486,7 +520,11 @@ class Patchbot:
         return current_reports(ticket, base=self.base, newer=newer)
 
     def test_a_ticket(self, ticket=None):
+        """
+        Launch the test of a ticket.
 
+        Either the ticket is given, or it is picked using get_ticket.        
+        """
         self.reload_config()
 
         if ticket is None:
@@ -837,7 +875,9 @@ def main(args):
         tickets = None
         count = int(options.count)
 
-    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server, conf_path, dry_run=options.dry_run, plugin_only=options.plugin_only, options=options)
+    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server,
+                        conf_path, dry_run=options.dry_run,
+                        plugin_only=options.plugin_only, options=options)
 
     conf = patchbot.get_config()
     if options.list:
