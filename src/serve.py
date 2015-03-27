@@ -81,7 +81,8 @@ def trusted_authors():
         indent = 4
     else:
         indent = None
-    response = make_response(json.dumps(authors, default=lambda x: None, indent=indent))
+    response = make_response(json.dumps(authors, default=lambda x: None,
+                                        indent=indent))
     response.headers['Content-type'] = 'text/plain'
     return response
 
@@ -152,7 +153,8 @@ def ticket_list():
             indent = 4
         else:
             indent = None
-        response = make_response(json.dumps(list(all), default=lambda x: None, indent=indent))
+        response = make_response(json.dumps(list(all), default=lambda x: None,
+                                            indent=indent))
         response.headers['Content-type'] = 'text/plain'
         return response
     summary = dict((key, 0) for key in status_order)
@@ -161,13 +163,15 @@ def ticket_list():
         for ticket in all:
             ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine, base=base or 'latest')
             if 'reports' in ticket:
-                ticket['pending'] = len([r for r in ticket['reports'] if r['status'] == 'Pending'])
+                ticket['pending'] = len([r for r in ticket['reports']
+                                         if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
             yield ticket
     ticket0 = db.lookup_ticket(0)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
-    versions = [(v, get_ticket_status(ticket0, v)) for v in versions if v != '4.7.']
+    versions = [(v, get_ticket_status(ticket0, v)) for v in versions
+                if v != '4.7.']
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
 
 
@@ -291,7 +295,9 @@ def render_ticket(ticket):
                         return True
                     except ValueError:
                         return False
-                for dep in tickets.find({'id': {'$in': [int(a) for a in value if is_int(a)]}}, ['status', 'id']):
+                for dep in tickets.find({'id': {'$in': [int(a) for a in value
+                                                        if is_int(a)]}},
+                                        ['status', 'id']):
                     if 'closed' in dep['status']:
                         dep['style'] = 'text-decoration: line-through'
                     else:
@@ -353,7 +359,12 @@ def render_ticket(ticket):
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
-    return render_template("ticket.html", reports=preprocess_reports(info['reports']), ticket=ticket, info=format_info(info), status=get_ticket_status(info, base=base)[2], normalize_plugin=normalize_plugin, sort_fields=sort_fields)
+    return render_template("ticket.html",
+                           reports=preprocess_reports(info['reports']),
+                           ticket=ticket, info=format_info(info),
+                           status=get_ticket_status(info, base=base)[2],
+                           normalize_plugin=normalize_plugin,
+                           sort_fields=sort_fields)
 
 
 @timed_cached_function(10)
@@ -365,7 +376,8 @@ def reports_by_machine_and_base(ticket):
     all = {}
     if 'reports' in ticket:
         # oldest to newest
-        for report in sorted(ticket['reports'], lambda a, b: cmp(a['time'], b['time'])):
+        for report in sorted(ticket['reports'],
+                             lambda a, b: cmp(a['time'], b['time'])):
             all[report['base']] = report
             all[report['base'] + "/" + "/".join(report['machine'])] = report
     return all
@@ -522,7 +534,8 @@ def get_log(log):
             base_data = bz2.decompress(db.logs.get(request.args.get('diff')).read())
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
-            data = data = '\n'.join(('' if item[0] == '@' else item) for item in diff)
+            data = data = '\n'.join(('' if item[0] == '@' else item)
+                                    for item in diff)
             if not data:
                 data = "No change."
             data = header + "\n\n" + data
@@ -544,13 +557,17 @@ def get_plugin_data(id, plugin_name, timestamp):
         if report['time'] == timestamp:
             for plugin in report['plugins']:
                 if plugin[0] == plugin_name:
-                    response = make_response(json.dumps(plugin[2], default=lambda x: None, indent=4))
+                    response = make_response(json.dumps(plugin[2],
+                                                        default=lambda x: None,
+                                                        indent=4))
                     response.headers['Content-type'] = 'text/plain'
                     return response
             return "Unknown plugin: " + plugin_name
     return "Unknown report: " + timestamp
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed', 'PluginFailed', 'TestsPassed', 'Pending', 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
+                'PluginFailed', 'TestsPassed', 'Pending',
+                'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
 # TODO: cleanup old records
 # status_order += ['started', 'applied', 'built', 'tested']
 
@@ -570,7 +587,8 @@ status_colors = {'New': 'white',
 @app.route("/blob/<status>")
 def status_image(status):
     """
-    Return the blob image (as a web page) for a single status or a concatenation of several ones
+    Return the blob image (as a web page) for a single status or a
+    concatenation of several ones
 
     For example, see http://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
 
@@ -600,7 +618,8 @@ def create_status_image(status, base=None):
         # Ignore plugin only...
         while 'PluginOnly' in status_list and len(status_list) > 1:
             status_list.remove('PluginOnly')
-        # If tests passed but a plugin-only failed, report as if the plugin failed.
+        # If tests passed but a plugin-only failed, report as if the
+        # plugin failed.
         if 'TestsPassed' in status_list:
             for ix, status in enumerate(status_list):
                 if status_list[ix] == 'PluginOnlyFailed':
