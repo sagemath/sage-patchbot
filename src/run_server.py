@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-import os, signal, subprocess, sys, time, traceback, urllib2
+import os
+import signal
+import subprocess
+import sys
+import time
+import traceback
+import urllib2
 
 if not hasattr(subprocess.Popen, 'send_signal'):
     def send_signal(self, sig):
@@ -21,11 +27,13 @@ open("keepalive", "w").write(str(os.getpid()))
 p = None
 try:
     # Start mongodb
-    mongo_process = subprocess.Popen(["mongod", "--port=21002", "--dbpath=" + DATABASE], stderr=subprocess.STDOUT)
+    mongo_process = subprocess.Popen(["mongod", "--port=21002",
+                                      "--dbpath=" + DATABASE],
+                                     stderr=subprocess.STDOUT)
 
     # Run the server
     while True:
-    
+
         if not os.path.exists("keepalive"):
             break
 
@@ -35,7 +43,8 @@ try:
         else:
             try:
                 print "Testing url..."
-                urllib2.urlopen("http://patchbot.sagemath.org/", timeout=HTTP_TIMEOUT)
+                urllib2.urlopen("http://patchbot.sagemath.org/",
+                                timeout=HTTP_TIMEOUT)
                 print "    ...good"
                 restart = False
             except urllib2.URLError, e:
@@ -54,7 +63,8 @@ try:
 
             print "Starting server..."
             base = open("base.txt").read().strip()
-            p = subprocess.Popen([sys.executable, "serve.py", "--base=" + base, "--port=21100"])
+            p = subprocess.Popen([sys.executable, "serve.py",
+                                  "--base=" + base, "--port=21100"])
             open("server.pid", "w").write(str(p.pid))
             print "    ...done."
         time.sleep(POLL_INTERVAL)
@@ -64,4 +74,3 @@ finally:
     mongo_process.send_signal(signal.SIGTERM)
     if p is not None and p.poll() is None:
         p.kill()
-
