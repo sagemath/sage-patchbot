@@ -420,6 +420,9 @@ def get_or_set(ticket, key, default):
 
 @app.route("/report/<int:ticket_id>", methods=['POST'])
 def post_report(ticket_id):
+    """
+    Posting a report to the database of reports.
+    """
     try:
         ticket = db.lookup_ticket(ticket_id)
         if ticket is None:
@@ -427,9 +430,9 @@ def post_report(ticket_id):
         if 'reports' not in ticket:
             ticket['reports'] = []
         report = json.loads(request.form.get('report'))
-        assert isinstance(report, dict)
+        assert (isinstance(report, dict)), "report is not a dict"
         for fld in ['status', 'patches', 'spkgs', 'base', 'machine', 'time']:
-            assert fld in report
+            assert (fld in report), "{} missing in report".format(fld)
         patchbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
         db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
@@ -437,10 +440,10 @@ def post_report(ticket_id):
             ticket['retry'] = False
         ticket['last_activity'] = now_str()
         db.save_ticket(ticket)
-        return "ok"
+        return "ok (report successfully posted)"
     except:
         traceback.print_exc()
-        return "error"
+        return "error in posting the report"
 
 
 def log_name(ticket_id, report):
