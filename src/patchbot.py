@@ -537,6 +537,14 @@ class Patchbot:
             return
 
         rating, ticket = ticket
+
+        if rating is None:
+            print "warning: rating is None, testing at your own risk\n"
+
+        if not ticket.get('git_branch'):
+            print "no git branch, hence no testing\n"
+            return
+
         print "\n" * 2
         print "=" * 30, ticket['id'], "=" * 30
         print ticket['title']
@@ -582,14 +590,16 @@ class Patchbot:
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
-                        self.report_ticket(ticket, status='Pending', log=log, pending_status=state)
+                        self.report_ticket(ticket, status='Pending',
+                                           log=log, pending_status=state)
 
                     do_or_die("$MAKE doc-clean")
                     do_or_die("$MAKE")
                     t.finish("Build")
                     state = 'built'
                     if not self.plugin_only:
-                        self.report_ticket(ticket, status='Pending', log=log, pending_status=state)
+                        self.report_ticket(ticket, status='Pending',
+                                           log=log, pending_status=state)
 
                     # TODO: Exclude dependencies.
                     patch_dir = tempfile.mkdtemp()
@@ -599,7 +609,8 @@ class Patchbot:
                     kwds = {
                         "original_dir": self.sage_root,
                         "patched_dir": os.getcwd(),
-                        "patches": [os.path.join(patch_dir, p) for p in os.listdir(patch_dir)],
+                        "patches": [os.path.join(patch_dir, p)
+                                    for p in os.listdir(patch_dir)],
                         "sage_binary": os.path.join(os.getcwd(), 'sage'),
                         "dry_run": self.dry_run,
                     }
@@ -612,7 +623,8 @@ class Patchbot:
                                 baseline = None
                             print plugin_boundary(name)
                             do_or_die("git checkout patchbot/ticket_merged")
-                            res = plugin(ticket, is_git=True, baseline=baseline, **kwds)
+                            res = plugin(ticket, is_git=True,
+                                         baseline=baseline, **kwds)
                             passed = True
                         except Exception:
                             traceback.print_exc()
@@ -621,13 +633,15 @@ class Patchbot:
                         finally:
                             if isinstance(res, PluginResult):
                                 if res.baseline is not None:
-                                    plugin_dir = os.path.join(self.log_dir, str(ticket['id']))
+                                    plugin_dir = os.path.join(self.log_dir,
+                                                              str(ticket['id']))
                                     if not os.path.exists(plugin_dir):
                                         os.mkdir(plugin_dir)
                                     pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
                                     passed = res.status == PluginResult.Passed
                                     print name, res.status
-                                    plugins_results.append((name, passed, res.data))
+                                    plugins_results.append((name, passed,
+                                                            res.data))
                             else:
                                 plugins_results.append((name, passed, None))
                             t.finish(name)
@@ -648,7 +662,8 @@ class Patchbot:
                             test_cmd = "-tp %s" % self.config['parallelism']
                         else:
                             test_cmd = "-t"
-                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd, test_target))
+                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd,
+                                                             test_target))
                         t.finish("Tests")
                         state = 'tested'
 
@@ -677,7 +692,9 @@ class Patchbot:
         for _ in range(5):
             try:
                 print "Reporting", ticket['id'], status[state]
-                self.report_ticket(ticket, status=status[state], log=log, plugins=plugins_results, dry_run=self.dry_run)
+                self.report_ticket(ticket, status=status[state], log=log,
+                                   plugins=plugins_results,
+                                   dry_run=self.dry_run)
                 print "Done reporting", ticket['id']
                 break
             except IOError:
@@ -762,7 +779,8 @@ class Patchbot:
                 old_basename = os.path.basename(old_url)
                 old_path = os.path.join(temp_dir, old_basename)
                 if not os.path.exists(old_path):
-                    do_or_die("wget --progress=dot:mega %s -O %s" % (old_url, old_path))
+                    do_or_die("wget --progress=dot:mega %s -O %s" % (old_url,
+                                                                     old_path))
             if old_path is not None:
                 old_basename = os.path.basename(old_path)
                 if old_basename == basename:
@@ -785,7 +803,11 @@ class Patchbot:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def report_ticket(self, ticket, status, log, plugins=(), dry_run=False, pending_status=None):
+    def report_ticket(self, ticket, status, log, plugins=(),
+                      dry_run=False, pending_status=None):
+        """
+        Report about a ticket.
+        """
         report = {
             'status': status,
             'patches': ticket['patches'],
