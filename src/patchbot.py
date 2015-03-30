@@ -246,6 +246,8 @@ def check_time_of_day(hours):
 def sha1file(path, blocksize=None):
     """
     Return SHA-1 of file.
+
+    This is used to check spkgs.
     """
     if blocksize is None:
         blocksize = 2 ** 16
@@ -340,7 +342,8 @@ class Patchbot:
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
                          "blocker": 100,
-                         "critical": 50,
+                         "critical": 60,
+                         "major": 10,
                          "unique": 40,
                          "applies": 20,
                          "behind": 1}
@@ -367,6 +370,9 @@ class Patchbot:
         return conf
 
     def reload_config(self):
+        """
+        Reload the configuration.
+        """
         self.config = self.get_config()
         return self.config
 
@@ -471,7 +477,7 @@ class Patchbot:
         for participant in ticket['participants']:
             if participant not in self.config['trusted_authors']:
                 if verbose:
-                    print('do not test if some participant is not trusted ?')
+                    print('do not test if some participant is not trusted')
                 return
             rating += bonus.get(participant, 0)  # bonus for participants
 
@@ -482,9 +488,14 @@ class Patchbot:
         rating += bonus.get(ticket['priority'], 0)
         rating += bonus.get(str(ticket['id']), 0)
 
-        uniqueness = (100,)
         prune_pending(ticket)
-        if not ticket.get('retry'):
+
+        retry = ticket.get('retry', False)
+        # by default, do not retry the ticket
+
+        uniqueness = (100,)
+        # now let us look at previous reports
+        if not retry:
             for report in self.current_reports(ticket, newer=True):
                 if report.get('git_base'):
                     try:
@@ -521,6 +532,9 @@ class Patchbot:
         return uniqueness, rating, -int(ticket['id'])
 
     def current_reports(self, ticket, newer=False):
+        """
+        Return the current reports on a ticket.
+        """
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
@@ -881,18 +895,28 @@ def main(args):
     global conf
     parser = OptionParser()
     parser.add_option("--config", dest="config")
-    parser.add_option("--sage-root", dest="sage_root", default=os.environ.get('SAGE_ROOT'))
-    parser.add_option("--server", dest="server", default="http://patchbot.sagemath.org/")
+    parser.add_option("--sage-root", dest="sage_root",
+                      default=os.environ.get('SAGE_ROOT'))
+    parser.add_option("--server", dest="server",
+                      default="http://patchbot.sagemath.org/")
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None)
     parser.add_option("--list", dest="list", default=False)
-    parser.add_option("--full", action="store_true", dest="full", default=False)
-    parser.add_option("--skip-base", action="store_true", dest="skip_base", default=False)
-    parser.add_option("--dry-run", action="store_true", dest="dry_run", default=False)
-    parser.add_option("--plugin-only", action="store_true", dest="plugin_only", default=False)
-    parser.add_option("--cleanup", action="store_true", dest="cleanup", default=False)
-    parser.add_option("--safe-only", action="store_true", dest="safe_only", default=False)
-    parser.add_option("--interactive", action="store_true", dest="interactive", default=False)
+    parser.add_option("--full", action="store_true", dest="full",
+                      default=False)
+    parser.add_option("--skip-base", action="store_true", dest="skip_base",
+                      default=False)
+    parser.add_option("--dry-run", action="store_true", dest="dry_run",
+                      default=False)
+    parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
+                      default=False)
+    parser.add_option("--cleanup", action="store_true", dest="cleanup",
+                      default=False)
+    parser.add_option("--safe-only", action="store_true", dest="safe_only",
+                      default=False)
+    parser.add_option("--interactive", action="store_true", dest="interactive",
+                      default=False)
+
     (options, args) = parser.parse_args(args)
 
     conf_path = options.config and os.path.abspath(options.config)
@@ -906,9 +930,10 @@ def main(args):
     patchbot = Patchbot(os.path.abspath(options.sage_root), options.server,
                         conf_path, dry_run=options.dry_run,
                         plugin_only=options.plugin_only, options=options)
-
     conf = patchbot.get_config()
+
     if options.list:
+        # the option "list" allows to see tickets that will be tested
         count = sys.maxint if options.list is "True" else int(options.list)
         print "Getting ticket list..."
         for ix, (score, ticket) in enumerate(patchbot.get_ticket_list()):
