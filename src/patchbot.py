@@ -338,7 +338,8 @@ class Patchbot:
                 "base_branch": "master",
                 "max_behind_commits": 10,
                 "max_behind_days": 2.0,
-                "use_ccache": True}
+                "use_ccache": True,
+                "safe_only": False}
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
                          "blocker": 100,
