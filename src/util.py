@@ -203,6 +203,12 @@ def get_version(sage_root):
 
 
 def describe_branch(branch, tag_only=False):
+    """
+    Return the latest tag of the branch or the full branch description.
+
+    >>> describe_branch('develop', True)
+    '6.6.rc1'
+    """
     res = subprocess.check_output(['git', 'describe', '--tags',
                                    '--match', '[0-9].[0-9]*', branch]).strip()
     if tag_only:

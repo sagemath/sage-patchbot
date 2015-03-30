@@ -55,7 +55,7 @@ def filter_on_authors(tickets, authors):
 
     INPUT:
 
-    a list of tickets
+    a list of tickets and a list of authors
 
     OUTPUT:
 
@@ -68,12 +68,18 @@ def filter_on_authors(tickets, authors):
             yield ticket
 
 
-def contains_any(key, values):
-    clauses = [{'key': value} for value in values]
-    return {'$or': clauses}
-
-
 def no_unicode(s):
+    """
+    Replace unicode non-ascii characters by question marks.
+
+    INPUT:
+
+    a string
+
+    OUTPUT:
+
+    a string
+    """
     return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
 
 
@@ -319,7 +325,7 @@ class Patchbot:
                             # "plugins.trailing_whitespace",
                             "plugins.startup_time",
                             "plugins.startup_modules",
-                            "plugins.docbuild",
+                            # "plugins.docbuild",  # already done once in make
                             "plugins.git_rev_list"],
                 "bonus": {},
                 "machine": machine_data(),

@@ -195,6 +195,11 @@ def raise_statements(ticket, **kwds):
 
 
 def commit_messages(ticket, patches, is_git=False, **kwds):
+    """
+    Check for the existence of a commit message.
+
+    This was for patches, obsolete now ?
+    """
     for patch_path in patches:
         patch = os.path.basename(patch_path)
         print "Looking at", patch
@@ -215,8 +220,8 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
                     # First description line
                     if line.startswith('[mq]'):
                         raise ValueError("Mercurial queue boilerplate")
-                    #                elif not re.search(r"\b%s\b" % ticket['id'], line):
-                    #                    print "Ticket number not in first line of comments: " + patch
+                    # elif not re.search(r"\b%s\b" % ticket['id'], line):
+                    #     print "Ticket number not in first line of comments: " + patch
                     break
             else:
                 raise ValueError("No patch comments:" + patch)

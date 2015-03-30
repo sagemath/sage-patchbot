@@ -40,6 +40,9 @@ def get_url(url):
 
 
 def get_patch_url(ticket, patch, raw=True):
+    """
+    Should be obsolete now that we use git ?
+    """
     if raw:
         return "%s/raw-attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
     else:
@@ -47,6 +50,9 @@ def get_patch_url(ticket, patch, raw=True):
 
 
 def get_patch(ticket, patch):
+    """
+    Should be obsolete now that we use git ?
+    """
     return get_url(get_patch_url(ticket, patch))
 
 
@@ -124,9 +130,18 @@ def scrape(ticket_id, force=False, db=None):
 
 
 def git_commit(branch):
+    """
+    Retrieve the hash of the commit.
+
+    EXAMPLES::
+
+        git_commit('develop')
+        '408796407339cf8ba46d3c5ab9365bdb0f1e456f'
+    """
     if branch.strip():
         try:
-            return subprocess.check_output(['git', 'ls-remote', TRAC_REPO, branch]).split()[0]
+            return subprocess.check_output(['git', 'ls-remote',
+                                            TRAC_REPO, branch]).split()[0]
         except Exception:
             return "unknown"
 
