@@ -93,8 +93,9 @@ def compare_machines(a, b, machine_match=None):
 
     machine_match is a number of initial things to look at.
 
-    m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
-    m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
+    >>> m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
+    >>> m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
+    >>> compare_machines(m1, m2)
     """
     if machine_match is not None:
         a = a[:machine_match]
@@ -273,6 +274,7 @@ class Patchbot:
 
     >>> from patchbot import Patchbot
     >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
+    >>> os.chdir(P.sage_root)
     >>> P.test_a_ticket(12345)
     """
     def __init__(self, sage_root, server, config_path, dry_run,
@@ -349,7 +351,7 @@ class Patchbot:
                             "plugins.git_rev_list"],
                 "bonus": {},
                 "machine": machine_data(),
-                "machine_match": 3,
+                "machine_match": 5,
                 "user": getpass.getuser(),
                 "keep_open_branches": True,
                 "base_repo": "git://github.com/sagemath/sage.git",
@@ -477,6 +479,9 @@ class Patchbot:
 
         Return nothing when the ticket should not be tested.
         """
+        if isinstance(ticket, (int, str)):
+            ticket = self.lookup_ticket(ticket)
+
         rating = 0
 
         if not ticket.get('git_branch'):
@@ -504,6 +509,8 @@ class Patchbot:
                     print('do not test if some author is not trusted')
                 return
             rating += 2 * bonus.get(author, 0)  # bonus for authors
+        if verbose:
+            print('rating {} after authors').format(rating)
 
         for participant in ticket['participants']:
             if participant not in self.config['trusted_authors']:
@@ -511,13 +518,19 @@ class Patchbot:
                     print('do not test if some participant is not trusted')
                 return
             rating += bonus.get(participant, 0)  # bonus for participants
+        if verbose:
+            print('rating {} after participants').format(rating)
 
         if 'component' in ticket:
             rating += bonus.get(ticket['component'], 0)  # bonus for components
+        if verbose:
+            print('rating {} after components').format(rating)
 
         rating += bonus.get(ticket['status'], 0)
         rating += bonus.get(ticket['priority'], 0)
         rating += bonus.get(str(ticket['id']), 0)
+        if verbose:
+            print('rating {} after status/priority/id').format(rating)
 
         prune_pending(ticket)
 
@@ -527,6 +540,8 @@ class Patchbot:
         uniqueness = (100,)
         # now let us look at previous reports
         if not retry:
+            if verbose:
+                print('start report scanning')
             for report in self.current_reports(ticket, newer=True):
                 if report.get('git_base'):
                     try:
@@ -535,6 +550,8 @@ class Patchbot:
                         # report['git_base'] not in our repo
                         only_in_base = -1
                     rating += bonus['behind'] * only_in_base
+                if verbose:
+                    print('rating {} after behind').format(rating)
 
                 report_uniqueness = compare_machines(report['machine'],
                                                      self.config['machine'],
@@ -545,7 +562,13 @@ class Patchbot:
 
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
+                if verbose:
+                    print('rating {} after applies').format(rating)
                 rating -= bonus.get("unique", 0)
+                if verbose:
+                    print('rating {} after uniqueness').format(rating)
+        if verbose:
+            print('rating {} after report scanning').format(rating)
 
         if not any(uniqueness):
             if verbose:
@@ -576,7 +599,7 @@ class Patchbot:
         Launch the test of a ticket.
 
         Either the ticket is given by its number, or it is picked
-        using get_ticket.        
+        using :meth:`get_ticket`.
         """
         self.reload_config()
 
@@ -639,7 +662,9 @@ class Patchbot:
                     os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
                     os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
                     os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
-                    pull_from_trac(self.sage_root, ticket['id'], force=True, use_ccache=self.config['use_ccache'], safe_only=self.options.safe_only)
+                    pull_from_trac(self.sage_root, ticket['id'], force=True,
+                                   use_ccache=self.config['use_ccache'],
+                                   safe_only=self.options.safe_only)
                     t.finish("Apply")
                     state = 'applied'
                     if not self.plugin_only:
