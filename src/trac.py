@@ -312,14 +312,18 @@ def ensure_safe(items):
 
 def inplace_safe():
     """
-    Returns whether it is safe to test this ticket inplace.
+    Return whether it is safe to test this ticket inplace.
     """
     safe = True
     # TODO: Are removed files sufficiently cleaned up?
-    for file in subprocess.check_output(["git", "diff", "--name-only", "patchbot/base..patchbot/ticket_merged"]).split('\n'):
+    cmd = ["git", "diff", "--name-only",
+           "patchbot/base..patchbot/ticket_merged"]
+    for file in subprocess.check_output(cmd).split('\n'):
         if not file:
             continue
-        if file.startswith("src/sage") or file.startswith("src/doc") or file in ("src/setup.py", "src/module_list.py", "README.txt", ".gitignore"):
+        if (file.startswith("src/sage") or file.startswith("src/doc")
+                or file in ("src/setup.py", "src/module_list.py",
+                            "README.txt", ".gitignore")):
             continue
         else:
             print "Unsafe file:", file
@@ -327,24 +331,38 @@ def inplace_safe():
     return safe
 
 
-def pull_from_trac(sage_root, ticket, branch=None, force=None, interactive=None, inplace=None, use_ccache=False, safe_only=False):
+def base_is_develop():
     """
-    Create four branches from base and ticket. If ticket deemed unsafe then
-    clone git repo to temp directory; additionally, if use_ccache then install
-    ccache. Set some global and environment variables.
+    Make sure that patchbot/base is the latest develop ?
+    """
+    pass
 
-    There are four branches at play here:
+
+def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
+                   interactive=None, inplace=None, use_ccache=False,
+                   safe_only=False):
+    """
+    Create four branches from base and ticket.
+
+    If ticket deemed unsafe then clone git repo to temp directory.
+
+    Additionally, if ``use_ccache`` then install ccache. Set some global
+    and environment variables.
+
+    There are five branches at play here:
+
     patchbot/base -- the latest release that all tickets are merged into for testing
+    patchbot/develop -- the latest develop version of sage
     patchbot/base_upstream -- temporary staging area for patchbot/base
     patchbot/ticket_upstream -- pristine clone of the ticket on trac
     patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
     """
     merge_failure = False
     try:
-        ticket_id = ticket
         info = scrape(ticket_id)
         os.chdir(sage_root)
         ensure_free_space(sage_root)
+        do_or_die("git fetch {} +develop:patchbot/develop".format(repo))
         do_or_die("git checkout patchbot/base")
         if ticket_id == 0:
             do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")

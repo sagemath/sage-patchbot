@@ -122,6 +122,9 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
 
 def docbuild(ticket, **kwds):
+    """
+    Build the documentation.
+    """
     do_or_die('make doc-clean')
     do_or_die('make doc')
     doc_log = 'logs/dochtml.log'

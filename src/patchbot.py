@@ -261,8 +261,17 @@ def sha1file(path, blocksize=None):
 
 
 class Patchbot:
+    """
+    Main class of the patchbot.
 
-    def __init__(self, sage_root, server, config_path, dry_run, plugin_only, options):
+    This can be used in an interactive python session:
+
+    >>> from patchbot import Patchbot
+    >>> P=Patchbot('/homes/sage','http://patchbot.sagemath.org',None,False,True,None)
+    >>> P.test_a_ticket(18001)
+    """
+    def __init__(self, sage_root, server, config_path, dry_run,
+                 plugin_only, options):
         self.sage_root = sage_root
         self.server = server
         self.base = get_version(sage_root)
@@ -310,6 +319,11 @@ class Patchbot:
             return scrape(id)
 
     def get_config(self):
+        """
+        Return the configuration.
+
+        Either by default, or from a json config file.
+        """
         if self.config_path is None:
             unicode_conf = {}
         else:
@@ -378,6 +392,9 @@ class Patchbot:
         return self.config
 
     def check_base(self):
+        """
+        What does this check exactly ?
+        """
         os.chdir(self.sage_root)
         try:
             do_or_die("git checkout patchbot/base")
@@ -425,7 +442,7 @@ class Patchbot:
         if trusted_authors:
             all = filter_on_authors(all, trusted_authors)
 
-        # remove all tickets with 0 or None rating
+        # remove all tickets with None rating
         all = filter(lambda x: x[0], ((self.rate_ticket(t), t) for t in all))
 
         # sort tickets using their ratings
@@ -544,7 +561,8 @@ class Patchbot:
         """
         Launch the test of a ticket.
 
-        Either the ticket is given, or it is picked using get_ticket.        
+        Either the ticket is given by its number, or it is picked
+        using get_ticket.        
         """
         self.reload_config()
 
@@ -846,7 +864,8 @@ class Patchbot:
         try:
             report['base'] = ticket_base = sorted([
                 describe_branch('patchbot/base', tag_only=True),
-                describe_branch('patchbot/ticket_upstream', tag_only=True)], compare_version)[-1]
+                describe_branch('patchbot/ticket_upstream', tag_only=True)],
+                                                  compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:
