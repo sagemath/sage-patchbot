@@ -288,10 +288,21 @@ class Patchbot:
         self.reload_config()
         self.last_pull = 0
         self.to_skip = {}
-        self.options = options
+
+        if options is None:
+            # ugly workaround to simplify interactive use of Patchbot
+
+            class opt:
+                safe_only = False
+            self.options = opt
+        else:
+            self.options = options
 
     def load_json_from_server(self, path):
-        handle = urllib2.urlopen("%s/%s" % (self.server, path))
+        """
+        Load a json file from the server.
+        """
+        handle = urllib2.urlopen("{}/{}".format(self.server, path))
         try:
             return json.load(handle)
         finally:
@@ -685,8 +696,6 @@ class Patchbot:
                         do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
 
                     kwds = {
-                        "original_dir": self.sage_root,
-                        "patched_dir": os.getcwd(),
                         "patches": [os.path.join(patch_dir, p)
                                     for p in os.listdir(patch_dir)],
                         "sage_binary": os.path.join(os.getcwd(), 'sage'),
@@ -724,8 +733,11 @@ class Patchbot:
                                 plugins_results.append((name, passed, None))
                             t.finish(name)
                             print plugin_boundary(name, end=True)
-                    plugins_passed = all(passed for (name, passed, data) in plugins_results)
-                    self.report_ticket(ticket, status='Pending', log=log, pending_status='plugins_passed' if plugins_passed else 'plugins_failed')
+                    plugins_passed = all(passed for (name, passed, data)
+                                         in plugins_results)
+                    self.report_ticket(ticket, status='Pending', log=log,
+                                       pending_status='plugins_passed'
+                                       if plugins_passed else 'plugins_failed')
 
                     if self.plugin_only:
                         state = 'plugins' if plugins_passed else 'plugins_failed'

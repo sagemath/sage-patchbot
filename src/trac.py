@@ -327,20 +327,13 @@ def inplace_safe():
     return safe
 
 
-def base_is_develop():
-    """
-    Make sure that patchbot/base is the latest develop ?
-    """
-    pass
-
-
 def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
                    interactive=None, inplace=None, use_ccache=False,
                    safe_only=False):
     """
     Create four branches from base and ticket.
 
-    If ticket deemed unsafe then clone git repo to temp directory.
+    If ticket deemed unsafe then clone git repo to temp directory. ?!
 
     Additionally, if ``use_ccache`` then install ccache. Set some global
     and environment variables.

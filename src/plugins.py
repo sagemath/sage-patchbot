@@ -8,10 +8,7 @@ a PluginResult indicating success or failure, along with other data.
 
 The parameters are as follows:
 
-   ticket -- a dictionary of all the ticket informaton
-   original_dir -- pristine sage-main directory
-   patched_dir -- patched sage-branch directory for this ticket
-   patchs -- a list of absolute paths to the patch files for this ticket
+   ticket -- a dictionary of all the ticket information
    sage_binary -- the path to $SAGE_ROOT/sage
    baseline -- if a PluginResult was returned with a baseline for ticket 0,
                it will be returned here for comparison
@@ -124,6 +121,8 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 def docbuild(ticket, **kwds):
     """
     Build the documentation.
+
+    Already done during the make.
     """
     do_or_die('make doc-clean')
     do_or_die('make doc')
@@ -233,6 +232,9 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
 
 
 def startup_modules(ticket, sage_binary, baseline=None, **kwds):
+    """
+    Count modules imported at startup.
+    """
     # Sometimes the first run does something different...
     do_or_die("time $SAGE_ROOT/sage -c ''")
     # Print out all the modules imported at startup.
@@ -268,7 +270,8 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=modules, data=data)
 
 
-def startup_time(ticket, loops=5, total_samples=50, dry_run=False, **kwds):
+def startup_time(ticket, loops=5, total_samples=50,
+                 dry_run=False, **kwds):
     """
     Try to decide if the startup time is getting worse.
     """
