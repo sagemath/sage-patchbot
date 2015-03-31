@@ -53,6 +53,8 @@ def filter_on_authors(tickets, authors):
     """
     Keep only tickets with authors among the given ones.
 
+    Every ticket is a dict.
+
     INPUT:
 
     a list of tickets and a list of authors
@@ -91,8 +93,8 @@ def compare_machines(a, b, machine_match=None):
 
     machine_match is a number of initial things to look at.
 
-    m1 = ["Ubuntu", "14.04", "i686", "3.13.0-40-generic", "arando"]
-    m2 = ["Fedora", "19", "x86_64", "3.10.4-300.fc19.x86_64", "desktop"]
+    m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
+    m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
     if machine_match is not None:
         a = a[:machine_match]
@@ -108,6 +110,9 @@ class TimeOut(Exception):
 
 
 def alarm_handler(signum, frame):
+    """
+    ? Alarm is not defined ?
+    """
     raise Alarm
 
 
@@ -208,15 +213,15 @@ def machine_data():
 
     This uses uname to find the data.
 
-    m1 = ["Ubuntu", "14.04", "i686", "3.13.0-40-generic", "arando"]
-    m2 = ["Fedora", "19", "x86_64", "3.10.4-300.fc19.x86_64", "desktop"]
+    m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
+    m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
     system, node, release, version, arch = os.uname()
     if system.lower() == "linux":
         dist_name, dist_version, dist_id = platform.linux_distribution()
         if dist_name:
             return [dist_name, dist_version, arch, release, node]
-    return [system, arch, release, node]
+    return [system, version, arch, release, node]
 
 
 def parse_time_of_day(s):
@@ -267,15 +272,14 @@ class Patchbot:
     This can be used in an interactive python session:
 
     >>> from patchbot import Patchbot
-    >>> P=Patchbot('/homes/sage','http://patchbot.sagemath.org',None,False,True,None)
-    >>> P.test_a_ticket(18001)
+    >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
+    >>> P.test_a_ticket(12345)
     """
     def __init__(self, sage_root, server, config_path, dry_run,
                  plugin_only, options):
         self.sage_root = sage_root
         self.server = server
         self.base = get_version(sage_root)
-        self.behind_base = {}
         self.dry_run = dry_run
         self.plugin_only = plugin_only
         self.config_path = config_path
@@ -349,11 +353,12 @@ class Patchbot:
                 "user": getpass.getuser(),
                 "keep_open_branches": True,
                 "base_repo": "git://github.com/sagemath/sage.git",
-                "base_branch": "master",
-                "max_behind_commits": 10,
-                "max_behind_days": 2.0,
+                "base_branch": "develop",
+                "max_behind_commits": 1,
+                "max_behind_days": 1.0,
                 "use_ccache": True,
-                "safe_only": False}
+                "safe_only": False,
+                "skip_base": False}
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
                          "blocker": 100,
@@ -393,15 +398,22 @@ class Patchbot:
 
     def check_base(self):
         """
-        What does this check exactly ?
+        Check that the patchbot/base is synchro with 'base_branch'.
+
+        Usually 'base_branch' is set to 'develop'.
         """
+        cwd = os.getcwd()
         os.chdir(self.sage_root)
         try:
             do_or_die("git checkout patchbot/base")
         except Exception:
             do_or_die("git checkout -b patchbot/base")
-        do_or_die("git fetch %s +%s:patchbot/base_upstream" % (self.config['base_repo'], self.config['base_branch']))
+
+        do_or_die("git fetch %s +%s:patchbot/base_upstream" %
+                  (self.config['base_repo'], self.config['base_branch']))
+
         only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base_upstream..patchbot/base"]))
+
         only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/base_upstream"]))
 
         max_behind_time = self.config['max_behind_days'] * 60 * 60 * 24
@@ -413,11 +425,15 @@ class Patchbot:
             do_or_die("git branch -f patchbot/base patchbot/base_upstream")
             do_or_die("git checkout patchbot/base")
             self.last_pull = time.time()
-            self.behind_base = {}
+            os.chdir(cwd)
             return False
+        os.chdir(cwd)
         return True
 
     def human_readable_base(self):
+        """
+        Return the human name of the base.
+        """
         # TODO: Is this stable?
         version = get_version(self.sage_root)
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
@@ -425,16 +441,13 @@ class Patchbot:
 
     def get_ticket(self, return_all=False, status='open'):
         """
-        Either return one ticket or the list of all tickets
+        Return one ticket or the list of all tickets.
 
         Every ticket is returned as a pair (rating, ticket data)
         """
-        print self.to_skip
-        os.chdir(self.sage_root)
+        print "skipped: {}".format(self.to_skip)
         trusted_authors = self.config.get('trusted_authors')
-        query = "raw&status=%s" % status
-#        if trusted_authors:
-#            query += "&authors=" + urllib.quote_plus(no_unicode(':'.join(trusted_authors)), safe=':')
+        query = "raw&status={}".format(status)
         print "Getting ticket list..."
         all = self.load_json_from_server("ticket/?" + query)
 
@@ -551,11 +564,12 @@ class Patchbot:
 
     def current_reports(self, ticket, newer=False):
         """
-        Return the current reports on a ticket.
+        Return the list of current reports on a ticket.
         """
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
+
 
     def test_a_ticket(self, ticket=None):
         """
@@ -578,10 +592,10 @@ class Patchbot:
         rating, ticket = ticket
 
         if rating is None:
-            print "warning: rating is None, testing at your own risk\n"
+            print "warning: rating is None, testing at your own risk"
 
         if not ticket.get('git_branch'):
-            print "no git branch, hence no testing\n"
+            print "no git branch, hence no testing"
             return
 
         print "\n" * 2
@@ -953,7 +967,7 @@ def main(args):
     conf = patchbot.get_config()
 
     if options.list:
-        # the option "list" allows to see tickets that will be tested
+        # the option "--list" allows to see tickets that will be tested
         count = sys.maxint if options.list is "True" else int(options.list)
         print "Getting ticket list..."
         for ix, (score, ticket) in enumerate(patchbot.get_ticket_list()):
@@ -1009,7 +1023,8 @@ def main(args):
 
     for k in range(count):
         if options.cleanup:
-            for path in glob.glob(os.path.join(tempfile.gettempdir(), "*%s*" % temp_build_suffix)):
+            for path in glob.glob(os.path.join(tempfile.gettempdir(),
+                                               "*%s*" % temp_build_suffix)):
                 print "Cleaning up ", path
                 shutil.rmtree(path)
         try:

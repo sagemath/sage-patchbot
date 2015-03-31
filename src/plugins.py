@@ -268,42 +268,42 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=modules, data=data)
 
 
-def startup_time(ticket, original_dir, patched_dir, loops=5,
-                 total_samples=50, dry_run=False, **kwds):
+def startup_time(ticket, loops=5, total_samples=50, dry_run=False, **kwds):
+    """
+    Try to decide if the startup time is getting worse.
+    """
     if dry_run:
         loops //= 2
         total_samples //= 5
+
     print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
     choose_base = "git checkout patchbot/base; make build > /dev/null"
     choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
-    try:
 
-        def startup_times(samples):
+    def startup_times(samples):
+        do_or_die("$SAGE_ROOT/sage -c ''")
+        all = []
+        for k in range(samples):
+            start = time.time()
             do_or_die("$SAGE_ROOT/sage -c ''")
-            all = []
-            for k in range(samples):
-                start = time.time()
-                do_or_die("$SAGE_ROOT/sage -c ''")
-                all.append(time.time() - start)
-            return all
+            all.append(time.time() - start)
+        return all
 
+    try:
         main_timings = []
         ticket_timings = []
 
-        os.chdir(patched_dir)
         do_or_die(choose_ticket)
         do_or_die("$SAGE_ROOT/sage -c ''")
-        os.chdir(original_dir)
+
         do_or_die(choose_base)
         do_or_die("$SAGE_ROOT/sage -c ''")
 
         for k in range(loops):
-            os.chdir(patched_dir)
             do_or_die(choose_ticket)
             ticket_timings.extend(startup_times(total_samples //
                                                 loops + 2 * k - loops + 1))
-            os.chdir(original_dir)
             do_or_die(choose_base)
             main_timings.extend(startup_times(total_samples //
                                               loops + 2 * k - loops + 1))
@@ -372,7 +372,6 @@ def startup_time(ticket, original_dir, patched_dir, loops=5,
 
     finally:
         print
-        os.chdir(patched_dir)
         do_or_die(choose_ticket)
 
 

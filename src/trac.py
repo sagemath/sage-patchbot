@@ -96,10 +96,6 @@ def scrape(ticket_id, force=False, db=None):
         branch = tsv['branch']
         if branch.startswith('u/'):
             authors.add(branch.split('/')[1])
-    else:
-        for patch, who in extract_patches(rss):
-            authors.add(who)
-            patches.append(patch + "#" + digest(get_patch(ticket_id, patch)))
     authors = list(authors)
     data = {
         'id': ticket_id,
@@ -349,20 +345,18 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
     Additionally, if ``use_ccache`` then install ccache. Set some global
     and environment variables.
 
-    There are five branches at play here:
+    There are four branches at play here:
 
     patchbot/base -- the latest release that all tickets are merged into for testing
-    patchbot/develop -- the latest develop version of sage
     patchbot/base_upstream -- temporary staging area for patchbot/base
     patchbot/ticket_upstream -- pristine clone of the ticket on trac
     patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
     """
     merge_failure = False
     try:
-        info = scrape(ticket_id)
         os.chdir(sage_root)
+        info = scrape(ticket_id)
         ensure_free_space(sage_root)
-        do_or_die("git fetch {} +develop:patchbot/develop".format(repo))
         do_or_die("git checkout patchbot/base")
         if ticket_id == 0:
             do_or_die("git branch -f patchbot/ticket_upstream patchbot/base")
