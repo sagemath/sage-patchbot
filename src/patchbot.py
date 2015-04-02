@@ -293,7 +293,7 @@ class Patchbot:
             # ugly workaround to simplify interactive use of Patchbot
 
             class opt:
-                safe_only = False
+                safe_only = True
             self.options = opt
         else:
             self.options = options
@@ -370,7 +370,7 @@ class Patchbot:
                 "max_behind_commits": 1,
                 "max_behind_days": 1.0,
                 "use_ccache": True,
-                "safe_only": False,
+                "safe_only": True,
                 "skip_base": False}
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
@@ -604,7 +604,6 @@ class Patchbot:
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
-
 
     def test_a_ticket(self, ticket=None):
         """
@@ -985,7 +984,7 @@ def main(args):
     parser.add_option("--cleanup", action="store_true", dest="cleanup",
                       default=False)
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
-                      default=False)
+                      default=True)
     parser.add_option("--interactive", action="store_true", dest="interactive",
                       default=False)
 

@@ -202,7 +202,6 @@ def get_version(sage_root):
     return sage_version.split()[2].strip(',')
 
 
-
 def describe_branch(branch, tag_only=False):
     """
     Return the latest tag of the branch or the full branch description.
