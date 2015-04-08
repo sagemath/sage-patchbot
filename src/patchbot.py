@@ -605,7 +605,7 @@ class Patchbot:
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
 
-    def test_a_ticket(self, ticket=None):
+    def test_a_ticket(self, ticket=None, verbose=False):
         """
         Launch the test of a ticket.
 
@@ -615,20 +615,29 @@ class Patchbot:
         self.reload_config()
 
         if ticket is None:
+            if verbose:
+                print('getting a ticket from trac')
             ticket = self.get_ticket()
         else:
+            if verbose:
+                print('testing the given ticket')
             ticket = None, scrape(int(ticket))
         if not ticket:
-            print "No more tickets."
+            print "No more tickets, take a nap."
             time.sleep(self.config['idle'])
             return
 
         rating, ticket = ticket
 
+        if ticket['id'] == 0:
+            if verbose:
+                print('testing the base')
+            rating = 100
+
         if rating is None:
             print "warning: rating is None, testing at your own risk"
 
-        if not ticket.get('git_branch'):
+        if not(ticket.get('git_branch') or ticket['id'] == 0):
             print "no git branch, hence no testing"
             return
 
