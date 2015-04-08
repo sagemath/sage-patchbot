@@ -916,7 +916,7 @@ class Patchbot:
             report['base'] = ticket_base = sorted([
                 describe_branch('patchbot/base', tag_only=True),
                 describe_branch('patchbot/ticket_upstream', tag_only=True)],
-                                                  compare_version)[-1]
+                                compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:
