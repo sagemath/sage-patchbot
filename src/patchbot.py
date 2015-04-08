@@ -965,26 +965,35 @@ def main(args):
     """
     global conf
     parser = OptionParser()
-    parser.add_option("--config", dest="config")
+    parser.add_option("--config", dest="config",
+                      help="specify the config file")
     parser.add_option("--sage-root", dest="sage_root",
-                      default=os.environ.get('SAGE_ROOT'))
+                      default=os.environ.get('SAGE_ROOT'),
+                      help="specify another sage root directory")
     parser.add_option("--server", dest="server",
-                      default="http://patchbot.sagemath.org/")
+                      default="http://patchbot.sagemath.org/",
+                      help="specify another patchbot server adress")
     parser.add_option("--count", dest="count", default=1000000)
-    parser.add_option("--ticket", dest="ticket", default=None)
-    parser.add_option("--list", dest="list", default=False)
+    parser.add_option("--ticket", dest="ticket", default=None,
+                      help="test only a list of tickets, for example '12345,19876'")
+    parser.add_option("--list", dest="list", default=False,
+                      help="given a number N, list the next N tickets that will be tested")
     parser.add_option("--full", action="store_true", dest="full",
                       default=False)
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
-                      default=False)
+                      default=False,
+                      help="whether to check that the base is errorless")
     parser.add_option("--dry-run", action="store_true", dest="dry_run",
                       default=False)
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
-                      default=False)
+                      default=False,
+                      help="run the patchbot in plugin-only mode")
     parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=False)
+                      default=False,
+                      help="whether to cleanup the temporary files")
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
-                      default=True)
+                      default=True,
+                      help="whether to run the patchbot in safe-only mode")
     parser.add_option("--interactive", action="store_true", dest="interactive",
                       default=False)
 
