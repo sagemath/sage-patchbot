@@ -495,6 +495,11 @@ class Patchbot:
 
         rating = 0
 
+        if ticket['id'] == 0:
+            if verbose:
+                print ('this is testing the base branch')
+            return ((100), 100, 0)
+
         if not ticket.get('git_branch'):
             if verbose:
                 print ('do not test if there is no git branch')
@@ -615,13 +620,13 @@ class Patchbot:
         self.reload_config()
 
         if ticket is None:
-            if verbose:
-                print('getting a ticket from trac')
             ticket = self.get_ticket()
-        else:
             if verbose:
-                print('testing the given ticket')
+                print('testing found ticket #{}'.format(ticket['id']))
+        else:
             ticket = None, scrape(int(ticket))
+            if verbose:
+                print('testing given ticket #{}'.format(int(ticket)))
         if not ticket:
             print "No more tickets, take a nap."
             time.sleep(self.config['idle'])
@@ -635,10 +640,12 @@ class Patchbot:
             rating = 100
 
         if rating is None:
-            print "warning: rating is None, testing at your own risk"
+            msg = "warning: rating is None, testing #{} at your own risk"
+            print msg.format(ticket['id'])
 
         if not(ticket.get('git_branch') or ticket['id'] == 0):
-            print "no git branch, hence no testing"
+            msg = "no git branch for #{}, hence no testing"
+            print msg.format(ticket['id'])
             return
 
         print "\n" * 2

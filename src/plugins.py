@@ -74,7 +74,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
                 percent = int(percent)
             else:
                 percent = ("%%0.%sf" % prec) % percent
-            return "%s / %s = %s%%" % (docs, funcs, percent)
+            return "{} / {} = {}%".format(docs, funcs, percent)
     for line in all.split('\n'):
         m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)
         if m:
