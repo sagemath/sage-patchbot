@@ -9,6 +9,12 @@ def get_version():
     First try using git tags then using the version.txt file.
 
     The expected result is a string of the shape '2.2' or '2.3.rc0'.
+
+    EXAMPLES::
+
+        sage: from version import get_version
+        sage: get_version()
+        '2.3.2'
     """
     src_dir = os.path.dirname(os.path.abspath(__file__))
     top = os.path.dirname(src_dir)

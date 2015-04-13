@@ -124,7 +124,7 @@ def git_commit(repo, branch):
     """
     ref = "refs/heads/{}".format(branch)
     try:
-        return subprocess.check_output(["git", "--git-dir=%s/.git" % repo,
+        return subprocess.check_output(["git", "--git-dir={}/.git".format(repo),
                                         "show-ref",
                                         "--verify", ref]).split()[0]
     except subprocess.CalledProcessError:
@@ -138,7 +138,7 @@ def do_or_die(cmd, exn_class=Exception):
     print cmd
     res = os.system(cmd)
     if res:
-        raise exn_class("%s %s" % (res, cmd))
+        raise exn_class("{} {}".format(res, cmd))
 
 
 def comparable_version(version):

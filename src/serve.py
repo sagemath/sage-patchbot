@@ -682,7 +682,13 @@ def robots():
     """
     Return a robot instruction web page
 
-    See http://patchbot.sagemath.org/robots.txt for the result
+    See http://patchbot.sagemath.org/robots.txt for the result.
+
+    EXAMPLES::
+
+        sage: from serve import robots
+        sage: robots()
+        ?
     """
     return render_template("robots.txt")
 
@@ -692,7 +698,13 @@ def favicon():
     """
     Return the favicon image as a web page (green blob)
 
-    See http://patchbot.sagemath.org/favicon.ico
+    See http://patchbot.sagemath.org/favicon.ico for the result.
+
+    EXAMPLES::
+
+        sage: from serve import favicon
+        sage: favicon()
+        ?
     """
     response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
     response.headers['Content-type'] = 'image/png'
