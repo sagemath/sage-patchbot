@@ -103,7 +103,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 base_ok(report['base']) and
                 first(':'.join(report['machine'])))
 
-    return filter(filtre_fun, reports)
+    return list(filter(filtre_fun, reports))
 
 
 def is_git(sage_root):
@@ -135,7 +135,7 @@ def do_or_die(cmd, exn_class=Exception):
     """
     Run a shell command and report eventual failure.
     """
-    print cmd
+    print(cmd)
     res = os.system(cmd)
     if res:
         raise exn_class("{} {}".format(res, cmd))
