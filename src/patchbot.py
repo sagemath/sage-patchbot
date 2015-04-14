@@ -331,7 +331,7 @@ class Patchbot:
             self._default_trusted = trusted
             return self._default_trusted
 
-    def lookup_ticket(self, id):
+    def lookup_ticket(self, id, verbose=False):
         """
         Retrieve information about one ticket from the server.
         """
@@ -339,8 +339,12 @@ class Patchbot:
                                               'query': json.dumps({'id': id})})
         res = self.load_json_from_server(path)
         if res:
+            if verbose:
+                print('lookup using json')
             return res[0]
         else:
+            if verbose:
+                print('lookup using scrape')
             return scrape(id)
 
     def get_config(self):

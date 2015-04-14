@@ -59,6 +59,16 @@ def get_patch(ticket, patch):
 def scrape(ticket_id, force=False, db=None):
     """
     Scrapes the trac page for ticket_id, updating the database if needed.
+
+    OUTPUT:
+
+    a dictionary
+
+    This fails if some field contains a TAB character !
+
+    EXAMPLES::
+
+        sage: scrape(18033)
     """
     ticket_id = int(ticket_id)
     if ticket_id == 0:
@@ -77,11 +87,12 @@ def scrape(ticket_id, force=False, db=None):
             'spkgs': [],
             'patches': [],
             'authors': [],
-            'participants': [],
-        }
+            'participants': []}
 
     rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
-    tsv = parse_tsv(get_url("%s/ticket/%s?format=tab" % (TRAC_URL, ticket_id)))
+    tab = get_url("%s/ticket/%s?format=tab" % (TRAC_URL, ticket_id))
+    # short_tab = get_url("%s/query?id=%s&format=tab" % (TRAC_URL, ticket_id))
+    tsv = parse_tsv(tab)
     page_hash = digest(rss)  # rss isn't as brittle
     if db is not None:
         # TODO: perhaps the db caching should be extracted outside of
@@ -145,6 +156,14 @@ def git_commit(branch):
 def parse_tsv(tsv):
     """
     Convert tsv to dict.
+
+    First row gives the names of the fields, second row gives their values.
+
+    OUTPUT:
+
+    a dictionary
+
+    This will fail if some field contains a TAB character.
     """
     header, data = tsv.split('\n', 1)
 
@@ -160,7 +179,7 @@ def parse_tsv(tsv):
 
 def extract_tag(sgml, tag):
     """
-    Find the first occurance of the tag start (including attributes) and
+    Find the first occurrence of the tag start (including attributes) and
     return the contents of that tag (really, up until the next end tag
     of that type).
 
@@ -178,75 +197,12 @@ def extract_tag(sgml, tag):
         return None
     return sgml[start_ix + len(tag): end_ix].strip()
 
-folded_regex = re.compile('all.*(folded|combined|merged)')
-subsequent_regex = re.compile('second|third|fourth|next|on top|after')
-attachment_regex = re.compile(r"<strong>attachment</strong>\s*set to <em>(.*)</em>", re.M)
-rebased_regex = re.compile(r"([-.]?rebased?)|(-v\d)")
-
-
-def extract_patches(rss):
-    """
-    Extracts the list of patches for a ticket from the rss feed.
-
-    Tries to deduce the subset of attached patches to apply based on
-
-        (1) "Apply ..." in comment text
-        (2) Mercurial .N naming
-        (3) "rebased" in name
-        (3) Chronology
-    """
-    all_patches = []
-    patches = []
-    authors = {}
-    for item in rss.split('<item>'):
-        who = extract_tag(item, '<dc:creator>')
-        description = extract_tag(item, '<description>').replace('&lt;', '<').replace('&gt;', '>')
-        m = attachment_regex.search(description)
-        comments = description[description.find('</ul>') + 1:]
-        # Look for apply... followed by patch names
-        for line in comments.split('\n'):
-            if 'apply' in line.lower():
-                new_patches = []
-                for p in line[line.lower().index('apply') + 5:].split(','):
-                    for pp in p.strip().split():
-                        if pp in all_patches:
-                            new_patches.append(pp)
-                if new_patches or (m and not subsequent_regex.search(line)):
-                    patches = new_patches
-            elif m and folded_regex.search(line):
-                patches = []  # will add this patch below
-        if m is not None:
-            attachment = m.group(1)
-            base, ext = os.path.splitext(attachment)
-            if '.' in base:
-                try:
-                    base2, ext2 = os.path.splitext(base)
-                    count = int(ext2[1:])
-                    for i in range(count):
-                        if i:
-                            older = "%s.%s%s" % (base2, i, ext)
-                        else:
-                            older = "%s%s" % (base2, ext)
-                        if older in patches:
-                            patches.remove(older)
-                except:
-                    pass
-            if rebased_regex.search(attachment):
-                older = rebased_regex.sub('', attachment)
-                if older in patches:
-                    patches.remove(older)
-            if ext in ('.patch', '.diff'):
-                all_patches.append(attachment)
-                patches.append(attachment)
-                authors[attachment] = who
-    return [(p, authors[p]) for p in patches]
-
-participant_regex = re.compile("<strong>attachment</strong>\w*set to <em>(.*)</em>")
-
 
 def extract_participants(rss):
     """
     Extracts any authors for a ticket from the html page.
+
+    This is done using the rss feed.
     """
     all = set()
     for item in rss.split('<item>'):
@@ -277,7 +233,7 @@ def min_non_neg(*rest):
     else:
         return min(*non_neg)
 
-ticket_url_regex = re.compile(r"%s/ticket/(\d+)" % TRAC_URL)
+ticket_url_regex = re.compile(r"{}/ticket/(\d+)".format(TRAC_URL))
 
 
 def extract_depends_on(tsv):
