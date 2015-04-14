@@ -298,6 +298,14 @@ class Patchbot:
         else:
             self.options = options
 
+    def version(self):
+        """
+        Return the version of the patchbot.
+
+        Something like '2.3.3'
+        """
+        return patchbot_version.get_version()
+
     def load_json_from_server(self, path):
         """
         Load a json file from the server.

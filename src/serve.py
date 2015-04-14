@@ -113,7 +113,7 @@ def get_query(args):
         query['authors'] = args.get('author')
     if 'participant' in args:
         query['participants'] = args.get('participant')
-    print query
+    print(query)
     return query
 
 
@@ -133,7 +133,7 @@ def ticket_list():
     else:
         order = 'last_activity'
     limit = int(request.args.get('limit', 10000))
-    print query
+    print(query)
     if 'base' in request.args:
         base = request.args.get('base')
         if base == 'all':
@@ -647,7 +647,7 @@ def create_status_image(status, base=None):
                         composite[:, start:end, :] = slice[:, start:end, :]
                     Image.fromarray(composite, 'RGBA').save(path)
             except ImportError, exn:
-                print exn
+                print(exn)
                 status = min_status(status_list)
                 path = status_image_path(status)
     else:
