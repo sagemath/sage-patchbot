@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
 ####################################################################
@@ -133,7 +134,7 @@ class Tee:
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
-            print datetime()
+            print(datetime())
             self.start_time = time.time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -142,8 +143,8 @@ class Tee:
         if exc_type is not None:
             traceback.print_exc()
         if self.time:
-            print datetime()
-            print int(time.time() - self.start_time), "seconds"
+            print(datetime())
+            print(int(time.time() - self.start_time), "seconds")
         self.tee.stdin.close()
         time.sleep(1)
         os.dup2(self._saved[0], sys.stdout.fileno())
@@ -181,7 +182,7 @@ class Timer:
         self._history.append((label, elapsed))
 
     def print_time(self, label, elapsed):
-        print label, '--', int(elapsed), 'seconds'
+        print(label, '--', int(elapsed), 'seconds')
 
     def print_all(self):
         for label, elapsed in self._history:
@@ -288,6 +289,7 @@ class Patchbot:
         self.reload_config()
         self.last_pull = 0
         self.to_skip = {}
+        self._version = patchbot_version.get_version()
 
         if options is None:
             # ugly workaround to simplify interactive use of Patchbot
@@ -304,7 +306,20 @@ class Patchbot:
 
         Something like '2.3.3'
         """
-        return patchbot_version.get_version()
+        return self._version
+
+    def banner(self):
+        """
+        A banner for the patchbot
+        """
+        red = '\033[31m'
+        col_out = '\033[0m'
+        s  = u'┌─┬──────┐\n'
+        s += u'│░│ ' + red + u'⊙  ʘ' + col_out + u' │        SageMath patchbot\n'
+        s += u'│░│      │\n'
+        s += u'│░│ ──── │        version {}\n'.format(self.version())
+        s += u'╘═╧══════╛'
+        return s.encode('utf8')
 
     def load_json_from_server(self, path):
         """
@@ -325,7 +340,7 @@ class Patchbot:
         try:
             return self._default_trusted
         except:
-            print "Getting trusted author list..."
+            print("Getting trusted author list...")
             trusted = self.load_json_from_server("trusted").keys()
             trusted += ['git', 'vbraun_spam']
             self._default_trusted = trusted
@@ -470,10 +485,10 @@ class Patchbot:
 
         Every ticket is returned as a pair (rating, ticket data)
         """
-        print "skipped: {}".format(self.to_skip)
+        print("skipped: {}".format(self.to_skip))
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status={}".format(status)
-        print "Getting ticket list..."
+        print("Getting ticket list...")
         all = self.load_json_from_server("ticket/?" + query)
 
         # keep only tickets with trusted authors
@@ -509,18 +524,18 @@ class Patchbot:
 
         if ticket['id'] == 0:
             if verbose:
-                print ('this is testing the base branch')
+                print('this is testing the base branch')
             return ((100), 100, 0)
 
         if not ticket.get('git_branch'):
             if verbose:
-                print ('do not test if there is no git branch')
+                print('do not test if there is no git branch')
             return
 
         if not(ticket['status'] in ('needs_review', 'positive_review',
                                     'needs_info', 'needs_work')):
             if verbose:
-                print ('only test needs_* or positive_review tickets')
+                print('only test needs_* or positive_review tickets')
             return
 
         if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
@@ -640,7 +655,7 @@ class Patchbot:
             if verbose:
                 print('testing given ticket #{}'.format(int(ticket)))
         if not ticket:
-            print "No more tickets, take a nap."
+            print("No more tickets, take a nap.")
             time.sleep(self.config['idle'])
             return
 
@@ -653,18 +668,18 @@ class Patchbot:
 
         if rating is None:
             msg = "warning: rating is None, testing #{} at your own risk"
-            print msg.format(ticket['id'])
+            print(msg.format(ticket['id']))
 
         if not(ticket.get('git_branch') or ticket['id'] == 0):
             msg = "no git branch for #{}, hence no testing"
-            print msg.format(ticket['id'])
+            print(msg.format(ticket['id']))
             return
 
-        print "\n" * 2
-        print "=" * 30, ticket['id'], "=" * 30
-        print ticket['title']
-        print "score", rating
-        print "\n" * 2
+        print("\n" * 2)
+        print("=" * 30, ticket['id'], "=" * 30)
+        print(ticket['title'])
+        print("score", rating)
+        print("\n" * 2)
         self.log_dir = self.sage_root + "/logs/patchbot"
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -678,7 +693,7 @@ class Patchbot:
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                print "Sage Patchbot", patchbot_version.get_version()
+                print(self.banner())
 
                 if ticket['spkgs']:
                     state = 'spkg'
@@ -936,7 +951,7 @@ class Patchbot:
             'machine': self.config['machine'],
             'time': datetime(),
             'plugins': plugins,
-            'patchbot_version': patchbot_version.get_version(),
+            'patchbot_version': self._version,
         }
         if pending_status:
             report['pending_status'] = pending_status

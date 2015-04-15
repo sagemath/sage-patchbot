@@ -142,7 +142,7 @@ def git_commit(branch):
 
     EXAMPLES::
 
-        git_commit('develop')
+        sage: git_commit('develop')
         '408796407339cf8ba46d3c5ab9365bdb0f1e456f'
     """
     if branch.strip():
