@@ -265,6 +265,8 @@ def ensure_safe(items):
 def inplace_safe():
     """
     Return whether it is safe to test this ticket inplace.
+
+    This must be called after the merge has succeeded.
     """
     safe = True
     # TODO: Are removed files sufficiently cleaned up?
@@ -324,12 +326,13 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             do_or_die("git merge --abort")
             merge_failure = True
             raise
-        if not inplace_safe():
+        is_safe = inplace_safe()
+        if not is_safe:
             if safe_only:
                 raise SkipTicket("unsafe")
             tmp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
             ensure_free_space(tmp_dir)
-            do_or_die("git clone . '%s'" % tmp_dir)
+            do_or_die("git clone . '{}'".format(tmp_dir))
             os.chdir(tmp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
             os.environ['SAGE_ROOT'] = tmp_dir
@@ -340,7 +343,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
                     os.mkdir('logs')
                 do_or_die("./sage -i ccache")
     except Exception, exn:
-        if merge_failure:
+        if merge_failure or (not is_safe):
             raise
         else:
             raise ConfigException(exn.message)
