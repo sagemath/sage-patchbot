@@ -314,7 +314,7 @@ class Patchbot:
         """
         red = '\033[31m'
         col_out = '\033[0m'
-        s  = u'┌─┬──────┐\n'
+        s = u'┌─┬──────┐\n'
         s += u'│░│ ' + red + u'⊙  ʘ' + col_out + u' │        SageMath patchbot\n'
         s += u'│░│      │\n'
         s += u'│░│ ──── │        version {}\n'.format(self.version())
@@ -956,10 +956,9 @@ class Patchbot:
         if pending_status:
             report['pending_status'] = pending_status
         try:
-            report['base'] = ticket_base = sorted([
-                describe_branch('patchbot/base', tag_only=True),
-                describe_branch('patchbot/ticket_upstream', tag_only=True)],
-                                compare_version)[-1]
+            tags = [describe_branch('patchbot/base', tag_only=True),
+                    describe_branch('patchbot/ticket_upstream', tag_only=True)]
+            report['base'] = ticket_base = sorted(tags, compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:

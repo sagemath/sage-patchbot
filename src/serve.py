@@ -213,7 +213,10 @@ def machines():
                 stats = machines[machine] = MachineStats(machine)
             stats.add_report(report, ticket)
     all = []
-    return render_template("machines.html", machines=reversed(sorted(machines.values())), len=len, status=request.args.get('status', 'needs_review'))
+    return render_template("machines.html",
+                           machines=reversed(sorted(machines.values())),
+                           len=len,
+                           status=request.args.get('status', 'needs_review'))
 
 
 def format_patches(ticket, patches, deps=None, required=None):
@@ -488,7 +491,8 @@ def shorten(lines):
             prev = None
         elif prev.startswith('python `which cython`') and '-->' in line:
             prev = None
-        elif gcc.match(prev) and (gcc.match(line) or line.startswith('Time to execute')):
+        elif gcc.match(prev) and (gcc.match(line) or
+                                  line.startswith('Time to execute')):
             prev = line
         else:
             if prev is not None:
@@ -500,6 +504,9 @@ def shorten(lines):
 
 
 def extract_plugin_log(data, plugin):
+    """
+    Extract from data the log of a given plugin.
+    """
     from patchbot import plugin_boundary
     start = plugin_boundary(plugin) + "\n"
     end = plugin_boundary(plugin, end=True) + "\n"
@@ -547,7 +554,7 @@ def get_log(log):
         response = Response(shorten(data), direct_passthrough=True)
     else:
         response = make_response(data)
-    response.headers['Content-type'] = 'text/plain'
+    response.headers['Content-type'] = 'text/plain; charset=utf-8'
     return response
 
 
@@ -607,9 +614,9 @@ def status_image_path(status):
     """
     Return the blob image address for a single status
 
-    For example, the result for TestsPassed should be images/green-blob.png
+    For example, the result for 'TestsPassed' should be images/green-blob.png
     """
-    return 'images/%s-blob.png' % status_colors[status]
+    return 'images/{}-blob.png'.format(status_colors[status])
 
 
 def create_status_image(status, base=None):
@@ -671,7 +678,7 @@ def min_status(status_list):
     """
     Return the minimal status among a list of status.
 
-    The order is deduced from a total order encoded in status_order.
+    The order is deduced from a total order encoded in ``status_order``.
     """
     index = min(status_order.index(status) for status in status_list)
     return status_order[index]
