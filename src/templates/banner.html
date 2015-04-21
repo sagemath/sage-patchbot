@@ -1,13 +1,16 @@
 <div style="border: 3px solid #7f7fff; background: #efefff; padding: 0.5em; float: right; width: 50%">
-The Sage patchbot relies on <a href="/machines">volunteers</a> to contribute CPU.
+The SageMath patchbot relies on <a href="/machines">volunteers</a> to contribute CPU.
 
-<p>If you would like to see your patches get tested quicker, on architectures you care about, consider contributing yourself by running
+<p>If you would like to see your patches get tested quicker, on architectures you care about, consider contributing yourself. Install with<br/>
 
-<pre style="padding-left: 2em">
-sage -i http://sage.math.washington.edu/home/robertwb/patches/patchbot-2.3.3.spkg
-(or sage -i http://chapoton.perso.math.cnrs.fr/patchbot-2.3.3.spkg)
+<pre>
+sage -i http://sage.math.washington.edu/home/robertwb/patches/patchbot-2.3.4.spkg
+or sage -i http://chapoton.perso.math.cnrs.fr/patchbot-2.3.4.spkg
+</pre>
+and run with
+<pre>
 sage -patchbot
 </pre>
 
-in an unused Sage install. The patchbot supports various configurations, e.g. to give preference to components you care about or to run only at night. See the <a href="http://wiki.sagemath.org/buildbot">wiki</a> for more details. Use <span style="font-weight:bold">sage -patchbot --help</span> to see the available options.
+in an unused SageMath install. The patchbot supports various configurations, e.g. to give preference to components you care about or to run only at night. See the <a href="http://wiki.sagemath.org/buildbot">wiki</a> for more details.
 </div>
