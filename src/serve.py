@@ -144,7 +144,9 @@ def ticket_list():
     if 'raw' in request.args:
         def filter_reports(all):
             for ticket in all:
-                ticket['reports'] = list(reversed(sorted(current_reports(ticket), key=lambda report: parse_datetime(report['time']))))[:10]
+                current = sorted(current_reports(ticket),
+                                 key=lambda report: parse_datetime(report['time']))
+                ticket['reports'] = list(reversed(current))[:10]
                 for report in ticket['reports']:
                     report['plugins'] = '...'
                 yield ticket
@@ -719,6 +721,15 @@ def favicon():
 
 
 def get_ticket_status(ticket, base=None, machine=None):
+    """
+    Return the status of the ticket in the database.
+
+    If ``machine`` is given, only look at this machine's reports
+
+    The ``base`` keyword is not used !
+
+    Note that Spkg, NoPatch and New are not got from any report.
+    """
     all = current_reports(ticket, base=base)
     if machine is not None:
         all = [r for r in all if r['machine'] == machine]

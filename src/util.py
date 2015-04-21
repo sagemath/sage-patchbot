@@ -34,6 +34,8 @@ def prune_pending(ticket, machine=None, timeout=None):
     """
     Remove pending reports from ``ticket.reports`` if ``machine`` is matched
     and ``report.time`` is longer than ``timeout`` old.
+
+    ``timeout`` is currently set to 6 hours by default
     """
     if timeout is None:
         timeout = 6 * 60 * 60

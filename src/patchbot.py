@@ -349,6 +349,14 @@ class Patchbot:
     def lookup_ticket(self, id, verbose=False):
         """
         Retrieve information about one ticket from the server.
+
+        For an example of the page it calls:
+
+        http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}
+
+        For humans:
+
+        http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
         """
         path = "ticket/?" + urllib.urlencode({'raw': True,
                                               'query': json.dumps({'id': id})})
@@ -708,6 +716,7 @@ class Patchbot:
                         except Exception:
                             traceback.print_exc()
                         t.finish(spkg)
+                    self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
 
                 if not ticket['spkgs']:
                     state = 'started'
