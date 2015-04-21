@@ -271,12 +271,19 @@ class Patchbot:
     """
     Main class of the patchbot.
 
-    This can be used in an interactive python session:
+    This can be used in an interactive python or ipython session:
 
     >>> from patchbot import Patchbot
     >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
+    >>> import os
     >>> os.chdir(P.sage_root)
     >>> P.test_a_ticket(12345)
+
+    How to more or less ban an author: have
+
+    {"bonus":{"proust":-1000}}
+
+    written inside the config.json file passed using --config=config.json
     """
     def __init__(self, sage_root, server, config_path, dry_run,
                  plugin_only, options):
