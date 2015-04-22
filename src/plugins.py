@@ -236,7 +236,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     Count modules imported at startup.
     """
     # Sometimes the first run does something different...
-    do_or_die("time $SAGE_ROOT/sage -c ''")
+    do_or_die("$SAGE_ROOT/sage -c ''")
     # Print out all the modules imported at startup.
     modules = subprocess.check_output([sage_binary, "-c", r"print '\n'.join(sorted(sys.modules.keys()))"]).split('\n')
 
