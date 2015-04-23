@@ -227,6 +227,19 @@ def machine_data():
 
 
 def parse_time_of_day(s):
+    """
+    Parse the 'time_of_day' config.
+
+    Examples of syntax: default is "0-0" from midnight to midnight
+
+    "06-18" start and end hours
+
+    "22-07" idem during the night
+
+    "10-12,14-18" several time ranges
+
+    "17" for just one hour starting at given time
+    """
     def parse_interval(ss):
         ss = ss.strip()
         if '-' in ss:
@@ -238,6 +251,9 @@ def parse_time_of_day(s):
 
 
 def check_time_of_day(hours):
+    """
+    Check that the time is inside the allowed running hours
+    """
     from datetime import datetime
     now = datetime.now()
     hour = now.hour + now.minute / 60.
