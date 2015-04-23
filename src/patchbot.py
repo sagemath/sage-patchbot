@@ -666,9 +666,10 @@ class Patchbot:
             if verbose:
                 print('testing found ticket #{}'.format(ticket['id']))
         else:
-            ticket = None, scrape(int(ticket))
+            N = int(ticket)
+            ticket = None, scrape(N)
             if verbose:
-                print('testing given ticket #{}'.format(int(ticket)))
+                print('testing given ticket #{}'.format(N))
         if not ticket:
             print("No more tickets, take a nap.")
             time.sleep(self.config['idle'])
