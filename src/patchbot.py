@@ -362,9 +362,22 @@ class Patchbot:
         """
         try:
             return self._default_trusted
-        except:
+        except AttributeError:
+            counter = 10
             print("Getting trusted author list...")
-            trusted = self.load_json_from_server("trusted").keys()
+            while counter:
+                try:
+                    trusted = self.load_json_from_server("trusted").keys()
+                except urllib2.HTTPError as err:
+                    print(err)
+                    print('try again {} times'.format(counter))
+                    counter -= 1
+                    time.sleep(10)
+                else:
+                    break
+            else:
+                raise ValueError("Problem while getting the list of trusted authors")
+
             trusted += ['git', 'vbraun_spam']
             self._default_trusted = trusted
             return self._default_trusted
@@ -520,7 +533,21 @@ class Patchbot:
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status={}".format(status)
         print("Getting ticket list...")
-        all = self.load_json_from_server("ticket/?" + query)
+
+        counter = 10
+        print("Getting ticket list...")
+        while counter:
+            try:
+                all = self.load_json_from_server("ticket/?" + query)
+            except urllib2.HTTPError as err:
+                print(err)
+                print("will retry {} times".format(counter))
+                counter -= 1
+                time.sleep(10)
+            else:
+                break
+        else:
+            raise RuntimeError("Problem while getting the list of trusted authors")
 
         # keep only tickets with trusted authors
         if trusted_authors:
