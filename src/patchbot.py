@@ -18,6 +18,7 @@
 #                  http://www.gnu.org/licenses/
 ####################################################################
 
+import codecs
 import hashlib
 import signal
 import getpass
@@ -49,6 +50,11 @@ from util import (now_str as datetime, prune_pending, do_or_die,
 import version as patchbot_version
 from plugins import PluginResult
 
+# name of the log files
+LOG_RATING         = 'rating.log'
+LOG_RATING_SHORT   = 'rating_summary.txt'
+LOG_MAIN           = ('patchbot.log', sys.stdout)
+LOG_MAIN_SHORT     = 'history.txt'
 
 def filter_on_authors(tickets, authors):
     """
@@ -316,6 +322,58 @@ class Patchbot:
         else:
             self.options = options
 
+    def write_log(self, msg, logfile=None, date=True):
+        r"""
+        Write ``msg`` in a logfile.
+
+        INPUT:
+
+        - ``logfile`` -- (optional)
+
+           * if not provided, write on stdout
+
+           * if it is a string then append ``msg`` to the file ``logfile``
+
+           * if it is a tuple or a list, then call write_log for each member of
+             that list
+
+        - ``date`` -- (default ``True``) whether to write the date at the begining of
+          the line
+        """
+        if logfile is None:
+            logfile = sys.stdout
+            close = False
+        elif isinstance(logfile, str):
+            filename = os.path.join(self.log_dir, logfile)
+            logfile = codecs.open(filename, 'a', encoding='utf-8')
+            close = True
+        elif isinstance(logfile, (tuple,list)):
+            for f in logfile:
+                self.write_log(msg, f, date)
+            return
+        elif isinstance(logfile, file):
+            close = False
+        else:
+            raise ValueError("logfile = {} must be either None, or a string or a list or a file")
+
+        if date:
+            logfile.write("[{}] ".format(datetime()))
+        logfile.write(msg)
+        logfile.write("\n")
+
+        if close:
+            logfile.close()
+        else:
+            logfile.flush()
+
+    def delete_log(self, logfile):
+        r"""
+        Delete ``logfile``
+        """
+        filename = os.path.join(self.log_dir, logfile)
+        if os.path.isfile(filename):
+            os.remove(filename)
+
     def version(self):
         """
         Return the version of the patchbot.
@@ -357,12 +415,12 @@ class Patchbot:
             return self._default_trusted
         except AttributeError:
             counter = 10
-            print("Getting trusted author list...")
+            self.write_log("Getting trusted author list...", LOG_MAIN)
             while counter:
                 try:
                     trusted = self.load_json_from_server("trusted").keys()
                 except urllib2.HTTPError as err:
-                    print(err)
+                    self.write_log(err, [LOG_MAIN, LOG_MAIN_SHORT])
                     print('try again {} times'.format(counter))
                     counter -= 1
                     time.sleep(10)
@@ -479,6 +537,7 @@ class Patchbot:
 
         Usually 'base_branch' is set to 'develop'.
         """
+        self.write_log("Check base.", LOG_MAIN)
         cwd = os.getcwd()
         os.chdir(self.sage_root)
         try:
@@ -516,22 +575,30 @@ class Patchbot:
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
         return "%s + %s commits" % (version, commit_count.strip())
 
-    def get_ticket(self, return_all=False, status='open'):
+    def get_ticket(self, return_all=False, status='open', verbose=0):
         """
         Return one ticket or the list of all tickets.
 
         Every ticket is returned as a pair (rating, ticket data)
+
+        INPUT:
+
+        - ``return_all`` - if set to ``True``, then return the list of all tickets.
+
+        - ``verbose`` - if set to 0 then nothing is print on stdout, if 1 then
+          only the summary is print on stdout and if 2 then also the details of
+          the rating
         """
         print("skipped: {}".format(self.to_skip))
         query = "raw&status={}".format(status)
 
         counter = 10
-        print("Getting ticket list...")
+        self.write_log("Getting ticket list...", LOG_MAIN)
         while counter:
             try:
                 all = self.load_json_from_server("ticket/?" + query)
             except urllib2.HTTPError as err:
-                print(err)
+                self.write_log(str(err), [LOG_MAIN, LOG_MAIN_SHORT])
                 print("will retry {} times".format(counter))
                 counter -= 1
                 time.sleep(10)
@@ -541,20 +608,25 @@ class Patchbot:
             raise RuntimeError("Problem while getting the list of tickets")
 
         # remove all tickets with None rating
-        all = filter(lambda x: x[0] is not None, ((self.rate_ticket(t), t) for t in all))
+        self.delete_log(LOG_RATING)
+        all = filter(lambda x: x[0] is not None, ((self.rate_ticket(t, verbose=(verbose==2)), t) for t in all))
 
         # sort tickets using their ratings
         all.sort()
+
+        self.delete_log(LOG_RATING_SHORT)
+        if verbose >= 1:
+            logfile = [LOG_RATING_SHORT, sys.stdout]
+        else:
+            logfile = [LOG_RATING_SHORT]
+        for rating,ticket in reversed(all):
+            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], rating[:2], ticket['title']),
+                           logfile, date=False)
+
         if return_all:
             return reversed(all)
         if all:
             return all[-1]
-
-    def get_ticket_list(self):
-        """
-        Return the list of all testable tickets.
-        """
-        return self.get_ticket(return_all=True)
 
     def rate_ticket(self, ticket, verbose=False):
         """
@@ -562,64 +634,71 @@ class Patchbot:
 
         Return nothing when the ticket should not be tested.
         """
+        if verbose:
+            logfile = [LOG_RATING, sys.stdout]
+        else:
+            logfile = [LOG_RATING]
+
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
 
         rating = 0
-
         if ticket['id'] == 0:
-            if verbose:
-                print('this is testing the base branch')
             return ((100), 100, 0)
 
         if not ticket.get('git_branch'):
-            if verbose:
-                print('do not test if there is no git branch')
+            self.write_log('#{}: no git branch'.format(ticket['id']), logfile)
             return
 
         if not(ticket['status'] in ('needs_review', 'positive_review',
                                     'needs_info', 'needs_work')):
-            if verbose:
-                print('only test needs_* or positive_review tickets')
+            self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']),
+                logfile)
             return
+
+        self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
 
         if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                    'sage-feature', 'sage-pending',
                                    'sage-wishlist'):
-            if verbose:
-                print('do not test if the milestone is not good')
+            self.write_log('  do not test if the milestone is not good (got {})'.format(ticket['milestone']),
+                    logfile, False)
             return
 
         bonus = self.config['bonus']  # load the dict of bonus
 
         for author in ticket['authors']:
             if author not in self.config['trusted_authors']:
-                if verbose:
-                    print('do not test if some author is not trusted')
+                self.write_log('  do not test if some author is not trusted (got {})'.format(author),
+                               logfile, False)
                 return
             rating += 2 * bonus.get(author, 0)  # bonus for authors
-        if verbose:
-            print('rating {} after authors').format(rating)
+
+        self.write_log('  rating {} after authors'.format(rating),
+                       logfile, False)
 
         for participant in ticket['participants']:
             if participant not in self.config['trusted_authors']:
-                if verbose:
-                    print('do not test if some participant is not trusted')
+                self.write_log('  do not test if some participant is not trusted (got {})'.format(participant),
+                               logfile, False)
                 return
             rating += bonus.get(participant, 0)  # bonus for participants
-        if verbose:
-            print('rating {} after participants').format(rating)
+        self.write_log('  rating {} after participants'.format(rating),
+                       logfile, False)
 
         if 'component' in ticket:
             rating += bonus.get(ticket['component'], 0)  # bonus for components
-        if verbose:
-            print('rating {} after components').format(rating)
+
+        self.write_log('  rating {} after components'.format(rating),
+                       logfile, False)
 
         rating += bonus.get(ticket['status'], 0)
         rating += bonus.get(ticket['priority'], 0)
         rating += bonus.get(str(ticket['id']), 0)
-        if verbose:
-            print('rating {} after status/priority/id').format(rating)
+
+        self.write_log('  rating {} after status ({})/priority ({})/id ({})'.format(
+                    rating, ticket['status'], ticket['priority'], ticket['id']),
+                       logfile, False)
 
         prune_pending(ticket)
 
@@ -629,8 +708,7 @@ class Patchbot:
         uniqueness = (100,)
         # now let us look at previous reports
         if not retry:
-            if verbose:
-                print('start report scanning')
+            self.write_log('  start report scanning', logfile, False)
             for report in self.current_reports(ticket, newer=True):
                 if report.get('git_base'):
                     try:
@@ -639,37 +717,37 @@ class Patchbot:
                         # report['git_base'] not in our repo
                         only_in_base = -1
                     rating += bonus['behind'] * only_in_base
-                if verbose:
-                    print('rating {} after behind').format(rating)
+                self.write_log('  rating {} after behind'.format(rating),
+                               logfile, False)
 
                 report_uniqueness = compare_machines(report['machine'],
                                                      self.config['machine'],
                                                      self.config['machine_match'])
+                report_uniqueness = tuple(int(x) for x in report_uniqueness)
                 if only_in_base and not any(report_uniqueness):
                     report_uniqueness = (0, 0, 0, 0, 1)
                 uniqueness = min(uniqueness, report_uniqueness)
 
                 if report['status'] != 'ApplyFailed':
                     rating += bonus.get("applies", 0)
-                if verbose:
-                    print('rating {} after applies').format(rating)
+                self.write_log('  rating {} after applies'.format(rating),
+                               logfile, False)
                 rating -= bonus.get("unique", 0)
-                if verbose:
-                    print('rating {} after uniqueness').format(rating)
-        if verbose:
-            print('rating {} after report scanning').format(rating)
+                self.write_log('  rating {} after uniqueness'.format(rating),
+                               logfile, False)
+        self.write_log('  rating {} after report scanning'.format(rating),
+                       logfile, False)
 
         if not any(uniqueness):
-            if verbose:
-                print('do not test if already done')
+            self.write_log('  already done', logfile, False)
             return
 
         if ticket['id'] in self.to_skip:
             if self.to_skip[ticket['id']] < time.time():
                 del self.to_skip[ticket['id']]
             else:
-                if verbose:
-                    print('do not test if still in the skip delay')
+                self.write_log('  do not test if still in the skip delay',
+                               log_file, False)
                 return
 
         return uniqueness, rating, -int(ticket['id'])
@@ -682,43 +760,45 @@ class Patchbot:
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
 
-    def test_a_ticket(self, ticket=None, verbose=False):
+    def test_a_ticket(self, ticket=None):
         """
         Launch the test of a ticket.
 
-        Either the ticket is given by its number, or it is picked
-        using :meth:`get_ticket`.
+        INPUT:
+
+        - ``ticket``
+
+          * if ``None`` then pick a ticket using :meth:`get_ticket`
+
+          * if an integer, use this ticket number
         """
         self.reload_config()
 
         if ticket is None:
-            ticket = self.get_ticket()
-            if verbose:
-                print('testing found ticket #{}'.format(ticket['id']))
+            rating, ticket = self.get_ticket()
+            self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
         else:
             N = int(ticket)
-            ticket = None, scrape(N)
-            if verbose:
-                print('testing given ticket #{}'.format(N))
+            ticket = scrape(N)
+            rating = None
+            self.write_log('testing given ticket #{}'.format(N), LOG_MAIN)
         if not ticket:
-            print("No more tickets, take a nap.")
+            self.write_log('no more tickets, take a nap',
+                           [LOG_MAIN, LOG_MAIN_SHORT])
             time.sleep(self.config['idle'])
             return
 
-        rating, ticket = ticket
-
         if ticket['id'] == 0:
-            if verbose:
-                print('testing the base')
+            self.write_log('testing the base', LOG_MAIN)
             rating = 100
 
         if rating is None:
-            msg = "warning: rating is None, testing #{} at your own risk"
-            print(msg.format(ticket['id']))
+            self.write_log("warning: rating is None, testing #{} at your own risk".format(ticket['id']),
+                    LOG_MAIN)
 
         if not(ticket.get('git_branch') or ticket['id'] == 0):
-            msg = "no git branch for #{}, hence no testing"
-            print(msg.format(ticket['id']))
+            self.write_log("no git branch for #{}, hence no testing".format(ticket['id']),
+                    LOG_MAIN)
             return
 
         print("\n" * 2)
@@ -727,9 +807,7 @@ class Patchbot:
         print("score", rating)
         print("\n" * 2)
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
-        history = open("%s/history.txt" % self.log_dir, "a")
-        history.write("%s %s\n" % (datetime(), ticket['id']))
-        history.close()
+        self.write_log('#{}: starting tests'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
@@ -850,6 +928,7 @@ class Patchbot:
         except (urllib2.HTTPError, socket.error, ConfigException):
             # Don't report failure because the network/trac died...
             print
+            self.write_log('network failure... skip this ticket', LOG_MAIN)
             t.print_all()
             traceback.print_exc()
             # Don't try this again for at least an hour.
@@ -858,7 +937,9 @@ class Patchbot:
         except SkipTicket, exn:
             self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
             state = 'skipped'
-            print "Skipping", ticket['id'], "for", exn.seconds_till_retry, "seconds", exn
+            self.write_log("Skipping #{} for {} seconds {}".format(
+                                  ticket['id'], exn.seconds_till_retry, exn),
+                           LOG_MAIN)
         except Exception:
             traceback.print_exc()
         except:
@@ -868,17 +949,18 @@ class Patchbot:
 
         for _ in range(5):
             try:
-                print "Reporting", ticket['id'], status[state]
+                self.write_log("Reporting #{} with status {}".format(ticket['id'], status[state]),
+                        LOG_MAIN)
                 self.report_ticket(ticket, status=status[state], log=log,
                                    plugins=plugins_results,
                                    dry_run=self.dry_run)
-                print "Done reporting", ticket['id']
+                self.write_log("Done reporting #{}".format(ticket['id']), LOG_MAIN)
                 break
             except IOError:
                 traceback.print_exc()
                 time.sleep(self.config['idle'])
         else:
-            print "Error reporting", ticket['id']
+            self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ['SAGE_ROOT']
         if maybe_temp_root.endswith("-sage-git-temp-%s" % ticket['id']):
             shutil.rmtree(maybe_temp_root)
@@ -1021,12 +1103,9 @@ class Patchbot:
             traceback.print_exc()
 
         if status != 'Pending':
-            history = open("%s/history.txt" % self.log_dir, "a")
-            history.write("%s %s %s%s\n" % (datetime(),
-                                            ticket['id'],
-                                            status,
-                                            " dry_run" if dry_run else ""))
-            history.close()
+            self.write_log("#{}: {}{}".format(
+                            ticket['id'], status, " dry_run" if dry_run else ""),
+                           [LOG_MAIN, LOG_MAIN_SHORT])
 
         print "REPORT"
         import pprint
@@ -1062,10 +1141,10 @@ def main(args):
     parser.add_option("--count", dest="count", default=1000000)
     parser.add_option("--ticket", dest="ticket", default=None,
                       help="test only a list of tickets, for example '12345,19876'")
-    parser.add_option("--list", dest="list", default=False,
-                      help="given a number N, list the next N tickets that will be tested")
-    parser.add_option("--full", action="store_true", dest="full",
-                      default=False)
+    parser.add_option("--list", dest="list", action="store_true", default=False,
+                      help="only write informations about tickets "
+                           "that would be tested in the form: "
+                           "[ticket id] [rating] [ticket title]")
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
                       default=False,
                       help="whether to check that the base is errorless")
@@ -1098,22 +1177,19 @@ def main(args):
                         plugin_only=options.plugin_only, options=options)
     conf = patchbot.get_config()
 
+    import pprint
+    patchbot.write_log('launching patchbot with config\n{}'.format(
+                       pprint.pformat(conf)), LOG_MAIN)
+
     if options.list:
         # the option "--list" allows to see tickets that will be tested
-        count = sys.maxint if options.list is "True" else int(options.list)
-        print "Getting ticket list..."
-        for ix, (score, ticket) in enumerate(patchbot.get_ticket_list()):
-            if ix >= count:
-                break
-            print score, '\t', ticket['id'], '\t', ticket['title']
-            if options.full:
-                print ticket
-                print
+        patchbot.get_ticket(verbose=1)
         sys.exit(0)
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
     ensure_free_space(options.sage_root)
+
 
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" % options.sage_root, exn_class=ConfigException)
@@ -1146,11 +1222,12 @@ def main(args):
                     elif ans[0] == 'y':
                         break
 
-    for k in range(count):
+    for k in xrange(count):
         if options.cleanup:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):
-                print "Cleaning up ", path
+                self.write_log("Cleaning up {}".format(path),
+                               [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
         try:
             if tickets:
@@ -1163,7 +1240,7 @@ def main(args):
                     patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
             else:
-                print "Idle."
+                self.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
                 time.sleep(conf['idle'])
         except Exception:
             traceback.print_exc()
