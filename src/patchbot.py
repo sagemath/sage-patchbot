@@ -71,21 +71,6 @@ def filter_on_authors(tickets, authors):
             yield ticket
 
 
-def no_unicode(s):
-    """
-    Replace unicode non-ascii characters by question marks.
-
-    INPUT:
-
-    a string
-
-    OUTPUT:
-
-    a string
-    """
-    return s.encode('ascii', 'replace').replace(u'\ufffd', '?')
-
-
 def compare_machines(a, b, machine_match=None):
     """
     Compare two machines a and b.
