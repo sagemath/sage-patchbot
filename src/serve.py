@@ -88,6 +88,11 @@ def trusted_authors():
 
 
 def get_query(args):
+    """
+    Prepare the precise query for the database.
+
+    The result is a dict.
+    """
     if 'query' in args:
         query = json.loads(args.get('query'))
     else:
@@ -96,10 +101,11 @@ def get_query(args):
             query = {}
         elif status in ('new', 'closed'):
             query = {'status': {'$regex': status + '.*'}}
-        elif status in ('open'):
+        elif status in ('open',):
             query = {'status': {'$regex': 'needs_.*|positive_review'}}
         else:
             query = {'status': status}
+
         if 'todo' in args:
             query['patches'] = {'$not': {'$size': 0}}
             query['spkgs'] = {'$size': 0}
@@ -109,6 +115,7 @@ def get_query(args):
             query['reports.machine'] = args['machine'].split(':')
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
+
     if 'author' in args:
         query['authors'] = args.get('author')
     if 'participant' in args:
@@ -133,6 +140,7 @@ def ticket_list():
     else:
         order = 'last_activity'
     limit = int(request.args.get('limit', 10000))
+    if 
     print(query)
     if 'base' in request.args:
         base = request.args.get('base')
@@ -172,8 +180,7 @@ def ticket_list():
     ticket0 = db.lookup_ticket(0)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
-    versions = [(v, get_ticket_status(ticket0, v)) for v in versions
-                if v != '4.7.']
+    versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
     return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
 
 
