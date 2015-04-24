@@ -530,7 +530,6 @@ class Patchbot:
         Every ticket is returned as a pair (rating, ticket data)
         """
         print("skipped: {}".format(self.to_skip))
-        trusted_authors = self.config.get('trusted_authors')
         query = "raw&status={}".format(status)
 
         counter = 10
@@ -548,12 +547,8 @@ class Patchbot:
         else:
             raise RuntimeError("Problem while getting the list of tickets")
 
-        # keep only tickets with trusted authors
-        if trusted_authors:
-            all = filter_on_authors(all, trusted_authors)
-
         # remove all tickets with None rating
-        all = filter(lambda x: x[0], ((self.rate_ticket(t), t) for t in all))
+        all = filter(lambda x: x[0] is not None, ((self.rate_ticket(t), t) for t in all))
 
         # sort tickets using their ratings
         all.sort()
