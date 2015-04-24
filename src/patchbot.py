@@ -532,7 +532,6 @@ class Patchbot:
         print("skipped: {}".format(self.to_skip))
         trusted_authors = self.config.get('trusted_authors')
         query = "raw&status={}".format(status)
-        print("Getting ticket list...")
 
         counter = 10
         print("Getting ticket list...")
@@ -547,7 +546,7 @@ class Patchbot:
             else:
                 break
         else:
-            raise RuntimeError("Problem while getting the list of trusted authors")
+            raise RuntimeError("Problem while getting the list of tickets")
 
         # keep only tickets with trusted authors
         if trusted_authors:
