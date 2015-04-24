@@ -294,6 +294,14 @@ class Patchbot:
         self.dry_run = dry_run
         self.plugin_only = plugin_only
         self.config_path = config_path
+
+        self.log_dir = os.path.join(self.sage_root, 'logs', 'patchbot')
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        # Make sure this file is writable.
+        handle = open(os.path.join(self.log_dir, 'install.log'), 'a')
+        handle.close()
+
         self.reload_config()
         self.last_pull = 0
         self.to_skip = {}
@@ -718,9 +726,6 @@ class Patchbot:
         print(ticket['title'])
         print("score", rating)
         print("\n" * 2)
-        self.log_dir = self.sage_root + "/logs/patchbot"
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
         history = open("%s/history.txt" % self.log_dir, "a")
         history.write("%s %s\n" % (datetime(), ticket['id']))
@@ -1109,13 +1114,6 @@ def main(args):
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
     ensure_free_space(options.sage_root)
-
-    log_dir = options.sage_root + "/logs"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    # Make sure this file is writable.
-    handle = open(os.path.join(log_dir, 'install.log'), 'a')
-    handle.close()
 
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" % options.sage_root, exn_class=ConfigException)
