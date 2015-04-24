@@ -376,7 +376,7 @@ class Patchbot:
                 else:
                     break
             else:
-                raise ValueError("Problem while getting the list of trusted authors")
+                raise RuntimeError("Problem while getting the list of trusted authors")
 
             trusted += ['git', 'vbraun_spam']
             self._default_trusted = trusted
