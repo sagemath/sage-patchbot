@@ -634,123 +634,124 @@ class Patchbot:
 
         Return nothing when the ticket should not be tested.
         """
-        if verbose:
-            logfile = [LOG_RATING, sys.stdout]
-        else:
-            logfile = [LOG_RATING]
-
-        if isinstance(ticket, (int, str)):
-            ticket = self.lookup_ticket(ticket)
-
-        rating = 0
-        if ticket['id'] == 0:
-            return ((100), 100, 0)
-
-        if not ticket.get('git_branch'):
-            self.write_log('#{}: no git branch'.format(ticket['id']), logfile)
-            return
-
-        if not(ticket['status'] in ('needs_review', 'positive_review',
-                                    'needs_info', 'needs_work')):
-            self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']),
-                logfile)
-            return
-
-        self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
-
-        if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
-                                   'sage-feature', 'sage-pending',
-                                   'sage-wishlist'):
-            self.write_log('  do not test if the milestone is not good (got {})'.format(ticket['milestone']),
-                    logfile, False)
-            return
-
-        bonus = self.config['bonus']  # load the dict of bonus
-
-        for author in ticket['authors']:
-            if author not in self.config['trusted_authors']:
-                self.write_log('  do not test if some author is not trusted (got {})'.format(author),
-                               logfile, False)
-                return
-            rating += 2 * bonus.get(author, 0)  # bonus for authors
-
-        self.write_log('  rating {} after authors'.format(rating),
-                       logfile, False)
-
-        for participant in ticket['participants']:
-            if participant not in self.config['trusted_authors']:
-                self.write_log('  do not test if some participant is not trusted (got {})'.format(participant),
-                               logfile, False)
-                return
-            rating += bonus.get(participant, 0)  # bonus for participants
-        self.write_log('  rating {} after participants'.format(rating),
-                       logfile, False)
-
-        if 'component' in ticket:
-            rating += bonus.get(ticket['component'], 0)  # bonus for components
-
-        self.write_log('  rating {} after components'.format(rating),
-                       logfile, False)
-
-        rating += bonus.get(ticket['status'], 0)
-        rating += bonus.get(ticket['priority'], 0)
-        rating += bonus.get(str(ticket['id']), 0)
-
-        self.write_log('  rating {} after status ({})/priority ({})/id ({})'.format(
-                    rating, ticket['status'], ticket['priority'], ticket['id']),
-                       logfile, False)
-
-        prune_pending(ticket)
-
-        retry = ticket.get('retry', False)
-        # by default, do not retry the ticket
-
-        uniqueness = (100,)
-        # now let us look at previous reports
-        if not retry:
-            self.write_log('  start report scanning', logfile, False)
-            for report in self.current_reports(ticket, newer=True):
-                if report.get('git_base'):
-                    try:
-                        only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
-                    except Exception:
-                        # report['git_base'] not in our repo
-                        only_in_base = -1
-                    rating += bonus['behind'] * only_in_base
-                self.write_log('  rating {} after behind'.format(rating),
-                               logfile, False)
-
-                report_uniqueness = compare_machines(report['machine'],
-                                                     self.config['machine'],
-                                                     self.config['machine_match'])
-                report_uniqueness = tuple(int(x) for x in report_uniqueness)
-                if only_in_base and not any(report_uniqueness):
-                    report_uniqueness = (0, 0, 0, 0, 1)
-                uniqueness = min(uniqueness, report_uniqueness)
-
-                if report['status'] != 'ApplyFailed':
-                    rating += bonus.get("applies", 0)
-                self.write_log('  rating {} after applies'.format(rating),
-                               logfile, False)
-                rating -= bonus.get("unique", 0)
-                self.write_log('  rating {} after uniqueness'.format(rating),
-                               logfile, False)
-        self.write_log('  rating {} after report scanning'.format(rating),
-                       logfile, False)
-
-        if not any(uniqueness):
-            self.write_log('  already done', logfile, False)
-            return
-
-        if ticket['id'] in self.to_skip:
-            if self.to_skip[ticket['id']] < time.time():
-                del self.to_skip[ticket['id']]
+        with open(os.path.join(self.log_dir, LOG_RATING), "a") as log_rating:
+            if verbose:
+                logfile = [log_rating, sys.stdout]
             else:
-                self.write_log('  do not test if still in the skip delay',
-                               log_file, False)
+                logfile = [log_rating]
+
+            if isinstance(ticket, (int, str)):
+                ticket = self.lookup_ticket(ticket)
+
+            rating = 0
+            if ticket['id'] == 0:
+                return ((100), 100, 0)
+
+            if not ticket.get('git_branch'):
+                self.write_log('#{}: no git branch'.format(ticket['id']), logfile)
                 return
 
-        return uniqueness, rating, -int(ticket['id'])
+            if not(ticket['status'] in ('needs_review', 'positive_review',
+                                        'needs_info', 'needs_work')):
+                self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']),
+                    logfile)
+                return
+
+            self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
+
+            if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
+                                       'sage-feature', 'sage-pending',
+                                       'sage-wishlist'):
+                self.write_log('  do not test if the milestone is not good (got {})'.format(ticket['milestone']),
+                        logfile, False)
+                return
+
+            bonus = self.config['bonus']  # load the dict of bonus
+
+            for author in ticket['authors']:
+                if author not in self.config['trusted_authors']:
+                    self.write_log('  do not test if some author is not trusted (got {})'.format(author),
+                                   logfile, False)
+                    return
+                rating += 2 * bonus.get(author, 0)  # bonus for authors
+
+            self.write_log('  rating {} after authors'.format(rating),
+                           logfile, False)
+
+            for participant in ticket['participants']:
+                if participant not in self.config['trusted_authors']:
+                    self.write_log('  do not test if some participant is not trusted (got {})'.format(participant),
+                                   logfile, False)
+                    return
+                rating += bonus.get(participant, 0)  # bonus for participants
+            self.write_log('  rating {} after participants'.format(rating),
+                           logfile, False)
+
+            if 'component' in ticket:
+                rating += bonus.get(ticket['component'], 0)  # bonus for components
+
+            self.write_log('  rating {} after components'.format(rating),
+                           logfile, False)
+
+            rating += bonus.get(ticket['status'], 0)
+            rating += bonus.get(ticket['priority'], 0)
+            rating += bonus.get(str(ticket['id']), 0)
+
+            self.write_log('  rating {} after status ({})/priority ({})/id ({})'.format(
+                        rating, ticket['status'], ticket['priority'], ticket['id']),
+                           logfile, False)
+
+            prune_pending(ticket)
+
+            retry = ticket.get('retry', False)
+            # by default, do not retry the ticket
+
+            uniqueness = (100,)
+            # now let us look at previous reports
+            if not retry:
+                self.write_log('  start report scanning', logfile, False)
+                for report in self.current_reports(ticket, newer=True):
+                    if report.get('git_base'):
+                        try:
+                            only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
+                        except Exception:
+                            # report['git_base'] not in our repo
+                            only_in_base = -1
+                        rating += bonus['behind'] * only_in_base
+                    self.write_log('  rating {} after behind'.format(rating),
+                                   logfile, False)
+
+                    report_uniqueness = compare_machines(report['machine'],
+                                                         self.config['machine'],
+                                                         self.config['machine_match'])
+                    report_uniqueness = tuple(int(x) for x in report_uniqueness)
+                    if only_in_base and not any(report_uniqueness):
+                        report_uniqueness = (0, 0, 0, 0, 1)
+                    uniqueness = min(uniqueness, report_uniqueness)
+
+                    if report['status'] != 'ApplyFailed':
+                        rating += bonus.get("applies", 0)
+                    self.write_log('  rating {} after applies'.format(rating),
+                                   logfile, False)
+                    rating -= bonus.get("unique", 0)
+                    self.write_log('  rating {} after uniqueness'.format(rating),
+                                   logfile, False)
+            self.write_log('  rating {} after report scanning'.format(rating),
+                           logfile, False)
+
+            if not any(uniqueness):
+                self.write_log('  already done', logfile, False)
+                return
+
+            if ticket['id'] in self.to_skip:
+                if self.to_skip[ticket['id']] < time.time():
+                    del self.to_skip[ticket['id']]
+                else:
+                    self.write_log('  do not test if still in the skip delay',
+                                   log_file, False)
+                    return
+
+            return uniqueness, rating, -int(ticket['id'])
 
     def current_reports(self, ticket, newer=False):
         """
