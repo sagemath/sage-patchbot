@@ -354,7 +354,7 @@ class Patchbot:
         elif isinstance(logfile, file):
             close = False
         else:
-            raise ValueError("logfile = {} must be either None, or a string or a list or a file")
+            raise ValueError("logfile = {} must be either None, or a string or a list or a file".format(logfile))
 
         if date:
             logfile.write("[{}] ".format(datetime()))
@@ -575,19 +575,19 @@ class Patchbot:
         commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
         return "%s + %s commits" % (version, commit_count.strip())
 
-    def get_ticket(self, return_all=False, status='open', verbose=0):
+    def get_one_ticket(self, status='open', verbose=0):
         """
-        Return one ticket or the list of all tickets.
-
-        Every ticket is returned as a pair (rating, ticket data)
+        Return one ticket with its rating.
 
         INPUT:
-
-        - ``return_all`` - if set to ``True``, then return the list of all tickets.
 
         - ``verbose`` - if set to 0 then nothing is print on stdout, if 1 then
           only the summary is print on stdout and if 2 then also the details of
           the rating
+
+        OUTPUT:
+
+        A pair (rating, ticket data). The rating is a tuple of integer values.
         """
         print("skipped: {}".format(self.to_skip))
         query = "raw&status={}".format(status)
@@ -623,10 +623,7 @@ class Patchbot:
             self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], rating[:2], ticket['title']),
                            logfile, date=False)
 
-        if return_all:
-            return reversed(all)
-        if all:
-            return all[-1]
+        return all[-1]
 
     def rate_ticket(self, ticket, verbose=False):
         """
@@ -713,9 +710,12 @@ class Patchbot:
                 for report in self.current_reports(ticket, newer=True):
                     if report.get('git_base'):
                         try:
-                            only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']]))
-                        except Exception:
+                            only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']],
+                                                                       stderr=subprocess.PIPE))
+                        except (ValueError,subprocess.CalledProcessError):
                             # report['git_base'] not in our repo
+                            self.write_log('  commit {} not in the local git repository'.format(report['git_base']),
+                                           logfile)
                             only_in_base = -1
                         rating += bonus['behind'] * only_in_base
                     self.write_log('  rating {} after behind'.format(rating),
@@ -769,14 +769,14 @@ class Patchbot:
 
         - ``ticket``
 
-          * if ``None`` then pick a ticket using :meth:`get_ticket`
+          * if ``None`` then pick a ticket using :meth:`get_one_ticket`
 
           * if an integer, use this ticket number
         """
         self.reload_config()
 
         if ticket is None:
-            rating, ticket = self.get_ticket()
+            rating, ticket = self.get_one_ticket()
             self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
         else:
             N = int(ticket)
@@ -1184,7 +1184,7 @@ def main(args):
 
     if options.list:
         # the option "--list" allows to see tickets that will be tested
-        patchbot.get_ticket(verbose=1)
+        patchbot.get_one_ticket(verbose=1)
         sys.exit(0)
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
