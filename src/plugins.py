@@ -144,10 +144,10 @@ def docbuild_pdf(ticket, **kwds):
 
     NOT YET TESTED
     """
-    do_or_die('make doc-clean')
     do_or_die('make doc-pdf')
-    docpdf_log = 'logs/docpdf.log'
+    docpdf_log = 'logs/docpdf.log'  # not sure that this is the right name
     if os.path.exists(docpdf_log):
+        # HERE NOT CLEAR WHAT TO MATCH
         r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Excepti\
 on occurred|Sphinx error|Segmentation fault', doc_log])
         if r != 1:
