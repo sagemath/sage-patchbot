@@ -134,6 +134,27 @@ def docbuild(ticket, **kwds):
             raise ValueError
 
 
+def docbuild_pdf(ticket, **kwds):
+    """
+    Build the PDF documentation.
+
+    This requires a very complete LaTeX installation.
+
+    It may report false failures if some LaTeX packages are missing.
+
+    NOT YET TESTED
+    """
+    do_or_die('make doc-clean')
+    do_or_die('make doc-pdf')
+    docpdf_log = 'logs/docpdf.log'
+    if os.path.exists(docpdf_log):
+        r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Excepti\
+on occurred|Sphinx error|Segmentation fault', doc_log])
+        if r != 1:
+            # grep returns 1 iff there were no matches
+            raise ValueError
+
+
 def exclude_new(ticket, regex, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.

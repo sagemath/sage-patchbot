@@ -480,6 +480,7 @@ class Patchbot:
                             # "plugins.trailing_whitespace",
                             "plugins.startup_time",
                             "plugins.startup_modules",
+                            # "plugins.docbuild_pdf", # not yet tested
                             # "plugins.docbuild",  # already done once in make
                             "plugins.git_rev_list"],
                 "bonus": {},
