@@ -395,15 +395,36 @@ class Patchbot:
         s += u'╘═╧══════╛'
         return s.encode('utf8')
 
-    def load_json_from_server(self, path):
+    def load_json_from_server(self, path, retry=1):
         """
         Load a json file from the server.
+
+        INPUT:
+
+        - ``path`` -- the query for the server
+
+        - ``retry`` -- the number of times we retry to get a connection
         """
-        handle = urllib2.urlopen("{}/{}".format(self.server, path))
-        try:
-            return json.load(handle)
-        finally:
-            handle.close()
+        while True:
+            retry -= 1
+            try:
+                handle = urllib2.urlopen("{}/{}".format(self.server, path), timeout=5)
+                ans = json.load(handle)
+                handle.close()
+                return ans
+            except urllib2.HTTPError as err:
+                self.write_log(str(err), [LOG_MAIN, LOG_MAIN_SHORT])
+                if retry == 0:
+                    raise
+            except socket.timeout as err:
+                self.write_log("timeout while querying the patchbot server with '{}'".format(path), [LOG_MAIN, LOG_MAIN_SHORT])
+                if retry == 0:
+                    raise
+            else:
+                break
+
+            time.sleep(30)
+
 
     def default_trusted_authors(self):
         """
@@ -414,21 +435,8 @@ class Patchbot:
         try:
             return self._default_trusted
         except AttributeError:
-            counter = 10
             self.write_log("Getting trusted author list...", LOG_MAIN)
-            while counter:
-                try:
-                    trusted = self.load_json_from_server("trusted").keys()
-                except urllib2.HTTPError as err:
-                    self.write_log(err, [LOG_MAIN, LOG_MAIN_SHORT])
-                    print('try again {} times'.format(counter))
-                    counter -= 1
-                    time.sleep(10)
-                else:
-                    break
-            else:
-                raise RuntimeError("Problem while getting the list of trusted authors")
-
+            trusted = self.load_json_from_server("trusted", retry=10).keys()
             trusted += ['git', 'vbraun_spam']
             self._default_trusted = trusted
             return self._default_trusted
@@ -593,20 +601,8 @@ class Patchbot:
         print("skipped: {}".format(self.to_skip))
         query = "raw&status={}".format(status)
 
-        counter = 10
         self.write_log("Getting ticket list...", LOG_MAIN)
-        while counter:
-            try:
-                all = self.load_json_from_server("ticket/?" + query)
-            except urllib2.HTTPError as err:
-                self.write_log(str(err), [LOG_MAIN, LOG_MAIN_SHORT])
-                print("will retry {} times".format(counter))
-                counter -= 1
-                time.sleep(10)
-            else:
-                break
-        else:
-            raise RuntimeError("Problem while getting the list of tickets")
+        all = self.load_json_from_server("ticket/?" + query, retry=10)
 
         # remove all tickets with None rating
         self.delete_log(LOG_RATING)
