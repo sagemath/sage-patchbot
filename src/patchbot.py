@@ -55,6 +55,7 @@ LOG_RATING         = 'rating.log'
 LOG_RATING_SHORT   = 'rating_summary.txt'
 LOG_MAIN           = ('patchbot.log', sys.stdout)
 LOG_MAIN_SHORT     = 'history.txt'
+LOG_CONFIG         = 'config.txt'
 
 def filter_on_authors(tickets, authors):
     """
@@ -294,12 +295,14 @@ class Patchbot:
     """
     def __init__(self, sage_root, server, config_path, dry_run,
                  plugin_only, options):
+
         self.sage_root = sage_root
         self.server = server
         self.base = get_version(sage_root)
         self.dry_run = dry_run
         self.plugin_only = plugin_only
         self.config_path = config_path
+
 
         self.log_dir = os.path.join(self.sage_root, 'logs', 'patchbot')
         if not os.path.exists(self.log_dir):
@@ -308,10 +311,16 @@ class Patchbot:
         handle = open(os.path.join(self.log_dir, 'install.log'), 'a')
         handle.close()
 
-        self.reload_config()
+        self._version = patchbot_version.get_version()
         self.last_pull = 0
         self.to_skip = {}
-        self._version = patchbot_version.get_version()
+
+        self.write_log('Launching patchbot {} with SAGE_ROOT={}'.format(
+                            self._version,
+                            self.sage_root),
+                       LOG_MAIN)
+
+        self.reload_config()
 
         if options is None:
             # ugly workaround to simplify interactive use of Patchbot
@@ -408,16 +417,16 @@ class Patchbot:
         while True:
             retry -= 1
             try:
-                handle = urllib2.urlopen("{}/{}".format(self.server, path), timeout=5)
+                handle = urllib2.urlopen("{}/{}".format(self.server, path), timeout=10)
                 ans = json.load(handle)
                 handle.close()
                 return ans
             except urllib2.HTTPError as err:
-                self.write_log(str(err), [LOG_MAIN, LOG_MAIN_SHORT])
+                self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
             except socket.timeout as err:
-                self.write_log("timeout while querying the patchbot server with '{}'".format(path), [LOG_MAIN, LOG_MAIN_SHORT])
+                self.write_log(" retry {}; timeout while querying the patchbot server with '{}'".format(retry, path), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
             else:
@@ -531,6 +540,11 @@ class Patchbot:
             return plugin
         conf["plugins"] = [(name, locate_plugin(name))
                            for name in conf["plugins"]]
+
+        self.delete_log(LOG_CONFIG)
+        import pprint
+        self.write_log("Configuration for the patchbot\n{}\n".format(datetime()), LOG_CONFIG, False)
+        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
         return conf
 
     def reload_config(self):
@@ -598,7 +612,6 @@ class Patchbot:
 
         A pair (rating, ticket data). The rating is a tuple of integer values.
         """
-        print("skipped: {}".format(self.to_skip))
         query = "raw&status={}".format(status)
 
         self.write_log("Getting ticket list...", LOG_MAIN)
@@ -1175,10 +1188,6 @@ def main(args):
                         plugin_only=options.plugin_only, options=options)
     conf = patchbot.get_config()
 
-    import pprint
-    patchbot.write_log('launching patchbot with config\n{}'.format(
-                       pprint.pformat(conf)), LOG_MAIN)
-
     if options.list:
         # the option "--list" allows to see tickets that will be tested
         patchbot.get_one_ticket(verbose=1)
@@ -1194,7 +1203,7 @@ def main(args):
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
-    if not options.skip_base:
+    if not conf['skip_base']:
         patchbot.check_base()
 
         def good(report):
