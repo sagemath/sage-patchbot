@@ -545,6 +545,11 @@ class Patchbot:
         import pprint
         self.write_log("Configuration for the patchbot\n{}\n".format(datetime()), LOG_CONFIG, False)
         self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
+
+        if self.to_skip:
+            s = ', '.join('#{} (until {})'.format(k,v) for k,v in self.to_skip.iteritems())
+            self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
+
         return conf
 
     def reload_config(self):
@@ -642,6 +647,7 @@ class Patchbot:
         Return nothing when the ticket should not be tested.
         """
         with open(os.path.join(self.log_dir, LOG_RATING), "a") as log_rating:
+
             if verbose:
                 logfile = [log_rating, sys.stdout]
             else:
