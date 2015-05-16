@@ -446,8 +446,8 @@ class Patchbot:
         except AttributeError:
             self.write_log("Getting trusted author list...", LOG_MAIN)
             trusted = self.load_json_from_server("trusted", retry=10).keys()
-            trusted += ['git', 'vbraun_spam']
-            self._default_trusted = trusted
+            trusted += [u'git', u'vbraun_spam']
+            self._default_trusted = set(trusted)
             return self._default_trusted
 
     def lookup_ticket(self, id, verbose=False):
@@ -530,6 +530,8 @@ class Patchbot:
 
         if "trusted_authors" not in conf:
             conf["trusted_authors"] = self.default_trusted_authors()
+        if "extra_trusted_authors" in conf:
+            conf["trusted_authors"].update(conf["extra_trusted_authors"])
 
         def locate_plugin(name):
             ix = name.rindex('.')
@@ -731,7 +733,7 @@ class Patchbot:
                         except (ValueError,subprocess.CalledProcessError):
                             # report['git_base'] not in our repo
                             self.write_log('  commit {} not in the local git repository'.format(report['git_base']),
-                                           logfile)
+                                           logfile, date=False)
                             only_in_base = -1
                         rating += bonus['behind'] * only_in_base
                     self.write_log('  rating {} after behind'.format(rating),
