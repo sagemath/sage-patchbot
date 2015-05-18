@@ -766,7 +766,7 @@ class Patchbot:
                     del self.to_skip[ticket['id']]
                 else:
                     self.write_log('  do not test if still in the skip delay',
-                                   log_file, False)
+                                   logfile, False)
                     return
 
             return uniqueness, rating, -int(ticket['id'])
