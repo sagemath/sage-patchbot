@@ -149,7 +149,7 @@ def docbuild_pdf(ticket, **kwds):
     if os.path.exists(docpdf_log):
         # HERE NOT CLEAR WHAT TO MATCH
         r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Excepti\
-on occurred|Sphinx error|Segmentation fault', doc_log])
+on occurred|Sphinx error|Segmentation fault', docpdf_log])
         if r != 1:
             # grep returns 1 iff there were no matches
             raise ValueError

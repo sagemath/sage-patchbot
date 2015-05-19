@@ -51,11 +51,12 @@ import version as patchbot_version
 from plugins import PluginResult
 
 # name of the log files
-LOG_RATING         = 'rating.log'
-LOG_RATING_SHORT   = 'rating_summary.txt'
-LOG_MAIN           = ('patchbot.log', sys.stdout)
-LOG_MAIN_SHORT     = 'history.txt'
-LOG_CONFIG         = 'config.txt'
+LOG_RATING = 'rating.log'
+LOG_RATING_SHORT = 'rating_summary.txt'
+LOG_MAIN = ('patchbot.log', sys.stdout)
+LOG_MAIN_SHORT = 'history.txt'
+LOG_CONFIG = 'config.txt'
+
 
 def filter_on_authors(tickets, authors):
     """
@@ -105,7 +106,7 @@ class TimeOut(Exception):
 
 def alarm_handler(signum, frame):
     """
-    ? Alarm is not defined ?
+    ? Alarm is not defined ? what is this ?
     """
     raise Alarm
 
@@ -303,7 +304,6 @@ class Patchbot:
         self.plugin_only = plugin_only
         self.config_path = config_path
 
-
         self.log_dir = os.path.join(self.sage_root, 'logs', 'patchbot')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -316,9 +316,8 @@ class Patchbot:
         self.to_skip = {}
 
         self.write_log('Launching patchbot {} with SAGE_ROOT={}'.format(
-                            self._version,
-                            self.sage_root),
-                       LOG_MAIN)
+            self._version,
+            self.sage_root), LOG_MAIN)
 
         self.reload_config()
 
@@ -356,7 +355,7 @@ class Patchbot:
             filename = os.path.join(self.log_dir, logfile)
             logfile = codecs.open(filename, 'a', encoding='utf-8')
             close = True
-        elif isinstance(logfile, (tuple,list)):
+        elif isinstance(logfile, (tuple, list)):
             for f in logfile:
                 self.write_log(msg, f, date)
             return
@@ -434,12 +433,11 @@ class Patchbot:
 
             time.sleep(30)
 
-
     def default_trusted_authors(self):
         """
         Define the default trusted authors.
 
-        They are computed in serve.py
+        They are computed by ``trusted_authors`` in serve.py
         """
         try:
             return self._default_trusted
@@ -549,7 +547,8 @@ class Patchbot:
         self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
 
         if self.to_skip:
-            s = ', '.join('#{} (until {})'.format(k,v) for k,v in self.to_skip.iteritems())
+            s = ', '.join('#{} (until {})'.format(k, v)
+                          for k, v in self.to_skip.iteritems())
             self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
 
         return conf
@@ -626,7 +625,9 @@ class Patchbot:
 
         # remove all tickets with None rating
         self.delete_log(LOG_RATING)
-        all = filter(lambda x: x[0] is not None, ((self.rate_ticket(t, verbose=(verbose==2)), t) for t in all))
+        all = filter(lambda x: x[0] is not None,
+                     ((self.rate_ticket(t, verbose=(verbose == 2)), t)
+                      for t in all))
 
         # sort tickets using their ratings
         all.sort()
@@ -636,7 +637,7 @@ class Patchbot:
             logfile = [LOG_RATING_SHORT, sys.stdout]
         else:
             logfile = [LOG_RATING_SHORT]
-        for rating,ticket in reversed(all):
+        for rating, ticket in reversed(all):
             self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], rating[:2], ticket['title']),
                            logfile, date=False)
 
@@ -668,8 +669,7 @@ class Patchbot:
 
             if not(ticket['status'] in ('needs_review', 'positive_review',
                                         'needs_info', 'needs_work')):
-                self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']),
-                    logfile)
+                self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']), logfile)
                 return
 
             self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
@@ -678,7 +678,7 @@ class Patchbot:
                                        'sage-feature', 'sage-pending',
                                        'sage-wishlist'):
                 self.write_log('  do not test if the milestone is not good (got {})'.format(ticket['milestone']),
-                        logfile, False)
+                               logfile, False)
                 return
 
             bonus = self.config['bonus']  # load the dict of bonus
@@ -712,8 +712,9 @@ class Patchbot:
             rating += bonus.get(ticket['priority'], 0)
             rating += bonus.get(str(ticket['id']), 0)
 
-            self.write_log('  rating {} after status ({})/priority ({})/id ({})'.format(
-                        rating, ticket['status'], ticket['priority'], ticket['id']),
+            msg = '  rating {} after status ({})/priority ({})/id ({})'
+            self.write_log(msg.format(rating, ticket['status'],
+                                      ticket['priority'], ticket['id']),
                            logfile, False)
 
             prune_pending(ticket)
@@ -730,7 +731,7 @@ class Patchbot:
                         try:
                             only_in_base = int(subprocess.check_output(["git", "rev-list", "--count", "%s..patchbot/base" % report['git_base']],
                                                                        stderr=subprocess.PIPE))
-                        except (ValueError,subprocess.CalledProcessError):
+                        except (ValueError, subprocess.CalledProcessError):
                             # report['git_base'] not in our repo
                             self.write_log('  commit {} not in the local git repository'.format(report['git_base']),
                                            logfile, date=False)
@@ -813,11 +814,11 @@ class Patchbot:
 
         if rating is None:
             self.write_log("warning: rating is None, testing #{} at your own risk".format(ticket['id']),
-                    LOG_MAIN)
+                           LOG_MAIN)
 
         if not(ticket.get('git_branch') or ticket['id'] == 0):
             self.write_log("no git branch for #{}, hence no testing".format(ticket['id']),
-                    LOG_MAIN)
+                           LOG_MAIN)
             return
 
         print("\n" * 2)
@@ -956,8 +957,9 @@ class Patchbot:
         except SkipTicket, exn:
             self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
             state = 'skipped'
-            self.write_log("Skipping #{} for {} seconds {}".format(
-                                  ticket['id'], exn.seconds_till_retry, exn),
+            msg = "Skipping #{} for {} seconds {}"
+            self.write_log(msg.format(ticket['id'],
+                                      exn.seconds_till_retry, exn),
                            LOG_MAIN)
         except Exception:
             traceback.print_exc()
@@ -969,7 +971,7 @@ class Patchbot:
         for _ in range(5):
             try:
                 self.write_log("Reporting #{} with status {}".format(ticket['id'], status[state]),
-                        LOG_MAIN)
+                               LOG_MAIN)
                 self.report_ticket(ticket, status=status[state], log=log,
                                    plugins=plugins_results,
                                    dry_run=self.dry_run)
@@ -1122,8 +1124,8 @@ class Patchbot:
             traceback.print_exc()
 
         if status != 'Pending':
-            self.write_log("#{}: {}{}".format(
-                            ticket['id'], status, " dry_run" if dry_run else ""),
+            self.write_log("#{}: {}{}".format(ticket['id'], status,
+                                              " dry_run" if dry_run else ""),
                            [LOG_MAIN, LOG_MAIN_SHORT])
 
         print "REPORT"
@@ -1205,7 +1207,6 @@ def main(args):
         print "WARNING: Do not use this copy of sage while the patchbot is running."
     ensure_free_space(options.sage_root)
 
-
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" % options.sage_root, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
@@ -1241,8 +1242,8 @@ def main(args):
         if options.cleanup:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):
-                self.write_log("Cleaning up {}".format(path),
-                               [LOG_MAIN, LOG_MAIN_SHORT])
+                patchbot.write_log("Cleaning up {}".format(path),
+                                   [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
         try:
             if tickets:
@@ -1255,7 +1256,7 @@ def main(args):
                     patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
             else:
-                self.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
+                patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
                 time.sleep(conf['idle'])
         except Exception:
             traceback.print_exc()

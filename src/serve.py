@@ -140,7 +140,6 @@ def ticket_list():
     else:
         order = 'last_activity'
     limit = int(request.args.get('limit', 10000))
-    if 
     print(query)
     if 'base' in request.args:
         base = request.args.get('base')
@@ -467,8 +466,11 @@ def log_name(ticket_id, report):
 
 
 def shorten(lines):
+    """
+    Extract a shorter log from the full log by removing boring parts
+    """
     timing = re.compile(r'\s*\[(\d+ tests?, )?\d+\.\d* s\]\s*$')
-    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*)|(creating.*site-packages/sage.*)|(mkdir.*)|(creating build/.*)|(;;;.*))$')
+    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*)|(creating.*site-packages/sage.*)|(mkdir.*)|(creating build/.*)|(Deleting empty directory.*)|(;;;.*))$')
     gcc = re.compile('(gcc)|(g\+\+)')
     prev = None
     in_plugin = False
