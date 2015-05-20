@@ -155,34 +155,58 @@ on occurred|Sphinx error|Segmentation fault', docpdf_log])
             raise ValueError
 
 
+def changed_files(ticket):
+    """
+    Return the list of changed files
+
+    Could be useful later to check for unicode declaration.
+    """
+    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.strip("\n") for f in changed_files]
+    return changed_files
+
+
 def exclude_new(ticket, regex, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.
 
-    See the next functions for several such patterns.
+    The pattern in given by a regular expression.
+
+    See the next functions `trailing_whitespace`, `non_ascii`, etc
+    for several such patterns.
     """
-    ignore_empty = True
-    bad_lines = 0
+    # looking for the regexp only in the added lines
     if regex[0] == '^':
         bad = re.compile(r'\+' + regex[1:])
     else:
         bad = re.compile(r'\+.*' + regex)
-    for line in subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout:
-        if line[:3] in ('+++', '---', '@@ '):
+
+    bad_lines = 0
+    gitdiff = subprocess.Popen(['git', 'diff',
+                                'patchbot/base..patchbot/ticket_merged'],
+                               stdout=subprocess.PIPE).stdout
+    for line in gitdiff:
+        line = line.strip()
+        if line[:3] == '---' or line == '+':
+            pass
+        elif line[:3] == '+++':
+            file_line = 'inside file: ' + line[3:]
+            file_line_printed = False
+        elif line[:3] == '@@ ':
+            pos_line = line
+            pos_line_printed = False
+        elif bad.match(line):
+            if not file_line_printed:
+                print(file_line)
+                file_line_printed = True
+            if not pos_line_printed:
+                print(pos_line)
+                pos_line_printed = True
             print(line)
-        else:
-            line = line.strip("\n")
-            m = bad.match(line)
-            if m:
-                print(line)
-                if line.strip() == '+' and ignore_empty:
-                    pass
-                else:
-                    bad_lines += 1
-    full_msg = "%s inserted on %s %slines" % (
-        msg, bad_lines, "non-empty " if ignore_empty else "")
-    print(full_msg)
-    if bad_lines > 0:
+            bad_lines += 1
+    full_msg = "{} inserted on {} non-empty lines"
+    print(full_msg.format(msg, bad_lines))
+    if bad_lines:
         raise ValueError(full_msg)
 
 
