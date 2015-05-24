@@ -450,7 +450,7 @@ class Patchbot:
 
     def lookup_ticket(self, id, verbose=False):
         """
-        Retrieve information about one ticket from the server.
+        Retrieve information about one ticket from the patchbot server.
 
         For an example of the page it calls:
 
@@ -468,7 +468,7 @@ class Patchbot:
                 print('lookup using json')
             return res[0]
         else:
-            # this should be deprecated
+            # trying using trac server instead
             if verbose:
                 print('lookup using scrape')
             return scrape(id)

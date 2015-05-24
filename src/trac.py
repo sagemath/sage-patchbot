@@ -71,8 +71,6 @@ def scrape(ticket_id, force=False, db=None):
 
     This does not like the unicode titles !
 
-    This should maybe use json instead, cf lookup_ticket in patchbot.py
-
     EXAMPLES::
 
         sage: scrape(18033)
@@ -96,17 +94,20 @@ def scrape(ticket_id, force=False, db=None):
             'authors': [],
             'participants': []}
 
-    rss = get_url("%s/ticket/%s?format=rss" % (TRAC_URL, ticket_id))
-    tab = get_url("%s/ticket/%s?format=tab" % (TRAC_URL, ticket_id))
-    # short_tab = get_url("%s/query?id=%s&format=tab" % (TRAC_URL, ticket_id))
-    tsv = parse_tsv(tab)
-    page_hash = digest(rss)  # rss isn't as brittle
+    rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
+    page_hash = digest(rss)  # hash is defined from the rss of trac page
     if db is not None:
+        # First try to use the patchbot database
         # TODO: perhaps the db caching should be extracted outside of
         # this function...
         db_info = db.lookup_ticket(ticket_id)
         if not force and db_info is not None and db_info['page_hash'] == page_hash:
             return db_info
+
+    # nothing in the database, now fetch the info from trac server
+    tab = get_url("{}/ticket/{}?format=tab".format(TRAC_URL, ticket_id))
+    # short_tab = get_url("%s/query?id=%s&format=tab" % (TRAC_URL, ticket_id))
+    tsv = parse_tsv(tab)
     authors = set()
     patches = []
     if tsv['branch'].strip():
@@ -231,15 +232,6 @@ def extract_spkgs(tsv):
     return list(set(spkg_url_regex.findall(tsv['description'])))
 
 
-def min_non_neg(*rest):
-    non_neg = [a for a in rest if a >= 0]
-    if len(non_neg) == 0:
-        return rest[0]
-    elif len(non_neg) == 1:
-        return non_neg[0]
-    else:
-        return min(*non_neg)
-
 ticket_url_regex = re.compile(r"{}/ticket/(\d+)".format(TRAC_URL))
 
 
@@ -252,21 +244,6 @@ def extract_depends_on(tsv):
     if version:
         deps.insert(0, version.group(0))
     return deps
-
-safe = re.compile('[-+A-Za-z0-9._]*')
-
-
-def ensure_safe(items):
-    """
-    Raise an error if item has any spaces in it.
-    """
-    if isinstance(items, (str, unicode)):
-        m = safe.match(items)
-        if m is None or m.end() != len(items):
-            raise ValueError("Unsafe patch name '{}'".format(items))
-    else:
-        for item in items:
-            ensure_safe(item)
 
 
 def inplace_safe():
