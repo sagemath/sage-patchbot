@@ -452,6 +452,8 @@ class Patchbot:
         """
         Retrieve information about one ticket from the patchbot server.
 
+        (or from trac if patchbot does not answer)
+
         For an example of the page it calls:
 
         http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}
@@ -462,7 +464,7 @@ class Patchbot:
         """
         path = "ticket/?" + urllib.urlencode({'raw': True,
                                               'query': json.dumps({'id': id})})
-        res = self.load_json_from_server(path, retry=5)
+        res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:
                 print('lookup using json')

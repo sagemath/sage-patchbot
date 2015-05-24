@@ -19,14 +19,14 @@ from util import (do_or_die, now_str, describe_branch,
 
 def digest(s):
     """
-    Computes a cryptographic hash of the string s.
+    Compute a cryptographic hash of the string s.
     """
     return hashlib.md5(s).hexdigest()
 
 
 def get_url(url):
     """
-    Returns the contents of url as a string.
+    Return the contents of url as a string.
     """
     try:
         url = url.replace(' ', '%20')
