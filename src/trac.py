@@ -58,13 +58,20 @@ def get_patch(ticket, patch):
 
 def scrape(ticket_id, force=False, db=None):
     """
-    Scrapes the trac page for ticket_id, updating the database if needed.
+    Scrapes the trac page for ``ticket_id``, updating the database if needed.
+
+    If force is ``True``, it will update the database even if the page hash is
+    unchanged.
 
     OUTPUT:
 
     a dictionary
 
     This fails if some field contains a TAB character !
+
+    This does not like the unicode titles !
+
+    This should maybe use json instead, cf lookup_ticket in patchbot.py
 
     EXAMPLES::
 

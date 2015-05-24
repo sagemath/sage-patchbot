@@ -462,12 +462,13 @@ class Patchbot:
         """
         path = "ticket/?" + urllib.urlencode({'raw': True,
                                               'query': json.dumps({'id': id})})
-        res = self.load_json_from_server(path)
+        res = self.load_json_from_server(path, retry=5)
         if res:
             if verbose:
                 print('lookup using json')
             return res[0]
         else:
+            # this should be deprecated
             if verbose:
                 print('lookup using scrape')
             return scrape(id)
@@ -790,7 +791,7 @@ class Patchbot:
 
           * if ``None`` then pick a ticket using :meth:`get_one_ticket`
 
-          * if an integer, use this ticket number
+          * if an integer or a string, use this ticket number
         """
         self.reload_config()
 
@@ -799,7 +800,7 @@ class Patchbot:
             self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
         else:
             N = int(ticket)
-            ticket = scrape(N)
+            ticket = self.lookup_ticket(N)
             rating = None
             self.write_log('testing given ticket #{}'.format(N), LOG_MAIN)
         if not ticket:
@@ -823,6 +824,8 @@ class Patchbot:
 
         print("\n" * 2)
         print("=" * 30, ticket['id'], "=" * 30)
+        # title = unicode(ticket['title'], errors='ignore')
+        # print(title)
         print(ticket['title'])
         print("score", rating)
         print("\n" * 2)
