@@ -204,6 +204,9 @@ class MachineStats:
 
 @app.route("/machines")
 def machines():
+    """
+    list of recently working machines, with some statistics
+    """
     # aggregate requires server version >= 2.1.0
     query = get_query(request.args)
     if 'authors' in request.args:
@@ -269,6 +272,9 @@ def format_patches(ticket, patches, deps=None, required=None):
 
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
+    """
+    reports on a given ticket
+    """
     try:
         info = trac.scrape(ticket, db=db, force='force' in request.args)
     except:
@@ -380,10 +386,16 @@ def render_ticket(ticket):
 
 @timed_cached_function(10)
 def base_reports_by_machine_and_base():
+    """
+    reports on the base branch (pseudo-ticket 0)
+    """
     return reports_by_machine_and_base(tickets.find_one({'id': 0}))
 
 
 def reports_by_machine_and_base(ticket):
+    """
+    reports on the given ticket
+    """
     all = {}
     if 'reports' in ticket:
         # oldest to newest
