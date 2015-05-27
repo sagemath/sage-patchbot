@@ -148,8 +148,7 @@ def docbuild_pdf(ticket, **kwds):
     docpdf_log = 'logs/docpdf.log'  # not sure that this is the right name
     if os.path.exists(docpdf_log):
         # HERE NOT CLEAR WHAT TO MATCH
-        r = subprocess.call(['grep', 'WARNING|SEVERE|ERROR|make.*Error|Excepti\
-on occurred|Sphinx error|Segmentation fault', docpdf_log])
+        r = subprocess.call(['grep', '[Ee]rror|ERROR|Emergency stop|Sphinx error|LaTeX Error', docpdf_log])
         if r != 1:
             # grep returns 1 iff there were no matches
             raise ValueError
