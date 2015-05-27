@@ -229,7 +229,7 @@ def input_output_block(ticket, **kwds):
     """
     no :: after INPUT and OUTPUT blocks
     """
-    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:\s*\n',
+    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:\s*',
                 msg="Input/Output blocks", **kwds)
 
 
