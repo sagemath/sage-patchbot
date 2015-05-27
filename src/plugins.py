@@ -225,6 +225,14 @@ def non_ascii(ticket, **kwds):
                 msg="Non-ascii characters", **kwds)
 
 
+def input_output_block(ticket, **kwds):
+    """
+    no :: after INPUT and OUTPUT blocks
+    """
+    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:\s*\n',
+                msg="Input/Output blocks", **kwds)
+
+
 def doctest_continuation(ticket, **kwds):
     """
     Make sure that doctest continuation use syntax `....:`.
