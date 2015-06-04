@@ -110,12 +110,17 @@ def scrape(ticket_id, force=False, db=None):
     tsv = parse_tsv(tab)
     authors = set()
     patches = []
+
+    git_commit_of_branch = git_commit(tsv['branch'])
     if tsv['branch'].strip():
+        # authors_from_git_branch(base_commit, git_commit_of_branch)
+        # what to take for the base commit ?
         # TODO: query history
         branch = tsv['branch']
         if branch.startswith('u/'):
             authors.add(branch.split('/')[1])
     authors = list(authors)
+
     data = {
         'id': ticket_id,
         'title': tsv['summary'],
@@ -133,7 +138,7 @@ def scrape(ticket_id, force=False, db=None):
         'participants': extract_participants(rss),
         'git_branch': tsv['branch'],
         'git_repo': TRAC_REPO if tsv['branch'].strip() else None,
-        'git_commit': git_commit(tsv['branch']),
+        'git_commit': git_commit_of_branch,
         'last_activity': now_str(),
     }
     if db is not None:
@@ -142,6 +147,40 @@ def scrape(ticket_id, force=False, db=None):
         return db_info
     else:
         return data
+
+
+def authors_from_git_branch(base_commit, top_commit):
+    """
+    Return the authors of the code of the given sequence of commits.
+
+    This should be the correct way to find the authors of a ticket !
+
+    to get the names:
+
+    git log --pretty=format:%an base_commit..top_commit
+
+    to get the mails:
+
+    git log --pretty=format:%ae base_commit..top_commit
+
+    but how to map that to trac accounts ??
+
+    ca necessite en plus d'avoir les deux commits dans le git local
+
+    EXAMPLES::
+
+        sage: authors_from_git_branch('develop', '18498')
+        {'Fr\xc3\xa9d\xc3\xa9ric C', 'Nathann C'}
+        sage: authors_from_git_branch('develop', '15375')
+        {'Anne S',
+         'Daniel B',
+         'Fr\xc3\xa9d\xc3\xa9ric C',
+         'Mark S',
+         'mshi@math'}
+    """
+    git_log = subprocess.check_output(['git', 'log', '--pretty=format:%an',
+                                       base_commit + '..' + top_commit])
+    return set(git_log.splitlines())
 
 
 def git_commit(branch):
@@ -208,7 +247,7 @@ def extract_tag(sgml, tag):
 
 def extract_participants(rss):
     """
-    Extracts any authors for a ticket from the html page.
+    Extracts any participants for a ticket from the html page.
 
     This is done using the rss feed.
     """
@@ -331,11 +370,6 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             raise
         else:
             raise ConfigException(exn.message)
-
-
-def push_from_trac(sage_root, ticket, branch=None,
-                   force=None, interactive=None):
-    raise NotImplementedError
 
 
 if __name__ == '__main__':
