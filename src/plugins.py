@@ -220,7 +220,7 @@ def triple_colon(ticket, **kwds):
     """
     Look for the presence of triple colons `:::`.
     """
-    exclude_new(ticket, regex=r'\:\:\:$', msg="Trailing whitespace", **kwds)
+    exclude_new(ticket, regex=r'\:\:\:$', msg="Triple colon (:::)", **kwds)
 
 
 def non_ascii(ticket, **kwds):
@@ -236,7 +236,7 @@ def input_output_block(ticket, **kwds):
     no :: after INPUT and OUTPUT blocks
     """
     exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:\s*',
-                msg="Input/Output blocks", **kwds)
+                msg="Bad Input/Output blocks", **kwds)
 
 
 def doctest_continuation(ticket, **kwds):
