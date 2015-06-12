@@ -216,6 +216,13 @@ def trailing_whitespace(ticket, **kwds):
     exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
 
 
+def triple_colon(ticket, **kwds):
+    """
+    Look for the presence of triple colons `:::`.
+    """
+    exclude_new(ticket, regex=r'\:\:\:$', msg="Trailing whitespace", **kwds)
+
+
 def non_ascii(ticket, **kwds):
     """
     Look for the presence of non-ascii characters.
