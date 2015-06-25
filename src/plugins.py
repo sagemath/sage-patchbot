@@ -154,20 +154,57 @@ def docbuild_pdf(ticket, **kwds):
             raise ValueError
 
 
-def changed_files(ticket):
+def exclude_new_file_by_file(ticket, regex, msg, **kwds):
     """
-    Return the list of changed files
+    Search in new code for patterns that should be avoided.
 
-    Could be useful later to check for unicode declaration.
+    The pattern in given by a regular expression.
+
+    See the next functions `trailing_whitespace`, `non_ascii`, etc
+    for several such patterns.
+
+    Proceeding file by file
+
+    This could be useful to check for unicode declaration.
     """
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.strip("\n") for f in changed_files]
-    return changed_files
+
+    bad_lines = 0
+    for file in changed_files:
+        gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
+        bad_lines += exclude_new_in_diff(gitdiff, regexp)
+
+    full_msg = "{} inserted on {} non-empty lines"
+    print(full_msg.format(msg, bad_lines))
+    if bad_lines:
+        raise ValueError(full_msg)
 
 
 def exclude_new(ticket, regex, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.
+
+    The pattern in given by a regular expression.
+
+    See the next functions `trailing_whitespace`, `non_ascii`, etc
+    for several such patterns.
+
+    Proceeding just once for all the changed files.
+    """
+    gitdiff = subprocess.Popen(['git', 'diff',
+                                'patchbot/base..patchbot/ticket_merged'],
+                               stdout=subprocess.PIPE).stdout
+    bad_lines = exclude_new_in_diff(gitdiff, regex)
+    full_msg = "{} inserted on {} non-empty lines"
+    print(full_msg.format(msg, bad_lines))
+    if bad_lines:
+        raise ValueError(full_msg)
+
+
+def exclude_new_in_diff(gitdiff, regexp):
+    """
+    Search in the given diff for patterns that should be avoided.
 
     The pattern in given by a regular expression.
 
@@ -181,9 +218,6 @@ def exclude_new(ticket, regex, msg, **kwds):
         bad = re.compile(r'\+.*' + regex)
 
     bad_lines = 0
-    gitdiff = subprocess.Popen(['git', 'diff',
-                                'patchbot/base..patchbot/ticket_merged'],
-                               stdout=subprocess.PIPE).stdout
     for line in gitdiff:
         line = line.strip()
         if line[:3] == '---' or line == '+':
@@ -203,10 +237,7 @@ def exclude_new(ticket, regex, msg, **kwds):
                 pos_line_printed = True
             print(line)
             bad_lines += 1
-    full_msg = "{} inserted on {} non-empty lines"
-    print(full_msg.format(msg, bad_lines))
-    if bad_lines:
-        raise ValueError(full_msg)
+    return bad_lines
 
 
 def trailing_whitespace(ticket, **kwds):
@@ -226,6 +257,8 @@ def triple_colon(ticket, **kwds):
 def non_ascii(ticket, **kwds):
     """
     Look for the presence of non-ascii characters.
+
+    This should be done file by file to check for unicode declaration.
     """
     exclude_new(ticket, regex=r'[^\x00-\x7F]',
                 msg="Non-ascii characters", **kwds)
