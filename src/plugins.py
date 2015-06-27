@@ -202,7 +202,7 @@ def exclude_new(ticket, regex, msg, **kwds):
         raise ValueError(full_msg)
 
 
-def exclude_new_in_diff(gitdiff, regexp):
+def exclude_new_in_diff(gitdiff, regex):
     """
     Search in the given diff for patterns that should be avoided.
 
@@ -260,7 +260,7 @@ def non_ascii(ticket, **kwds):
 
     This should be done file by file to check for unicode declaration.
     """
-    exclude_new(ticket, regex=r'[^\x00-\x7F]',
+    exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                 msg="Non-ascii characters", **kwds)
 
 
