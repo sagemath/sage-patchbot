@@ -173,7 +173,7 @@ def exclude_new_file_by_file(ticket, regex, msg, **kwds):
     bad_lines = 0
     for file in changed_files:
         gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
-        bad_lines += exclude_new_in_diff(gitdiff, regexp)
+        bad_lines += exclude_new_in_diff(gitdiff, regex)
 
     full_msg = "{} inserted on {} non-empty lines"
     print(full_msg.format(msg, bad_lines))
@@ -211,7 +211,7 @@ def exclude_new_in_diff(gitdiff, regex):
     See the next functions `trailing_whitespace`, `non_ascii`, etc
     for several such patterns.
     """
-    # looking for the regexp only in the added lines
+    # looking for the regular expression 'regex' only in the added lines
     if regex[0] == '^':
         bad = re.compile(r'\+' + regex[1:])
     else:
