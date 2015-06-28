@@ -154,16 +154,18 @@ def docbuild_pdf(ticket, **kwds):
             raise ValueError
 
 
-def exclude_new_file_by_file(ticket, regex, msg, **kwds):
+def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.
 
-    The pattern in given by a regular expression.
+    The pattern in given by a regular expression `regex`. See the next
+    functions `trailing_whitespace`, `non_ascii`, etc for several such
+    patterns.
 
-    See the next functions `trailing_whitespace`, `non_ascii`, etc
-    for several such patterns.
+    Proceeding file by file, it will only look inside the files that
+    pass the chosen file condition.
 
-    Proceeding file by file
+    .. SEEALSO:: exclude_new
 
     This could be useful to check for unicode declaration.
     """
@@ -172,8 +174,9 @@ def exclude_new_file_by_file(ticket, regex, msg, **kwds):
 
     bad_lines = 0
     for file in changed_files:
-        gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
-        bad_lines += exclude_new_in_diff(gitdiff, regex)
+        if file_condition(file):
+            gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
+            bad_lines += exclude_new_in_diff(gitdiff, regex)
 
     full_msg = "{} inserted on {} non-empty lines"
     print(full_msg.format(msg, bad_lines))
@@ -191,6 +194,8 @@ def exclude_new(ticket, regex, msg, **kwds):
     for several such patterns.
 
     Proceeding just once for all the changed files.
+
+    .. SEEALSO:: exclude_new_file_by_file
     """
     gitdiff = subprocess.Popen(['git', 'diff',
                                 'patchbot/base..patchbot/ticket_merged'],
@@ -206,7 +211,7 @@ def exclude_new_in_diff(gitdiff, regex):
     """
     Search in the given diff for patterns that should be avoided.
 
-    The pattern in given by a regular expression.
+    The pattern in given by a regular expression, for example r'\:\:\:$'
 
     See the next functions `trailing_whitespace`, `non_ascii`, etc
     for several such patterns.
@@ -261,7 +266,29 @@ def non_ascii(ticket, **kwds):
     This should be done file by file to check for unicode declaration.
     """
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
-                msg="Non-ascii characters", **kwds)
+                             file_condition=check_unicode_declaration,
+                             msg="Non-ascii characters", **kwds)
+
+
+def check_unicode_declaration(file):
+    """
+    Check if the encoding is declared as utf8 as in PEP0263.
+
+    This is one example of the file condition that can be used
+    in exclude_new_file_by_file.
+
+    This one is useful in the `non_ascii` plugin.
+    """
+    regex = re.compile(r"coding[:=]\s*([-\w.]+)")
+    f = open(file)
+    L0 = regex.split(f.readline())
+    L1 = regex.split(f.readline())
+    f.close()
+    if len(L0) >= 2 and L0[1] == 'utf-8':
+        return True
+    if len(L1) >= 2 and L1[1] == 'utf-8':
+        return True
+    return False
 
 
 def input_output_block(ticket, **kwds):
