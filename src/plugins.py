@@ -174,9 +174,12 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
 
     bad_lines = 0
     for file in changed_files:
-        if file_condition(file):
-            gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
-            bad_lines += exclude_new_in_diff(gitdiff, regex)
+        try:
+            if file_condition(file):
+                gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
+                bad_lines += exclude_new_in_diff(gitdiff, regex)
+        except IOError:  #file has been deleted
+            pass
 
     full_msg = "{} inserted on {} non-empty lines"
     print(full_msg.format(msg, bad_lines))
