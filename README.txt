@@ -1,3 +1,5 @@
+* PATCHBOT *
+
 The patchbot only needs a Sage install and is started with
 
     python patchbot.py [options]
@@ -5,8 +7,10 @@ The patchbot only needs a Sage install and is started with
 Type --help for a list of options, though most configuration is done via an
 optional JSON config file. This is what is invoked by sage --patchbot [...]
 
-The server needs a Python with Flask and mongod installed.  Installing numpy
-and PIL will allow multi-colored blurbs.  Start a monitoring loop with
+* SERVER *
+
+The server needs a Python with Flask and mongodb installed.  Installing numpy
+and PIL (pillow) will allow multi-colored blurbs.  Start a monitoring loop with
 
     python run_server.py
 
