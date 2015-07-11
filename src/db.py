@@ -2,10 +2,10 @@
 # ssh -N -L 21002:localhost:21002 boxen.math.washington.edu
 
 import gridfs
-from pymongo import Connection
+from pymongo.mongo_client import MongoClient  # formerly Connection
 mongo_port = 21002
 
-mongodb = Connection(port=mongo_port).buildbot
+mongodb = MongoClient(port=mongo_port).buildbot
 tickets = mongodb.tickets
 tickets.ensure_index('id', unique=True)
 tickets.ensure_index('status')
