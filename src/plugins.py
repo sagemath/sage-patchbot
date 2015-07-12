@@ -264,11 +264,12 @@ def triple_colon(ticket, **kwds):
 
 def non_ascii(ticket, **kwds):
     """
-    Look for the presence of non-ascii characters.
+    Look for the presence of non-ascii characters in python and cython files.
 
     This should be done file by file to check for unicode declaration.
     """
-    not_declared = lambda file: not(check_unicode_declaration(file))
+    not_declared = lambda file: (not(check_unicode_declaration(file)) and
+                                 file.split('.')[-1] in ['py','pyx'])
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
@@ -278,7 +279,7 @@ def check_unicode_declaration(file):
     """
     Check if the encoding is declared as utf-8 as in PEP0263.
 
-    Return True if there is a correct uft-8 declaration.
+    Return True if there is a correct utf-8 declaration.
 
     This is one example of the file condition that can be used
     in exclude_new_file_by_file.
