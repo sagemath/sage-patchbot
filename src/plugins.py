@@ -178,7 +178,7 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
             if file_condition(file):
                 gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
                 bad_lines += exclude_new_in_diff(gitdiff, regex)
-        except IOError:  #file has been deleted
+        except IOError:  # file has been deleted
             pass
 
     full_msg = "{} inserted on {} non-empty lines"
@@ -269,7 +269,7 @@ def non_ascii(ticket, **kwds):
     This should be done file by file to check for unicode declaration.
     """
     not_declared = lambda file: (not(check_unicode_declaration(file)) and
-                                 file.split('.')[-1] in ['py','pyx'])
+                                 file.split('.')[-1] in ['py', 'pyx'])
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)

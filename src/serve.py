@@ -126,7 +126,7 @@ def get_query(args):
 
 @app.route("/")
 @app.route("/ticket")
-@app.route("/ticket/")
+@app.route("/tickt/")
 def ticket_list():
     authors = None
     machine = None
@@ -166,7 +166,7 @@ def ticket_list():
                                             indent=indent))
         response.headers['Content-type'] = 'text/plain'
         return response
-    summary = dict((key, 0) for key in status_order)
+    summary = {key: 0 for key in status_order}
 
     def preprocess(all):
         for ticket in all:
@@ -772,13 +772,10 @@ def get_ticket_status(ticket, base=None, machine=None):
 
 def main(args):
     parser = OptionParser()
-    parser.add_option("-b", "--base", dest="base")
     parser.add_option("-p", "--port", dest="port")
     parser.add_option("--debug", dest="debug", default=False)
     (options, args) = parser.parse_args(args)
 
-    global base
-    base = options.base
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
 
 if __name__ == '__main__':

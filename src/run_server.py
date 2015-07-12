@@ -62,9 +62,7 @@ try:
                     time.sleep(KILL_WAIT)
 
             print("Starting server...")
-            base = open("base.txt").read().strip()
-            p = subprocess.Popen([sys.executable, "serve.py",
-                                  "--base=" + base, "--port=21100"])
+            p = subprocess.Popen([sys.executable, "serve.py", "--port=21100"])
             open("server.pid", "w").write(str(p.pid))
             print("    ...done.")
         time.sleep(POLL_INTERVAL)
