@@ -13,7 +13,8 @@ if not hasattr(subprocess.Popen, 'send_signal'):
         os.kill(self.pid, sig)
     subprocess.Popen.send_signal = send_signal
 
-DATABASE = "../data"
+DATABASE = "../../data"  
+# both data/ and patchbot/src/ are at top-level
 
 # The server hangs while connecting to trac, so we poll it and
 # restart if needed.
