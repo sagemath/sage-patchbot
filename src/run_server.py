@@ -13,7 +13,7 @@ if not hasattr(subprocess.Popen, 'send_signal'):
         os.kill(self.pid, sig)
     subprocess.Popen.send_signal = send_signal
 
-DATABASE = "/data/db/data"  
+DATABASE = "/data/db/data"
 # the database is currently found there
 
 # The server hangs while connecting to trac, so we poll it and
@@ -43,29 +43,29 @@ try:
             restart = True
         else:
             try:
-                print("Testing url...")
+                print "Testing url..."
                 urllib2.urlopen("http://patchbot.sagemath.org/",
                                 timeout=HTTP_TIMEOUT)
-                print("    ...good")
+                print "    ...good"
                 restart = False
             except urllib2.URLError, e:
-                print("    ...bad", e)
+                print "    ...bad", e
                 restart = True
 
         if restart:
             if p is not None and p.poll() is None:
-                print("SIGTERM")
+                print "SIGTERM"
                 p.send_signal(signal.SIGTERM)
                 time.sleep(KILL_WAIT)
                 if p.poll() is None:
-                    print("SIGKILL")
+                    print "SIGKILL"
                     p.kill()
                     time.sleep(KILL_WAIT)
 
-            print("Starting server...")
+            print "Starting server..."
             p = subprocess.Popen([sys.executable, "serve.py", "--port=21100"])
             open("server.pid", "w").write(str(p.pid))
-            print("    ...done.")
+            print "    ...done."
         time.sleep(POLL_INTERVAL)
 
 finally:

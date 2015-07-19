@@ -35,7 +35,7 @@ def get_url(url):
         handle.close()
         return data
     except:
-        print(url)
+        print url
         raise
 
 
@@ -303,7 +303,7 @@ def inplace_safe():
                             "README.txt", ".gitignore")):
             continue
         else:
-            print("Unsafe file:", file)
+            print "Unsafe file:", file
             safe = False
     return safe
 
@@ -389,13 +389,13 @@ if __name__ == '__main__':
             tickets = [int(ticket)]
         for ticket in tickets:
             try:
-                print(ticket)
+                print ticket
                 pprint.pprint(scrape(ticket, force=force))
                 if apply:
                     pull_from_trac(os.environ['SAGE_ROOT'], ticket, force=True)
                 time.sleep(1)
             except Exception:
-                print("Error for", ticket)
+                print "Error for", ticket
                 traceback.print_exc()
         force = apply = False
 #    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)

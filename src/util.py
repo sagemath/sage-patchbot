@@ -137,7 +137,7 @@ def do_or_die(cmd, exn_class=Exception):
     """
     Run a shell command and report eventual failure.
     """
-    print(cmd)
+    print cmd
     res = os.system(cmd)
     if res:
         raise exn_class("{} {}".format(res, cmd))

@@ -42,15 +42,15 @@ def git_rev_list(ticket, **kwds):
     if str(ticket['id']) != '0':
         base_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/ticket_upstream..patchbot/base"]))
         ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/ticket_upstream"]))
-        print("only in ticket (%s)" % ticket_only)
-        print("only in base (%s)" % base_only)
-        print()
+        print "only in ticket (%s)" % ticket_only
+        print "only in base (%s)" % base_only
+        print
         base = describe_branch('patchbot/ticket_upstream', tag_only=True)
         do_or_die("git diff --stat %s..patchbot/ticket_upstream" % base)
-        print()
+        print
         do_or_die("git log --oneline %s..patchbot/ticket_upstream" % base)
-        print()
-        print()
+        print
+        print
         do_or_die("git log %s..patchbot/ticket_upstream" % base)
 
 
@@ -88,32 +88,32 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
                 old_docs, old_funcs = baseline.get(module, (0, 0))
                 if old_funcs == 0:
                     if funcs != docs:
-                        print("Missing doctests ", module, format(docs, funcs))
+                        print "Missing doctests ", module, format(docs, funcs)
                         status = "Failed"
                     else:
-                        print("Full doctests ", module, format(docs, funcs))
+                        print "Full doctests ", module, format(docs, funcs)
                 elif funcs - docs > old_funcs - old_docs:
-                    print("Decreased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs))
+                    print "Decreased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
                     status = "Failed"
                 elif funcs - docs < old_funcs - old_docs:
-                    print("Increased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs))
+                    print "Increased doctests", module, "from", format(old_docs, old_funcs), "to", format(docs, funcs)
 
     current[None] = total_docs, total_funcs
     if baseline:
-        print()
+        print
         if baseline[None] == current[None]:
-            print("Coverage remained unchanged.")
+            print "Coverage remained unchanged."
         else:
-            print("Coverage went from", format(*baseline[None], prec=3), "to", format(*current[None], prec=3))
+            print "Coverage went from", format(*baseline[None], prec=3), "to", format(*current[None], prec=3)
         data = sorted(set(current.items()) - set(baseline.items()))
     else:
         data = None
 
     if baseline:
-        print()
-        print("=" * 20)
-    print()
-    print(all)
+        print
+        print "=" * 20
+    print
+    print all
 
     return PluginResult(status, baseline=current, data=data)
 
@@ -182,7 +182,7 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
             pass
 
     full_msg = "{} inserted on {} non-empty lines"
-    print(full_msg.format(msg, bad_lines))
+    print full_msg.format(msg, bad_lines)
     if bad_lines:
         raise ValueError(full_msg)
 
@@ -205,7 +205,7 @@ def exclude_new(ticket, regex, msg, **kwds):
                                stdout=subprocess.PIPE).stdout
     bad_lines = exclude_new_in_diff(gitdiff, regex)
     full_msg = "{} inserted on {} non-empty lines"
-    print(full_msg.format(msg, bad_lines))
+    print full_msg.format(msg, bad_lines)
     if bad_lines:
         raise ValueError(full_msg)
 
@@ -238,12 +238,12 @@ def exclude_new_in_diff(gitdiff, regex):
             pos_line_printed = False
         elif bad.match(line):
             if not file_line_printed:
-                print(file_line)
+                print file_line
                 file_line_printed = True
             if not pos_line_printed:
-                print(pos_line)
+                print pos_line
                 pos_line_printed = True
-            print(line)
+            print line
             bad_lines += 1
     return bad_lines
 
@@ -330,16 +330,16 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
     """
     for patch_path in patches:
         patch = os.path.basename(patch_path)
-        print("Looking at", patch)
+        print "Looking at", patch
         header = []
         for line in open(patch_path):
             if line.startswith('diff '):
                 break
             header.append(line)
         else:
-            print(''.join(header[:10]))
+            print ''.join(header[:10])
             raise ValueError("Not a valid patch file: " + patch)
-        print(''.join(header))
+        print ''.join(header)
         if not is_git:
             if header[0].strip() != "# HG changeset patch":
                 raise ValueError("Not a mercurial patch file: " + patch)
@@ -353,8 +353,8 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
                     break
             else:
                 raise ValueError("No patch comments:" + patch)
-        print()
-    print("All patches good.")
+        print
+    print "All patches good."
 
 
 def startup_modules(ticket, sage_binary, baseline=None, **kwds):
@@ -366,9 +366,9 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # Print out all the modules imported at startup.
     modules = subprocess.check_output([sage_binary, "-c", r"print '\n'.join(sorted(sys.modules.keys()))"]).split('\n')
 
-    print()
-    print("Total count:", len(modules))
-    print()
+    print
+    print "Total count:", len(modules)
+    print
     if baseline is None:
         status = PluginResult.Passed
         data = {}
@@ -379,20 +379,20 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
         removed = sorted(baseline_set - module_set)
         if new:
             status = PluginResult.Failed
-            print("New:")
-            print("    " + "\n    ".join(new))
+            print "New:"
+            print "    " + "\n    ".join(new)
         else:
             status = PluginResult.Passed
         if removed:
-            print("Removed:")
-            print("    " + "\n    ".join(removed))
+            print "Removed:"
+            print "    " + "\n    ".join(removed)
         data = {'new': new, 'removed': removed}
 
     if baseline:
-        print()
-        print("=" * 20)
-    print()
-    print('\n'.join(modules))
+        print
+        print "=" * 20
+    print
+    print '\n'.join(modules)
     return PluginResult(status, baseline=modules, data=data)
 
 
@@ -405,7 +405,7 @@ def startup_time(ticket, loops=5, total_samples=50,
         loops //= 2
         total_samples //= 5
 
-    print(total_samples, "samples in", loops, "loops")
+    print total_samples, "samples in", loops, "loops"
     ticket_id = ticket['id']
     choose_base = "git checkout patchbot/base; make build > /dev/null"
     choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
@@ -436,8 +436,8 @@ def startup_time(ticket, loops=5, total_samples=50,
             do_or_die(choose_base)
             main_timings.extend(startup_times(total_samples //
                                               loops + 2 * k - loops + 1))
-        print("main_timings =", main_timings)
-        print("ticket_timings =", ticket_timings)
+        print "main_timings =", main_timings
+        print "ticket_timings =", ticket_timings
 
         n1 = len(main_timings)
         p1 = mean(main_timings)
@@ -452,14 +452,14 @@ def startup_time(ticket, loops=5, total_samples=50,
         increased = p1 < p2
         inc_or_dec = ['decreased', 'increased']
 
-        print()
-        print("Main:   %0.5g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1))
-        print("Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2))
-        print()
-        print("Average %s of %0.2g secs or %0.2g%%." % (
-            inc_or_dec[increased][:-1], diff, 100 * diff / base))
-        print()
-        print("Using the Mann-Whitney U test to determine significance.")
+        print
+        print "Main:   %0.5g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1)
+        print "Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2)
+        print
+        print "Average %s of %0.2g secs or %0.2g%%." % (
+            inc_or_dec[increased][:-1], diff, 100 * diff / base)
+        print
+        print "Using the Mann-Whitney U test to determine significance."
 
         if increased:
             # swap
@@ -477,17 +477,17 @@ def startup_time(ticket, loops=5, total_samples=50,
 
         status = PluginResult.Passed
         if not confidence_intervals:
-            print("No statistically significant difference.")
+            print "No statistically significant difference."
         else:
-            print("May have caused a slowdown.")
+            print "May have caused a slowdown."
         for confidence, lower_bound, in confidence_intervals:
             if increased and confidence >= .95 and lower_bound >= .001:
                 status = PluginResult.Failed
             # Print 99.999x%.
             confidence = 1 - float(("%0.1g" if confidence > .9
                                     else "%0.2g") % (1 - confidence))
-            print("With %g%% confidence, startup time %s by at least %0.2g%%" % (
-                100 * confidence, inc_or_dec[increased], 100 * lower_bound))
+            print "With %g%% confidence, startup time %s by at least %0.2g%%" % (
+                100 * confidence, inc_or_dec[increased], 100 * lower_bound)
 
         if not increased:
             confidence_intervals = [(x, -y) for x, y in confidence_intervals]
@@ -500,7 +500,7 @@ def startup_time(ticket, loops=5, total_samples=50,
         return PluginResult(status, data=data)
 
     finally:
-        print()
+        print
         do_or_die(choose_ticket)
 
 
@@ -560,7 +560,7 @@ if __name__ == '__main__':
     for arg in sys.argv[2:]:
         m = re.match("--([_a-zA-Z0-9]+)=(([_a-zA-Z]*).*)", arg)
         if not m:
-            print(arg, "must be of the form --kwd=expr")
+            print arg, "must be of the form --kwd=expr"
             sys.exit(1)
         key = m.group(1)
         if m.group(2) == m.group(3):

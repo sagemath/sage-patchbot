@@ -38,6 +38,7 @@ import urllib2
 import urllib
 import json
 import socket
+import pprint
 
 from optparse import OptionParser
 from http_post_file import post_multipart
@@ -127,7 +128,7 @@ class Tee:
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
-            print(datetime())
+            print datetime()
             self.start_time = time.time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -136,8 +137,8 @@ class Tee:
         if exc_type is not None:
             traceback.print_exc()
         if self.time:
-            print(datetime())
-            print(int(time.time() - self.start_time), "seconds")
+            print datetime()
+            print int(time.time() - self.start_time), "seconds"
         self.tee.stdin.close()
         time.sleep(1)
         os.dup2(self._saved[0], sys.stdout.fileno())
@@ -175,7 +176,7 @@ class Timer:
         self._history.append((label, elapsed))
 
     def print_time(self, label, elapsed):
-        print(label, '--', int(elapsed), 'seconds')
+        print label, '--', int(elapsed), 'seconds'
 
     def print_all(self):
         for label, elapsed in self._history:
@@ -467,12 +468,12 @@ class Patchbot:
         res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:
-                print('lookup using json')
+                print 'lookup using json'
             return res[0]
         else:
             # trying using trac server instead
             if verbose:
-                print('lookup using scrape')
+                print 'lookup using scrape'
             return scrape(id)
 
     def get_config(self):
@@ -547,7 +548,6 @@ class Patchbot:
                            for name in conf["plugins"]]
 
         self.delete_log(LOG_CONFIG)
-        import pprint
         self.write_log("Configuration for the patchbot\n{}\n".format(datetime()), LOG_CONFIG, False)
         self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
 
@@ -826,13 +826,13 @@ class Patchbot:
                            LOG_MAIN)
             return
 
-        print("\n" * 2)
-        print("=" * 30, ticket['id'], "=" * 30)
+        print "\n" * 2
+        print "=" * 30, ticket['id'], "=" * 30
         # title = unicode(ticket['title'], errors='ignore')
         # print(title)
-        print(ticket['title'])
-        print("score", rating)
-        print("\n" * 2)
+        print ticket['title']
+        print "score", rating
+        print "\n" * 2
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
         self.write_log('#{}: starting tests'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.plugin_only:
@@ -841,7 +841,7 @@ class Patchbot:
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                print(self.banner())
+                print self.banner()
 
                 if ticket['spkgs']:
                     state = 'spkg'
@@ -1136,7 +1136,6 @@ class Patchbot:
                            [LOG_MAIN, LOG_MAIN_SHORT])
 
         print "REPORT"
-        import pprint
         pprint.pprint(report)
         print ticket['id'], status
         fields = {'report': json.dumps(report)}
