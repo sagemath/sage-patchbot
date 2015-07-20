@@ -106,10 +106,7 @@ class TimeOut(Exception):
 
 
 def alarm_handler(signum, frame):
-    """
-    ? Alarm is not defined ? what is this ?
-    """
-    raise Alarm
+    raise TimeOut
 
 
 class Tee:
