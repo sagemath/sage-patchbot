@@ -686,8 +686,7 @@ def create_status_image(status, base=None):
         path = status_image_path(status)
     if base is not None:
         try:
-            from PIL import Image
-            import ImageDraw
+            from PIL import Image, ImageDraw
             im = Image.open(path)
             ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
             output = StringIO()
