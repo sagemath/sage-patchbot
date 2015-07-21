@@ -90,8 +90,10 @@ def trusted_authors():
 def get_query(args):
     """
     Prepare the precise query for the database.
-
+    
     The result is a dict.
+
+    get_query({'participant':'yop'})
     """
     if 'query' in args:
         query = json.loads(args.get('query'))
@@ -126,7 +128,7 @@ def get_query(args):
 
 @app.route("/")
 @app.route("/ticket")
-@app.route("/tickt/")
+@app.route("/ticket/")
 def ticket_list():
     authors = None
     machine = None
