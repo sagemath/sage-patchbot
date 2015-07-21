@@ -17,14 +17,14 @@ See results against
 <a href='?base={{version}}'>{{version}}</a>
 {% endfor %}
 
-<hr>
+<hr/>
 
 <table>
 {% for ticket in tickets: %}
 <tr>
 <td>{{'*' if ticket.pending else ''}}</td>
 <td>{{ticket.report_count}}</td>
-<td><img src='/blob/{{ticket.report_status_composite}}' alt='{{ticket.report_status_composite}}' title='{{ticket.report_status_composite}}' height=16></td>
+<td><img src='/blob/{{ticket.report_status_composite}}' alt='{{ticket.report_status_composite}}' height=16></td>
 <td align='right'>
     <a href="/ticket/{{ticket.id}}/">{{ticket.id}}</a>
 </td>
