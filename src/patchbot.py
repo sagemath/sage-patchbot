@@ -384,7 +384,7 @@ class Patchbot:
         """
         Return the version of the patchbot.
 
-        Something like '2.3.3'
+        Something like '2.3.7'
         """
         return self._version
 
@@ -392,10 +392,8 @@ class Patchbot:
         """
         A banner for the patchbot
         """
-        red = '\033[31m'
-        col_out = '\033[0m'
         s = u'┌─┬──────┐\n'
-        s += u'│░│ ' + red + u'⊙  ʘ' + col_out + u' │        SageMath patchbot\n'
+        s += u'│░│ ' + u'⊙  ʘ'+ u' │        SageMath patchbot\n'
         s += u'│░│      │\n'
         s += u'│░│ ──── │        version {}\n'.format(self.version())
         s += u'╘═╧══════╛'
