@@ -11,13 +11,13 @@
 {% block body %}
 
 <h2>
-<img src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">
+<img alt="{{status}}" src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">
 {{ticket}}
 </h2>
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">
 {{info.title}}
 </a>
-<br><br>
+<br/><br/>
 
 <table>
 {% for key, value in sort_fields(info.items()): %}
@@ -27,12 +27,12 @@
 </tr>
 {% endfor %}
 </table>
-<br>
+<br/>
 <hr>
 <table width='100%'>
 {% for report in reports: %}
 <tr>
-<td><img src="/blob/{{report.status}}"></td>
+<td><img alt="{{report.status}}" src="/blob/{{report.status}}"></td>
 <td><b>{{report.status}}</b><br>{{report.pending_status}}</td>
 <td>{{report.base|safe}}</td>
 <td><a href='/ticket/?machine={{':'.join(report.machine)}}&status=open'>{{'/'.join(report.machine)}}</a></td>
@@ -57,7 +57,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
-<img height="16" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
+<img height="16" alt="{{['PluginFailed', 'TestsPassed'][status]}}" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
 (<a href='{{report.log}}?plugin={{plugin}}&diff={{report.base_log}}&ticket={{ticket}}&base={{report.raw_base}}'>diff</a>)
