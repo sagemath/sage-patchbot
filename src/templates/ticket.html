@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>#{{ticket}} PatchBot Results</title>
+<title>#{{ticket}} Patchbot Results</title>
 <link rel="shortcut icon" href="/blob/{{status}}" />
 <style>
 .git_commit {color:#555; font-size:80%}
@@ -41,7 +41,7 @@
 </tr>
 <tr>
 <td colspan=2></td>
-<td colspan=3 valign='top'>
+<td colspan=3 style="vertical-align: top;">
 {% if 'git_base' in report %}
 Patchbot version: {{report.patchbot_version}}<br/>
 Branch: {{report.git_branch}}<br>
@@ -52,7 +52,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {{report.patch_list|safe}}
 {% endif %}
 </td>
-<td valign='top'>
+<td style="vertical-align: top">
 <ul style='list-style-type: none'>
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
