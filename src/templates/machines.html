@@ -8,7 +8,7 @@
 
 <h1>Machines</h1>
 
-<table width=80%>
+<table style="width:80%">
 <tr>
 <th>Machine</th>
 <th>Last report</th>
@@ -18,7 +18,7 @@
 </tr>
 {% for machine in machines: %}
 <tr>
-<td><a href='/?machine={{':'.join(machine.name)}}&status={{status}}'>{{'/'.join(machine.name)}}</a></td>
+<td><a href='/?machine={{':'.join(machine.name)}}&amp;status={{status}}'>{{'/'.join(machine.name)}}</a></td>
 <td>{{machine.last_report}}</td>
 <td class='right'>{{len(machine.fresh_tickets)}}</td>
 <td class='right'>{{len(machine.all_tickets)}}</td>
