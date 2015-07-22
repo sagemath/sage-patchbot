@@ -1,4 +1,2 @@
 User-agent: *
-Disallow: /ticket/1303/status.png
-Disallow: /blob/
-Crawl-delay: 5
+Disallow: /
