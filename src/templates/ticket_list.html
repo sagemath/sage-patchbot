@@ -10,7 +10,7 @@
 <h1>SageMath Patchbot</h1>
 <img alt="{{base_status[1]}}" src='/blob/{{base_status[1]}}' height=16>
 Results against Sage {{base}}
-(<a href='/ticket/0'>{{base_status[0]}} reports</a>).<br><br>
+(<a href='/ticket/0'>{{base_status[0]}} reports</a>).<br/><br/>
 See results against
 {% for version, status in versions: %}
 <img alt="{{status[1]}}" src='/blob/{{status[1]}}' height=16>
@@ -25,7 +25,7 @@ See results against
 <td>{{'*' if ticket.pending else ''}}</td>
 <td>{{ticket.report_count}}</td>
 <td><img src='/blob/{{ticket.report_status_composite}}' alt='{{ticket.report_status_composite}}' height=16></td>
-<td align='right'>
+<td class='right'>
     <a href="/ticket/{{ticket.id}}/">{{ticket.id}}</a>
 </td>
 <td>{{ticket.title}}</td>

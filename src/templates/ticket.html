@@ -3,9 +3,6 @@
 {% block head %}
 <title>#{{ticket}} Patchbot Results</title>
 <link rel="shortcut icon" href="/blob/{{status}}" />
-<style>
-.git_commit {color:#555; font-size:80%}
-</style>
 {% endblock %}
 
 {% block body %}
@@ -33,7 +30,7 @@
 {% for report in reports: %}
 <tr>
 <td><img alt="{{report.status}}" src="/blob/{{report.status}}"></td>
-<td><b>{{report.status}}</b><br>{{report.pending_status}}</td>
+<td><b>{{report.status}}</b><br/>{{report.pending_status}}</td>
 <td>{{report.base|safe}}</td>
 <td><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></td>
 <td>{{report.time}}</td>
@@ -44,9 +41,9 @@
 <td colspan=3 style="vertical-align: top;">
 {% if 'git_base' in report %}
 Patchbot version: {{report.patchbot_version}}<br/>
-Branch: {{report.git_branch}}<br>
-Commit: <span class='git_commit'>{{report.git_commit}}</span> ({{report.git_commit_human}})<br>
-Base: <span class='git_commit'>{{report.git_base}}</span> ({{report.git_base_human}})<br>
+Branch: {{report.git_branch}}<br/>
+Commit: <span class='git_commit'>{{report.git_commit}}</span> ({{report.git_commit_human}})<br/>
+Base: <span class='git_commit'>{{report.git_base}}</span> ({{report.git_base_human}})<br/>
 Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_human}})
 {% else %}
 {{report.patch_list|safe}}
