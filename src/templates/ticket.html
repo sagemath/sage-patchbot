@@ -22,22 +22,22 @@
 <table>
 {% for key, value in sort_fields(info.items()): %}
 <tr>
-<td align='right'>{{key}}:</td>
+<td class='right'>{{key}}:</td>
 <td>{{value|safe}}</td>
 </tr>
 {% endfor %}
 </table>
 <br/>
 <hr>
-<table width='100%'>
+<table style="width:100%">
 {% for report in reports: %}
 <tr>
 <td><img alt="{{report.status}}" src="/blob/{{report.status}}"></td>
 <td><b>{{report.status}}</b><br>{{report.pending_status}}</td>
 <td>{{report.base|safe}}</td>
-<td><a href='/ticket/?machine={{':'.join(report.machine)}}&status=open'>{{'/'.join(report.machine)}}</a></td>
+<td><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></td>
 <td>{{report.time}}</td>
-<td align='center'><a href='{{report.log}}'>log</a> <a href='{{report.log}}?short'>shortlog</a></td>
+<td class='centre'><a href='{{report.log}}'>log</a> <a href='{{report.log}}?short'>shortlog</a></td>
 </tr>
 <tr>
 <td colspan=2></td>
@@ -60,7 +60,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 <img height="16" alt="{{['PluginFailed', 'TestsPassed'][status]}}" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
-(<a href='{{report.log}}?plugin={{plugin}}&diff={{report.base_log}}&ticket={{ticket}}&base={{report.raw_base}}'>diff</a>)
+(<a href='{{report.log}}?plugin={{plugin}}&amp;diff={{report.base_log}}&amp;ticket={{ticket}}&amp;base={{report.raw_base}}'>diff</a>)
 {% endif %}
 {% if data %}
 (<a href='plugin/{{plugin}}/{{report.time}}/'>data</a>)
