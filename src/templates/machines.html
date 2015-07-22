@@ -12,17 +12,17 @@
 <tr>
 <th>Machine</th>
 <th>Last report</th>
-<th align='right'>Fresh tickets</th>
-<th align='right'>Total tickets</th>
-<th align='right'>Total reports</th>
+<th class='right'>Fresh tickets</th>
+<th class='right'>Total tickets</th>
+<th class='right'>Total reports</th>
 </tr>
 {% for machine in machines: %}
 <tr>
 <td><a href='/?machine={{':'.join(machine.name)}}&status={{status}}'>{{'/'.join(machine.name)}}</a></td>
 <td>{{machine.last_report}}</td>
-<td align='right'>{{len(machine.fresh_tickets)}}</td>
-<td align='right'>{{len(machine.all_tickets)}}</td>
-<td align='right'>{{machine.report_count}}</td>
+<td class='right'>{{len(machine.fresh_tickets)}}</td>
+<td class='right'>{{len(machine.all_tickets)}}</td>
+<td class='right'>{{machine.report_count}}</td>
 </tr>
 {% endfor %}
 </table>
