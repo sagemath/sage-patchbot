@@ -55,18 +55,16 @@ def reports():
     pass
 
 
-@app.route("/trusted")
-@app.route("/trusted/")
-def trusted_authors():
+def compute_trusted_authors():
     """
-    Defines the set of trusted authors
+    Define the trusted authors.
 
     Currently, somebody is trusted if he/she is the author of a closed patch
-    with 'fixed' status
+    with 'fixed' status.
 
-    See http://patchbot.sagemath.org/trusted/
+    Then 'git' and 'vbraun_spam' are added.
 
-    'git' and 'vbraun_spam' are added
+    The result is a dict, its keys being the trusted authors.
     """
     authors = collections.defaultdict(int)
     authors['git'] += 1
@@ -77,12 +75,51 @@ def trusted_authors():
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket["authors"]:
             authors[author] += 1
+    return authors
+
+
+@app.route("/trusted")
+@app.route("/trusted/")
+def trusted_authors():
+    """
+    Serve a web page with the set of trusted authors.
+
+    Either as json dict or in human-readable format.
+
+    See http://patchbot.sagemath.org/trusted/
+
+    and http://patchbot.sagemath.org/trusted/?pretty
+
+    The dict of trusted authors is computed in ``compute_trusted_authors``.
+    """
+    authors = compute_trusted_authors()
     if 'pretty' in request.args:
         indent = 4
     else:
         indent = None
     response = make_response(json.dumps(authors, default=lambda x: None,
                                         indent=indent))
+    response.headers['Content-type'] = 'text/plain'
+    return response
+
+
+@app.route("/trust_check")
+def trust_check():
+    """
+    Serve a web page that tells if some given authors are trusted.
+
+    This is at destination of human readers.
+
+    The question must be asked as follows:
+
+    trust_check?who=balzac,zola
+    """
+    authors = compute_trusted_authors()
+    given_list = request.args['who'].split(',')
+    trust_dict = {a: 'trusted' if a in authors else 'not trusted'
+                  for a in given_list}
+    response = make_response(json.dumps(trust_dict, default=lambda x: None,
+                                        indent=4))
     response.headers['Content-type'] = 'text/plain'
     return response
 
@@ -326,7 +363,11 @@ def render_ticket(ticket):
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'participants':
-                new_info[key] = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
+                parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
+                trust_check = "(<a href='/trust_check?who="
+                trust_check += ','.join("%s" % a for a in value)
+                trust_check += "'>Check trust</a>) "
+                new_info[key] = trust_check + parts
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
             elif key not in ('id', '_id'):
