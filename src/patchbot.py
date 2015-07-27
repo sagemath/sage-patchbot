@@ -202,9 +202,9 @@ def plugin_boundary(name, end=False):
 
 def machine_data():
     """
-    Return the machine data as a list of strings
+    Return the machine data as a list of strings.
 
-    This uses uname to find the data.
+    This uses ``uname`` to find the data.
 
     m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
     m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
@@ -213,8 +213,8 @@ def machine_data():
     if system.lower() == "linux":
         dist_name, dist_version, dist_id = platform.linux_distribution()
         if dist_name:
-            return [dist_name, dist_version, arch, release, node]
-    return [system, version, arch, release, node]
+            return [dist_name.strip(' '), dist_version, arch, release, node]
+    return [system.strip(' '), version, arch, release, node]
 
 
 def parse_time_of_day(s):
