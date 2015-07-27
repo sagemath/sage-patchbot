@@ -20,6 +20,8 @@ from db import tickets
 from util import (now_str, current_reports, latest_version,
                   compare_version, parse_datetime)
 
+IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
+
 
 def timed_cached_function(refresh_rate=60):
 
@@ -682,7 +684,7 @@ def status_image_path(status):
 
     For example, the result for 'TestsPassed' should be images/green-blob.png
     """
-    return 'images/{}-blob.png'.format(status_colors[status])
+    return IMAGES_DIR + '{}-blob.png'.format(status_colors[status])
 
 
 def create_status_image(status, base=None):
@@ -707,9 +709,9 @@ def create_status_image(status, base=None):
             try:
                 from PIL import Image
                 import numpy
-                if not os.path.exists('images/_cache'):
-                    os.mkdir('images/_cache')
-                path = 'images/_cache/' + ','.join(status_list) + '-blob.png'
+                if not os.path.exists(IMAGES_DIR + '_cache'):
+                    os.mkdir(IMAGES_DIR + '_cache')
+                path = IMAGES_DIR + '_cache/' + ','.join(status_list) + '-blob.png'
                 if not os.path.exists(path):
                     composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
                     height, width, _ = composite.shape
@@ -778,7 +780,7 @@ def favicon():
         sage: favicon()
         ?
     """
-    response = make_response(open('images/%s-blob.png' % status_colors['TestsPassed']).read())
+    response = make_response(open(IMAGES_DIR + '{}-blob.png'.format(status_colors['TestsPassed'])).read())
     response.headers['Content-type'] = 'image/png'
     return response
 
