@@ -49,13 +49,6 @@ def get_patch_url(ticket, patch, raw=True):
         return "%s/attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
 
 
-def get_patch(ticket, patch):
-    """
-    Should be obsolete now that we use git ?
-    """
-    return get_url(get_patch_url(ticket, patch))
-
-
 def scrape(ticket_id, force=False, db=None):
     """
     Scrapes the trac page for ``ticket_id``, updating the database if needed.
@@ -76,6 +69,7 @@ def scrape(ticket_id, force=False, db=None):
         sage: scrape(18033)
     """
     ticket_id = int(ticket_id)
+
     if ticket_id == 0:
         if db is not None:
             db_info = db.lookup_ticket(ticket_id)
@@ -94,10 +88,12 @@ def scrape(ticket_id, force=False, db=None):
             'authors': [],
             'participants': []}
 
+    # hash is defined from the rss of trac page
     rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
-    page_hash = digest(rss)  # hash is defined from the rss of trac page
+    page_hash = digest(rss)
+
+    # First try to use the patchbot database
     if db is not None:
-        # First try to use the patchbot database
         # TODO: perhaps the db caching should be extracted outside of
         # this function...
         db_info = db.lookup_ticket(ticket_id)
@@ -108,18 +104,21 @@ def scrape(ticket_id, force=False, db=None):
     tab = get_url("{}/ticket/{}?format=tab".format(TRAC_URL, ticket_id))
     # short_tab = get_url("%s/query?id=%s&format=tab" % (TRAC_URL, ticket_id))
     tsv = parse_tsv(tab)
-    authors = set()
-    patches = []
 
+    # this part is about finding the authors and it needs work !
+    authors = set()
     git_commit_of_branch = git_commit(tsv['branch'])
     if tsv['branch'].strip():
-        # authors_from_git_branch(base_commit, git_commit_of_branch)
-        # what to take for the base commit ?
-        # TODO: query history
         branch = tsv['branch']
         if branch.startswith('u/'):
             authors.add(branch.split('/')[1])
     authors = list(authors)
+    # use below authors_from_git_branch(base_commit, git_commit_of_branch)
+    # but what to take for the base commit ?
+    authors_fullnames = set()
+    for auth in tsv['author'].split(','):
+        authors_fullnames.add(auth)
+    authors_fullnames = list(authors_fullnames)
 
     data = {
         'id': ticket_id,
@@ -133,14 +132,15 @@ def scrape(ticket_id, force=False, db=None):
         'component': tsv['component'],
         'depends_on': extract_depends_on(tsv),
         'spkgs': extract_spkgs(tsv),
-        'patches': patches,
         'authors': authors,
+        'authors_fullnames': authors_fullnames,
         'participants': extract_participants(rss),
         'git_branch': tsv['branch'],
         'git_repo': TRAC_REPO if tsv['branch'].strip() else None,
         'git_commit': git_commit_of_branch,
         'last_activity': now_str(),
     }
+
     if db is not None:
         db.save_ticket(data)
         db_info = db.lookup_ticket(ticket_id)
@@ -250,6 +250,8 @@ def extract_participants(rss):
     Extracts any participants for a ticket from the html page.
 
     This is done using the rss feed.
+
+    This is used in the trust check code for the moment.
     """
     all = set()
     for item in rss.split('<item>'):

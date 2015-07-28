@@ -67,6 +67,8 @@ def compute_trusted_authors():
     Then 'git' and 'vbraun_spam' are added.
 
     The result is a dict, its keys being the trusted authors.
+
+    This needs work !
     """
     authors = collections.defaultdict(int)
     authors['git'] += 1
@@ -76,6 +78,8 @@ def compute_trusted_authors():
             authors[author] += 1
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket["authors"]:
+            authors[author] += 1
+        for author in ticket.get("authors_fullnames", []):
             authors[author] += 1
     return authors
 
