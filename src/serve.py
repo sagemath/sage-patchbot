@@ -672,6 +672,8 @@ def status_image(status):
     Return the blob image (as a web page) for a single status or a
     concatenation of several ones
 
+    This is for the 'png' icon set.
+
     For example, see http://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
 
     or http://patchbot.sagemath.org/blob/TestsPassed
@@ -682,18 +684,43 @@ def status_image(status):
     return response
 
 
-def status_image_path(status):
+@app.route("/svg/<status>")
+def status_image_svg(status):
+    """
+    Return the blob image (as a web page) for a single status
+
+    This is for the 'svg' icon set.
+
+    For example, see http://patchbot.sagemath.org/blob/BuildFailed
+
+    or http://patchbot.sagemath.org/blob_svg/TestsPassed
+    """
+    path = status_image_path(status, type='svg')
+    response = make_response(open(path).read())
+    response.headers['Content-type'] = 'image/svg+xml'
+    response.headers['Cache-Control'] = 'max-age=3600'
+    return response
+
+
+def status_image_path(status, type='png'):
     """
     Return the blob image address for a single status
 
+    There are two different icon sets : 'png' and 'svg'
+
     For example, the result for 'TestsPassed' should be images/green-blob.png
     """
-    return IMAGES_DIR + '{}-blob.png'.format(status_colors[status])
+    if type == 'png':
+        return IMAGES_DIR + '{}-blob.png'.format(status_colors[status])
+    else:
+        return IMAGES_DIR + 'icon-{}.svg'.format(status)
 
 
 def create_status_image(status, base=None):
     """
     Return a composite blob image for a concatenation of status
+
+    This is for the 'png' icon set.
     """
     if ',' in status:
         status_list = status.split(',')
