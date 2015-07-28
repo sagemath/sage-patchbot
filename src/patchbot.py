@@ -393,7 +393,7 @@ class Patchbot:
         A banner for the patchbot
         """
         s = u'┌─┬──────┐\n'
-        s += u'│░│ ' + u'⊙  ʘ'+ u' │        SageMath patchbot\n'
+        s += u'│░│ ⊙  ʘ │        SageMath patchbot\n'
         s += u'│░│      │\n'
         s += u'│░│ ──── │        version {}\n'.format(self.version())
         s += u'╘═╧══════╛'

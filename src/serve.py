@@ -133,7 +133,7 @@ def trust_check():
 def get_query(args):
     """
     Prepare the precise query for the database.
-    
+
     The result is a dict.
 
     get_query({'participant':'yop'})
