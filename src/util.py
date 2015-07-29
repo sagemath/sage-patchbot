@@ -1,7 +1,10 @@
 import os
 import re
 import subprocess
-import time
+
+from dateutil import parser
+from datetime import datetime
+import pytz
 
 # check_output for Python < 2.7
 
@@ -21,13 +24,28 @@ DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
 
 def now_str():
-    return time.strftime(DATE_FORMAT)
+    """
+    Return the current day and time as a string.
+
+    In [3]: now_str()
+    Out[3]: '2015-07-23 09:00:08 +0200'
+    """
+    return datetime.now(pytz.utc).strftime(DATE_FORMAT)
 
 
 def parse_datetime(s):
-    # The one thing Python can't do is parse dates...
-    tz = 60 * 60 * int(s[-5:].strip()[:-2])
-    return time.mktime(time.strptime(s[:-5].strip(), DATE_FORMAT[:-3])) + tz
+    """
+    Return the number of second since epoch.
+
+    a = '2015-07-23 09:00:08 +0200'
+    In [4]: parse_datetime(a)
+
+    In [6]: b = '2015-07-23T09:00:08+0200'
+    In [7]: parse_datetime(b)
+    """
+    dt = parser.parse(s)
+    epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+    return (dt - epoch).total_seconds()
 
 
 def prune_pending(ticket, machine=None, timeout=None):
@@ -43,14 +61,13 @@ def prune_pending(ticket, machine=None, timeout=None):
         reports = ticket['reports']
     else:
         return []
-    # TODO: is there a better way to handle time zones?
-    now = time.time() + 60 * 60 * int(time.strftime('%z')[:-2])
+    now = datetime.now(pytz.utc)
     for report in list(reports):
         if report['status'] == 'Pending':
-            t = parse_datetime(report['time'])
+            t = parser.parse(report['time'])
             if report['machine'] == machine:
                 reports.remove(report)
-            elif now - t > timeout:
+            elif (now - t).total_seconds() > timeout:
                 reports.remove(report)
     return reports
 
@@ -69,8 +86,9 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     """
     Return list of reports of the ticket optionally filtered by base.
 
-    If unique, add only unique reports. If newer, filter out reports
-    that are older than current base.
+    If unique, add only unique reports.
+
+    If newer, filter out reports that are older than current base.
     """
     if 'reports' not in ticket:
         return []
@@ -122,7 +140,10 @@ def is_git(sage_root):
 
 def git_commit(repo, branch):
     """
-    Note: see also the same function in trac.py
+    Note: see almost the same function in trac.py
+
+    In [16]: git_commit('/home/marlon_brando/sage', 'develop')
+    Out[16]: '7eb8510dacf61b691664cd8f1d2e75e5d473e5a0'
     """
     ref = "refs/heads/{}".format(branch)
     try:
@@ -135,7 +156,7 @@ def git_commit(repo, branch):
 
 def do_or_die(cmd, exn_class=Exception):
     """
-    Run a shell command and report eventual failure.
+    Run a shell command and raise an exception in case of eventual failure.
     """
     print cmd
     res = os.system(cmd)

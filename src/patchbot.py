@@ -3,7 +3,7 @@
 
 ####################################################################
 #
-# This is the main script for the patchbot. It pulls patches from
+# This is the main script for the patchbot. It pulls branches from
 # trac, applies them, and publishes the results of the tests to a
 # server running serve.py.  Configuration is primarily done via an
 # optional conf.txt file passed in as a command line argument.
@@ -243,7 +243,9 @@ def parse_time_of_day(s):
 
 def check_time_of_day(hours):
     """
-    Check that the time is inside the allowed running hours
+    Check that the time is inside the allowed running hours.
+
+    This is with respect to local time.
     """
     from datetime import datetime
     now = datetime.now()
@@ -888,6 +890,7 @@ class Patchbot:
                         "sage_binary": os.path.join(os.getcwd(), 'sage'),
                         "dry_run": self.dry_run,
                     }
+                    # the keyword "patches" is used in plugin commit_messages
 
                     for name, plugin in self.config['plugins']:
                         try:
@@ -1092,7 +1095,6 @@ class Patchbot:
         """
         report = {
             'status': status,
-            'patches': ticket['patches'],
             'deps': ticket['depends_on'],
             'spkgs': ticket['spkgs'],
             'base': self.base,

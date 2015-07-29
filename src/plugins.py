@@ -322,11 +322,11 @@ def raise_statements(ticket, **kwds):
                 msg="Old-style raise statement", **kwds)
 
 
-def commit_messages(ticket, patches, is_git=False, **kwds):
+def commit_messages(ticket, patches, **kwds):
     """
-    Check for the existence of a commit message.
+    Check for the existence of a commit message for every commit.
 
-    This was for patches, obsolete now ?
+    This is now for git only.
     """
     for patch_path in patches:
         patch = os.path.basename(patch_path)
@@ -340,19 +340,6 @@ def commit_messages(ticket, patches, is_git=False, **kwds):
             print ''.join(header[:10])
             raise ValueError("Not a valid patch file: " + patch)
         print ''.join(header)
-        if not is_git:
-            if header[0].strip() != "# HG changeset patch":
-                raise ValueError("Not a mercurial patch file: " + patch)
-            for line in header:
-                if not line.startswith('# '):
-                    # First description line
-                    if line.startswith('[mq]'):
-                        raise ValueError("Mercurial queue boilerplate")
-                    # elif not re.search(r"\b%s\b" % ticket['id'], line):
-                    #     print "Ticket number not in first line of comments: " + patch
-                    break
-            else:
-                raise ValueError("No patch comments:" + patch)
         print
     print "All patches good."
 

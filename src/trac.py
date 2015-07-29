@@ -84,7 +84,6 @@ def scrape(ticket_id, force=False, db=None):
             'component': 'base',
             'depends_on': [],
             'spkgs': [],
-            'patches': [],
             'authors': [],
             'participants': []}
 

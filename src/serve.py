@@ -151,9 +151,6 @@ def get_query(args):
         else:
             query = {'status': status}
 
-        if 'todo' in args:
-            query['patches'] = {'$not': {'$size': 0}}
-            query['spkgs'] = {'$size': 0}
         if 'authors' in args:
             query['authors'] = {'$in': args.get('authors')}
         if 'machine' in args:
@@ -345,7 +342,8 @@ def render_ticket(ticket):
         new_info = {}
         for key, value in info.items():
             if key == 'patches':
-                new_info['patches'] = format_patches(ticket, value)
+                # new_info['patches'] = format_patches(ticket, value)
+                pass
             elif key == 'reports' or key == 'pending':
                 pass
             elif key == 'depends_on':
@@ -400,8 +398,9 @@ def render_ticket(ticket):
             if base_report:
                 item['base_log'] = urllib.quote(log_name(0, base_report))
             if 'patches' in item:
-                required = info['depends_on'] + info['patches']
-                item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
+                pass
+                # required = info['depends_on'] + info['patches']
+                # item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
             if 'git_base' in item:
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
@@ -503,7 +502,7 @@ def post_report(ticket_id):
             ticket['reports'] = []
         report = json.loads(request.form.get('report'))
         assert (isinstance(report, dict)), "report is not a dict"
-        for fld in ['status', 'patches', 'spkgs', 'base', 'machine', 'time']:
+        for fld in ['status', 'spkgs', 'base', 'machine', 'time']:
             assert (fld in report), "{} missing in report".format(fld)
         patchbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
@@ -839,7 +838,7 @@ def get_ticket_status(ticket, base=None, machine=None):
         return len(all), single, composite
     elif ticket['spkgs']:
         return 0, 'Spkg', 'Spkg'
-    elif not ticket['patches'] and not ticket.get('git_commit'):
+    elif not ticket.get('git_commit'):
         return 0, 'NoPatch', 'NoPatch'
     else:
         return 0, 'New', 'New'
