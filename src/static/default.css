@@ -18,3 +18,7 @@ table.wide {width: 100%;}
 	 width: 50%}
 
 ul.nostyle {list-style-type: none}
+
+ul.horizontal {display:inline;}
+
+il.horizontal {padding-left: 1cm;}

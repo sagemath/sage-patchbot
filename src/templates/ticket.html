@@ -31,12 +31,14 @@
 {% for report in reports: %}
 <tr>
 <td>
-<img alt="{{report.status}}" src="/blob/{{report.status}}">
-{{report.base|safe}}
-<a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a>
-{{report.time}}
-<a href='{{report.log}}'>log</a>
-<a href='{{report.log}}?short'>shortlog</a>
+<ul class="horizontal">
+<li><img alt="{{report.status}}" src="/blob/{{report.status}}"></li>
+<li>{{report.base|safe}}</li>
+<li><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></li>
+<li>{{report.time}}</li>
+<li><a href='{{report.log}}'>log</a></li>
+<li><a href='{{report.log}}?short'>shortlog</a></li>
+</ul>
 </td>
 </tr>
 <tr>
