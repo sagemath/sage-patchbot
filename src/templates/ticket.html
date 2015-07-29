@@ -6,16 +6,15 @@
 {% endblock %}
 
 {% block body %}
-
 <h2>
 <img alt="{{status}}" src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">
 {{ticket}}
-</h2>
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">
 {{info.title}}
 </a>
-<br/><br/>
+</h2>
 
+<div>
 <table>
 {% for key, value in sort_fields(info.items()): %}
 <tr>
@@ -24,21 +23,24 @@
 </tr>
 {% endfor %}
 </table>
-<br/>
+</div>
+
 <hr>
-<table style="width:100%">
+
+<table class="wide">
 {% for report in reports: %}
 <tr>
-<td><img alt="{{report.status}}" src="/blob/{{report.status}}"></td>
-<td><b>{{report.status}}</b><br/>{{report.pending_status}}</td>
-<td>{{report.base|safe}}</td>
-<td><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></td>
-<td>{{report.time}}</td>
-<td class='centre'><a href='{{report.log}}'>log</a> <a href='{{report.log}}?short'>shortlog</a></td>
+<td>
+<img alt="{{report.status}}" src="/blob/{{report.status}}">
+{{report.base|safe}}
+<a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a>
+{{report.time}}
+<a href='{{report.log}}'>log</a>
+<a href='{{report.log}}?short'>shortlog</a>
+</td>
 </tr>
 <tr>
-<td colspan=2></td>
-<td colspan=3 style="vertical-align: top;">
+<td class="top">
 {% if 'git_base' in report %}
 Patchbot version: {{report.patchbot_version}}<br/>
 Branch: {{report.git_branch}}<br/>
@@ -49,8 +51,8 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {{report.patch_list|safe}}
 {% endif %}
 </td>
-<td style="vertical-align: top">
-<ul style='list-style-type: none'>
+<td class="top">
+<ul class="nostyle">
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>

@@ -2,11 +2,19 @@
 .left  { text-align: left;}
 .right  { text-align: right;}
 
+td.right {text-align: right; font-weight:bold;}
+
+td.top {vertical-align: top;}
+
 .git_commit {color:#555;
 	     font-size:80%}
+
+table.wide {width: 100%;}
 
 .banner {border: 3px solid #7f7fff;
 	 background: #efefff;
 	 padding: 0.5em;
 	 float: right;
 	 width: 50%}
+
+ul.nostyle {list-style-type: none}
