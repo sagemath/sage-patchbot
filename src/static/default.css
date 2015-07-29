@@ -4,7 +4,8 @@
 
 td.right {text-align: right; font-weight:bold;}
 
-td.top {vertical-align: top;}
+td.top {vertical-align: top;
+	margin-top: 10px}
 
 .git_commit {color:#555;
 	     font-size:80%}
@@ -17,6 +18,7 @@ table.wide {width: 100%;}
 	 float: right;
 	 width: 50%}
 
-ul.nostyle {list-style-type: none}
+ul {list-style-type: none}
 
-il.hori {display:inline;padding-left:10px;}
+li.hori {display:inline;
+	 padding-left:10px;}

@@ -31,7 +31,7 @@
 {% for report in reports: %}
 <tr>
 <td>
-<ul class="nostyle">
+<ul>
 <li class="hori"><img alt="{{report.status}}" src="/blob/{{report.status}}"></li>
 <li class="hori">{{report.base|safe}}</li>
 <li class="hori"><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></li>
@@ -54,7 +54,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {% endif %}
 </td>
 <td class="top">
-<ul class="nostyle">
+<ul>
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
