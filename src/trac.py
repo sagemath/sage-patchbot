@@ -328,6 +328,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
     patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
     """
     merge_failure = False
+    is_safe = False
     try:
         os.chdir(sage_root)
         info = scrape(ticket_id)
