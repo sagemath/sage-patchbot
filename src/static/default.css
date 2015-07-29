@@ -19,6 +19,4 @@ table.wide {width: 100%;}
 
 ul.nostyle {list-style-type: none}
 
-ul.horizontal {display:inline;}
-
-il.horizontal {padding-left: 1cm;}
+il.horizontal {display:inline;padding-left: 10px;}
