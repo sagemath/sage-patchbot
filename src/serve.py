@@ -732,7 +732,9 @@ def create_status_image(status, base=None):
             for ix, status in enumerate(status_list):
                 if status_list[ix] == 'PluginOnlyFailed':
                     status_list[ix] = 'PluginFailed'
-        if len(set(status_list)) == 1:
+        if len(status_list) == 0:
+            path = status_image_path('New')
+        elif len(set(status_list)) == 1:
             status = status_list[0]
             path = status_image_path(status)
         else:
