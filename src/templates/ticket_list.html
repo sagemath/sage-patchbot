@@ -9,6 +9,7 @@
 
 <h1>SageMath Patchbot</h1>
 <img alt="{{base_status[1]}}" src='/blob/{{base_status[1]}}' height=16>
+<img alt="{{base_status[1]}}" src='/svg/{{base_status[1]}}' height=16>
 Results against Sage {{base}}
 (<a href='/ticket/0'>{{base_status[0]}} reports</a>).<br/><br/>
 See results against
@@ -42,6 +43,7 @@ See results against
 {% for status in status_order %}
 <tr>
 <td><img alt="{{status}}" src='/blob/{{status}}' height=16></td>
+<td><img alt="{{status}}" src='/svg/{{status}}' height=16></td>
 <td>{{status}}</td>
 <td>{{summary[status]}}</td>
 </tr>
