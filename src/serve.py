@@ -694,6 +694,11 @@ def status_image_svg(status):
 
     or http://patchbot.sagemath.org/blob_svg/TestsPassed
     """
+    liste = status.split(',')
+    # Only one possible status displayed. Which one to choose ?
+    # stupid choice for the moment
+    if len(liste) > 1:
+        status = liste[0]
     path = status_image_path(status, type='svg')
     response = make_response(open(path).read())
     response.headers['Content-type'] = 'image/svg+xml'
