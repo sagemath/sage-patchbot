@@ -131,7 +131,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                     comparable_version(report_base)))
 
     if ticket['id'] == 0:
-        return [rep for rep in reports if base_ok(report['base'])]
+        return [rep for rep in reports if base_ok(rep['base'])]
 
     # git_commit is not set for ticket 0
     def filtre_fun(report):
