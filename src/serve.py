@@ -68,7 +68,7 @@ def compute_trusted_authors():
 
     The result is a dict, its keys being the trusted authors.
 
-    This needs work !
+    This needs work ! We cannot rely on the branch names!
     """
     authors = collections.defaultdict(int)
     authors['git'] += 1
@@ -316,6 +316,8 @@ def format_patches(ticket, patches, deps=None, required=None):
 def render_ticket(ticket):
     """
     reports on a given ticket
+
+    possible options: ?force and ?kick
     """
     try:
         info = trac.scrape(ticket, db=db, force='force' in request.args)
@@ -459,6 +461,9 @@ def reports_by_machine_and_base(ticket):
 
 @app.route("/ticket/<int:ticket>/status.png")
 def render_ticket_status(ticket):
+    """
+    Return the status image for the given ticket.
+    """
     try:
         if 'fast' in request.args:
             info = tickets.find_one({'id': ticket})
@@ -466,27 +471,23 @@ def render_ticket_status(ticket):
             info = trac.scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
+
     if 'base' in request.args:
         base = request.args.get('base')
     else:
-        base = latest_version(info['reports'] or [])
-    status = get_ticket_status(info, base=base)[2]
+        base = latest_version(info.get('reports', []))
+
+    status = get_ticket_status(info, base=base)[2]  # composite status
+
     if 'fast' in request.args:
         display_base = None
     else:
         display_base = base
+
     response = make_response(create_status_image(status, base=display_base))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'no-cache'
     return response
-
-
-def get_or_set(ticket, key, default):
-    if key in ticket:
-        value = ticket[key]
-    else:
-        value = ticket[key] = default
-    return value
 
 
 @app.route("/report/<int:ticket_id>", methods=['POST'])
@@ -725,6 +726,17 @@ def create_status_image(status, base=None):
     Return a composite blob image for a concatenation of status
 
     This is for the 'png' icon set.
+
+    INPUT:
+
+    - status -- a single or composite status as a single string
+
+    - base -- the base
+
+    EXAMPLES::
+
+        create_status_image('TestsPassed,TestsFailed')
+        create_status_image('NoPatch')
     """
     if ',' in status:
         status_list = status.split(',')
@@ -819,9 +831,8 @@ def favicon():
 
         sage: from serve import favicon
         sage: favicon()
-        ?
     """
-    response = make_response(open(IMAGES_DIR + '{}-blob.png'.format(status_colors['TestsPassed'])).read())
+    response = make_response(open(IMAGES_DIR + 'icon-TestsPassed.png').read())
     response.headers['Content-type'] = 'image/png'
     return response
 
