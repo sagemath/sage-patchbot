@@ -490,6 +490,33 @@ def render_ticket_status(ticket):
     return response
 
 
+@app.route("/ticket/<int:ticket>/status.svg")
+def render_ticket_status_svg(ticket):
+    """
+    Return the svg status image for the given ticket.
+    """
+    try:
+        if 'fast' in request.args:
+            info = tickets.find_one({'id': ticket})
+        else:
+            info = trac.scrape(ticket, db=db)
+    except:
+        info = tickets.find_one({'id': ticket})
+
+    if 'base' in request.args:
+        base = request.args.get('base')
+    else:
+        base = latest_version(info.get('reports', []))
+
+    status = get_ticket_status(info, base=base)[1]  # single status
+
+    path = status_image_path(status, type='svg')
+    response = make_response(open(path).read())
+    response.headers['Content-type'] = 'image/svg+xml'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
 @app.route("/report/<int:ticket_id>", methods=['POST'])
 def post_report(ticket_id):
     """
