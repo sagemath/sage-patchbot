@@ -22,3 +22,13 @@ ul {list-style-type: none}
 
 li.hori {display:inline;
 	 padding-left:10px;}
+
+img.bare {display: block;}
+
+.iconbox {position: relative;
+	  width:48px;height:66px;}
+
+.icontext {position: absolute;
+	   width:100%;
+	   font-size:16px;
+	   text-align:center;}
