@@ -646,11 +646,11 @@ def get_plugin_data(id, plugin_name, timestamp):
             return "Unknown plugin: " + plugin_name
     return "Unknown report: " + timestamp
 
+
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
                 'PluginFailed', 'TestsPassed', 'Pending',
                 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
-# TODO: cleanup old records
-# status_order += ['started', 'applied', 'built', 'tested']
+
 
 status_colors = {'New': 'white',
                  'ApplyFailed': 'red',
@@ -783,6 +783,10 @@ def min_status(status_list):
     Return the minimal status among a list of status.
 
     The order is deduced from a total order encoded in ``status_order``.
+
+    EXAMPLES::
+
+        >>> min_status(['TestsPassed', 'TestsFailed'])
     """
     index = min(status_order.index(status) for status in status_list)
     return status_order[index]
@@ -826,16 +830,24 @@ def get_ticket_status(ticket, base=None, machine=None):
     """
     Return the status of the ticket in the database.
 
-    If ``machine`` is given, only look at this machine's reports
+    INPUT:
 
-    The ``base`` keyword is not used !
+    - ``ticket`` -- dictionary
 
-    Note that Spkg, NoPatch and New are not got from any report.
+    - ``base`` -- keyword passed to ``current_reports``
+
+    - ``machine`` -- if given, only look at this machine's reports
+
+    OUTPUT:
+
+    a triple (number of reports, single status, composite status)
+
+    Note that ``Spkg``, ``NoPatch`` and ``New`` are not got from any report.
     """
     all = current_reports(ticket, base=base)
     if machine is not None:
         all = [r for r in all if r['machine'] == machine]
-    if len(all):
+    if all:
         status_list = [report['status'] for report in all]
         if len(set(status_list)) == 1:
             composite = single = status_list[0]

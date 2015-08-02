@@ -86,10 +86,24 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     """
     Return list of reports of the ticket optionally filtered by base.
 
-    If unique, add only unique reports.
+    INPUT:
 
-    If newer, filter out reports that are older than current base.
+    - ``ticket`` -- dictionary
+
+    - ``base`` -- can be set to 'latest', default ``None``
+
+    - ``unique`` -- boolean, if ``True``, return just one report per machine
+
+    - ``newer`` -- boolean, if ``True``, filter out reports that are older
+      than the given base.
+
+    OUTPUT:
+
+    a list of reports
     """
+    if newer and not base:
+        raise ValueError('newer required but no base given')
+
     if 'reports' not in ticket:
         return []
 
@@ -116,6 +130,10 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 or (newer and comparable_version(base) <=
                     comparable_version(report_base)))
 
+    if ticket['id'] == 0:
+        return [rep for rep in reports if base_ok(report['base'])]
+
+    # git_commit is not set for ticket 0
     def filtre_fun(report):
         return (ticket.get('git_commit') == report.get('git_commit') and
                 ticket['spkgs'] == report['spkgs'] and
@@ -123,7 +141,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 base_ok(report['base']) and
                 first(':'.join(report['machine'])))
 
-    return list(filter(filtre_fun, reports))
+    return [rep for rep in reports if filtre_fun(rep)]
 
 
 def is_git(sage_root):
