@@ -26,7 +26,8 @@ li.hori {display:inline;
 img.bare {display: block;}
 
 .iconbox {position: relative;
-	  width:48px;height:66px;}
+	  width:48px;height:66px;
+	  display:inline-flex;}
 
 .icontext {position: absolute;
 	   width:100%;
