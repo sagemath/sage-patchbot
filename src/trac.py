@@ -251,6 +251,8 @@ def extract_participants(rss):
     This is done using the rss feed.
 
     This is used in the trust check code for the moment.
+
+    This needs work ! In particular to remove people only in cc if possible!
     """
     all = set()
     for item in rss.split('<item>'):
@@ -259,7 +261,8 @@ def extract_participants(rss):
             all.add(who)
     return list(all)
 
-spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
+spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.(spkg|tar\.gz|tar\.bz2)")
+# spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
 
 
@@ -268,6 +271,8 @@ def extract_spkgs(tsv):
     Extracts any spkgs for a ticket from the html page.
 
     Just searches for urls ending in .spkg.
+
+    BEWARE: this seems to work only for old-style spkg !
     """
     return list(set(spkg_url_regex.findall(tsv['description'])))
 
