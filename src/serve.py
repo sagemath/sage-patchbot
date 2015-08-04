@@ -158,6 +158,8 @@ def get_query(args):
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
 
+    query['milestone'] = {'$ne': 'sage-duplicate/invalid/wontfix'}
+
     if 'author' in args:
         query['authors'] = args.get('author')
     if 'participant' in args:
