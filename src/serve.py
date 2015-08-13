@@ -380,7 +380,7 @@ def render_ticket(ticket):
                 trust_check += "'>Check trust</a>) "
                 new_info[key] = trust_check + parts
             elif key == 'git_branch':
-                new_info[key] = '<a href="http://git.sagemath.org/sage.git/log/?h=%s>%s</a>' % (value, value)
+                new_info[key] = '<a href="http://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
             elif key == 'spkgs':
                 new_info[key] = ', '.join("<a href='%s'>%s</a>" % (a, a) for a in value)
             elif isinstance(value, list):
