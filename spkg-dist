@@ -40,12 +40,13 @@ fi
 
 # Format as an spkg.
 rm -rf .git*
-mv README.txt src
+rm -rf .hg*
+mv README.* src
 echo $VERSION > src/version.txt
-cd ..
 
-sage -spkg patchbot-$VERSION
-cp patchbot-$VERSION.spkg $ORIGINAL
+# sage -pkg patchbot-$VERSION
+tar --auto-compress --create --file=patchbot-$VERSION.tar.bz2 src
+cp patchbot-$VERSION.tar.bz2 $ORIGINAL
 
 cd $ORIGINAL
 rm -rf $TMP
