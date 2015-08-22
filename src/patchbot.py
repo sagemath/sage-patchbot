@@ -280,13 +280,15 @@ class Patchbot:
     """
     Main class of the patchbot.
 
-    This can be used in an interactive python or ipython session:
+    This can be used in an interactive python or ipython session.
 
-    >>> from patchbot import Patchbot
-    >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
-    >>> import os
-    >>> os.chdir(P.sage_root)
-    >>> P.test_a_ticket(12345)
+    EXAMPLES::
+
+        >>> from patchbot import Patchbot
+        >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
+        >>> import os
+        >>> os.chdir(P.sage_root)
+        >>> P.test_a_ticket(12345)
 
     How to more or less ban an author: have
 
@@ -993,27 +995,48 @@ class Patchbot:
         return status[state]
 
     def check_spkg(self, spkg):
+        """
+        This is doing a lot of things, but what precisely?
+
+        This is triggered if the ticket has a non-empty "spkgs" field
+
+        INPUT: the full url of the package to be checked.
+
+        EXAMPLES::
+
+            P.check_spkg('http://marcel.proust.fr/enfleurs-2.tar.bz2')
+
+        PROBABLY VERY MUCH OBSOLETE, dating from old style spkg !
+        """
+        basename = os.path.basename(spkg)
+        base = basename.split('-')[0]  # the rest is the version
+        regex = re.compile(r"(?:(.*?)(?:\.spkg|\.tar\.gz|\.tar\.bz2))")
+
+        def cut_sfx(nm):
+            # cutting the suffix away
+            return regex.findall(nm)[0]
+
+        name_and_version = cut_sfx(basename)
+        print "> name and version = {}".format(name_and_version)
         temp_dir = None
         try:
-            if '#' in spkg:
-                spkg = spkg.split('#')[0]
-            basename = os.path.basename(spkg)
             temp_dir = tempfile.mkdtemp()
             local_spkg = os.path.join(temp_dir, basename)
+
             do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
+            print "> Successfully uploaded"
+
             do_or_die("tar xf %s -C %s" % (local_spkg, temp_dir))
+            print "> Successfully unpacked"
+            print "Sha1 of {} is {}".format(basename, sha1file(local_spkg))
 
-            print
-            print "Sha1", basename, sha1file(local_spkg)
-            print
-            print "Checking repo status."
-            do_or_die("cd %s; hg diff; echo $?" % local_spkg[:-5])
-            print
-            print
-            print "Comparing to previous spkg."
+            cwd = os.getcwd()
+            do_or_die("cd {}/{}".format(temp_dir, name_and_version))
+            os.chdir(cwd)
+            print "> Unpacked directory ok"
 
+            print "Now comparing to previous spkg."
             # Compare to the current version.
-            base = basename.split('-')[0]  # the reset is the version
             old_path = old_url = listing = None
             if False:
                 # There seems to be a bug...
@@ -1073,16 +1096,9 @@ class Patchbot:
                 else:
                     do_or_die("tar xf %s -C %s" % (old_path, temp_dir))
                     print '\n\n', '-' * 20
-                    do_or_die("diff -N -u -r -x src -x .hg %s/%s %s/%s; echo $?" % (temp_dir, old_basename[:-5], temp_dir, basename[:-5]))
+                    do_or_die("diff -N -u -r -x src -x .hg %s/%s %s/%s; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
                     print '\n\n', '-' * 20
-                    do_or_die("diff -q -r %s/%s/src %s/%s/src; echo $?" % (temp_dir, old_basename[:-5], temp_dir, basename[:-5]))
-
-            print
-            print "-" * 20
-            if old_path:
-                do_or_die("head -n 100 %s/SPKG.txt" % local_spkg[:-5])
-            else:
-                do_or_die("cat %s/SPKG.txt" % local_spkg[:-5])
+                    do_or_die("diff -q -r %s/%s/src %s/%s/src; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
 
         finally:
             if temp_dir and os.path.exists(temp_dir):
