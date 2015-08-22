@@ -112,11 +112,14 @@ def scrape(ticket_id, force=False, db=None):
         if branch.startswith('u/'):
             authors.add(branch.split('/')[1])
     authors = list(authors)
-    # use below authors_from_git_branch(base_commit, git_commit_of_branch)
-    # but what to take for the base commit ?
+
     authors_fullnames = set()
     for auth in tsv['author'].split(','):
         authors_fullnames.add(auth)
+    # this is not working, because at this point the git branch is not 
+    # present in the local repo !
+    # for auth in authors_from_git_branch(git_commit_of_branch):
+    #     authors_fullnames.add(auth)
     authors_fullnames = list(authors_fullnames)
 
     data = {
@@ -148,9 +151,16 @@ def scrape(ticket_id, force=False, db=None):
         return data
 
 
-def authors_from_git_branch(base_commit, top_commit):
+def authors_from_git_branch(top_commit):
     """
     Return the authors of the code of the given sequence of commits.
+
+    STILL SOME UTF8 problems to solve..
+
+    OUTPUT:
+
+    list of author full names if the branch ``top_commit`` exists locally, and
+    an empty list otherwise
 
     This should be the correct way to find the authors of a ticket !
 
@@ -164,19 +174,22 @@ def authors_from_git_branch(base_commit, top_commit):
 
     but how to map that to trac accounts ??
 
-    ca necessite en plus d'avoir les deux commits dans le git local
-
     EXAMPLES::
 
-        sage: authors_from_git_branch('develop', '18498')
+        sage: authors_from_git_branch('18498')
         {'Fr\xc3\xa9d\xc3\xa9ric C', 'Nathann C'}
-        sage: authors_from_git_branch('develop', '15375')
+        sage: authors_from_git_branch('15375')
         {'Anne S',
          'Daniel B',
          'Fr\xc3\xa9d\xc3\xa9ric C',
          'Mark S',
          'mshi@math'}
     """
+    try:
+        base_commit = subprocess.check_output(['git', 'describe', top_commit, '--abbrev=0',
+                                               '--tags']).strip()
+    except subprocess.CalledProcessError:
+        return []
     git_log = subprocess.check_output(['git', 'log', '--pretty=format:%an',
                                        base_commit + '..' + top_commit])
     return set(git_log.splitlines())
