@@ -306,6 +306,14 @@ def input_output_block(ticket, **kwds):
                 msg="Bad Input/Output blocks", **kwds)
 
 
+def reference_block(ticket, **kwds):
+    """
+    no :: after REFERENCE blocks
+    """
+    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:\s*',
+                msg="Bad Input/Output blocks", **kwds)
+
+
 def doctest_continuation(ticket, **kwds):
     """
     Make sure that doctest continuation use syntax `....:`.

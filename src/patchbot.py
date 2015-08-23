@@ -496,6 +496,7 @@ class Patchbot:
                             "plugins.doctest_continuation",
                             "plugins.raise_statements",
                             "plugins.input_output_block",
+                            "plugins.reference_block",
                             "plugins.triple_colon",
                             # "plugins.trailing_whitespace",
                             "plugins.startup_time",
