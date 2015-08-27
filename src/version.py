@@ -24,12 +24,12 @@ def get_version():
             ver = subprocess.check_output(['git', '--work-tree=' + top,
                                            '--git-dir=' + git_dir,
                                            'describe', '--tags', '--dirty'])
-            return ver.strip()
+            return ver.strip().decode('utf8')
         except:
             pass
     version_file = os.path.join(src_dir, 'version.txt')
     if os.path.exists(version_file):
-        return open(version_file).read().strip()
+        return open(version_file).read().strip().decode('utf8')
     # failure
     return "unknown"
 

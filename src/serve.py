@@ -75,12 +75,12 @@ def compute_trusted_authors():
     authors['vbraun_spam'] += 1
     for ticket in tickets.find({'status': 'closed : fixed'}):
         for author in ticket["authors"]:
-            authors[author] += 1
+            authors[author.strip()] += 1
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket["authors"]:
-            authors[author] += 1
+            authors[author.strip()] += 1
         for author in ticket.get("authors_fullnames", []):
-            authors[author] += 1
+            authors[author.strip()] += 1
     return authors
 
 

@@ -44,9 +44,11 @@ from six.moves import cPickle as pickle
 
 try:
     from urllib2 import urlopen, HTTPError  # python2
+    from urllib import urlencode
 except ImportError:
     from urllib.request import urlopen  # python3
-    from urllib.error import HTTPError  # python3
+    from urllib.error import HTTPError
+    from urllib.parse import urlencode
 
 from optparse import OptionParser
 from http_post_file import post_multipart
@@ -209,18 +211,18 @@ def boundary(name, type):
     """
     if type == 'plugin':
         letter = '='
-        length = '10'
+        length = 10
     elif type == 'plugin_end':
         name = 'end ' + name
         letter = '='
-        length = '10'
+        length = 10
     elif type == 'ticket':
         letter = '='
-        length = '30'
+        length = 30
     elif type == 'spkg':
         letter = '+'
-        length = '10'
-    return ' '.join((letter * length, name, letter * length))
+        length = 10
+    return ' '.join((letter * length, str(name), letter * length))
 
 
 def machine_data():
@@ -287,6 +289,8 @@ def sha1file(path, blocksize=None):
     Return SHA-1 of file.
 
     This is used to check spkgs.
+
+    not working in py3
     """
     if blocksize is None:
         blocksize = 2 ** 16
@@ -296,6 +300,7 @@ def sha1file(path, blocksize=None):
     while len(buf) > 0:
         h.update(buf)
         buf = handle.read(blocksize)
+    handle.close()
     return h.hexdigest()
 
 
@@ -370,8 +375,8 @@ class Patchbot:
            * if it is a tuple or a list, then call write_log for each member of
              that list
 
-        - ``date`` -- (default ``True``) whether to write the date at the begining of
-          the line
+        - ``date`` -- (default ``True``) whether to write the date at the
+          beginning of the line
         """
         if logfile is None:
             logfile = sys.stdout
@@ -384,15 +389,16 @@ class Patchbot:
             for f in logfile:
                 self.write_log(msg, f, date)
             return
-        elif isinstance(logfile, file):
+        else:  # logfile is a file
             close = False
-        else:
-            raise ValueError("logfile = {} must be either None, or a string or a list or a file".format(logfile))
 
-        if date:
-            logfile.write("[{}] ".format(datetime()))
-        logfile.write(msg)
-        logfile.write("\n")
+        try:
+            if date:
+                logfile.write("[{}] ".format(datetime()))
+            logfile.write(msg)
+            logfile.write("\n")
+        except AttributeError:
+            raise ValueError("logfile = {} must be either None, or a string or a list or a file".format(logfile))
 
         if close:
             logfile.close()
@@ -424,7 +430,7 @@ class Patchbot:
         s += u'│░│      │\n'
         s += u'│░│ ──── │        version {}\n'.format(self.version())
         s += u'╘═╧══════╛'
-        return s.encode('utf8')
+        return s
 
     def load_json_from_server(self, path, retry=1):
         """
@@ -439,9 +445,8 @@ class Patchbot:
         while True:
             retry -= 1
             try:
-                handle = urlopen("{}/{}".format(self.server, path), timeout=10)
-                ans = json.load(handle)
-                handle.close()
+                full_str = urlopen("{}/{}".format(self.server, path), timeout=10).read()
+                ans = json.loads(full_str.decode('utf-8'))
                 return ans
             except HTTPError as err:
                 self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
@@ -466,8 +471,7 @@ class Patchbot:
             return self._default_trusted
         except AttributeError:
             self.write_log("Getting trusted author list...", LOG_MAIN)
-            trusted = self.load_json_from_server("trusted", retry=10).keys()
-            trusted += [u'git', u'vbraun_spam']
+            trusted = list(self.load_json_from_server("trusted", retry=10))
             self._default_trusted = set(trusted)
             return self._default_trusted
 
@@ -485,7 +489,7 @@ class Patchbot:
 
         http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
         """
-        path = "ticket/?" + urllib.urlencode({'raw': True,
+        path = "ticket/?" + urlencode({'raw': True,
                                               'query': json.dumps({'id': id})})
         res = self.load_json_from_server(path, retry=3)
         if res:
@@ -1176,7 +1180,7 @@ class Patchbot:
         print("{}: {}".format(ticket['id'], status))
         fields = {'report': json.dumps(report)}
         if os.path.exists(log):
-            files = [('log', 'log', bz2.compress(open(log).read()))]
+            files = [('log', 'log', bz2.compress(open(log).read().encode('utf8')))]
         else:
             files = []
         if not dry_run or status == 'Pending':
