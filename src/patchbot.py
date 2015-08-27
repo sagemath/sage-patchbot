@@ -32,13 +32,21 @@ import subprocess
 import time
 import traceback
 import tempfile
-import cPickle as pickle
 import bz2
-import urllib2
 import urllib
 import json
 import socket
 import pprint
+
+from six.moves import cPickle as pickle
+# import cPickle as pickle  # python2
+# import pickle  # python3
+
+try:
+    from urllib2 import urlopen, HTTPError  # python2
+except ImportError:
+    from urllib.request import urlopen  # python3
+    from urllib.error import HTTPError  # python3
 
 from optparse import OptionParser
 from http_post_file import post_multipart
@@ -431,11 +439,11 @@ class Patchbot:
         while True:
             retry -= 1
             try:
-                handle = urllib2.urlopen("{}/{}".format(self.server, path), timeout=10)
+                handle = urlopen("{}/{}".format(self.server, path), timeout=10)
                 ans = json.load(handle)
                 handle.close()
                 return ans
-            except urllib2.HTTPError as err:
+            except HTTPError as err:
                 self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
@@ -964,7 +972,7 @@ class Patchbot:
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
 
-        except (urllib2.HTTPError, socket.error, ConfigException):
+        except (HTTPError, socket.error, ConfigException):
             # Don't report failure because the network/trac died...
             self.write_log('network failure... skip this ticket', LOG_MAIN)
             t.print_all()
@@ -972,7 +980,7 @@ class Patchbot:
             # Don't try this again for at least an hour.
             self.to_skip[ticket['id']] = time.time() + 60 * 60
             state = 'network_error'
-        except SkipTicket, exn:
+        except SkipTicket as exn:
             self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
             state = 'skipped'
             msg = "Skipping #{} for {} seconds {}"

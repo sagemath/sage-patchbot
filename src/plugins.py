@@ -481,8 +481,8 @@ def startup_time(ticket, loops=5, total_samples=50,
                 status = PluginResult.Failed
             confidence = 1 - float(("%0.1g" if confidence > .9
                                     else "%0.2g") % (1 - confidence))
-            print "With %g%% confidence, startup time %s by at least %0.2g%%" % (
-                100 * confidence, inc_or_dec[increased], 100 * lower_bound)
+            print("With %g%% confidence, startup time %s by at least %0.2g%%" % (
+                100 * confidence, inc_or_dec[increased], 100 * lower_bound))
 
         if not increased:
             confidence_intervals = [(x, -y) for x, y in confidence_intervals]

@@ -1,8 +1,22 @@
 # http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
 
+try:
+    from urllib2 import urlopen, Request, HTTPError  # python2
+except ImportError:
+    from urllib.request import urlopen, Request  # python3
+    from urllib.error import HTTPError  # python3
+
 import mimetypes
-import mimetools
-import urllib2
+# import mimetools  # python 2 only
+import string
+import random
+
+
+def id_generator(size=26, chars=string.ascii_uppercase + string.digits):
+    """
+    substitute for mimetools.choose_boundary()
+    """
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 def post_multipart(url, fields, files):
@@ -17,8 +31,8 @@ def post_multipart(url, fields, files):
     content_type, body = encode_multipart_formdata(fields, files)
     headers = {'Content-Type': content_type,
                'Content-Length': str(len(body))}
-    r = urllib2.Request(url, body, headers)
-    return urllib2.urlopen(r).read()
+    r = Request(url, body, headers)
+    return urlopen(r).read()
 
 
 def encode_multipart_formdata(fields, files):
@@ -29,7 +43,8 @@ def encode_multipart_formdata(fields, files):
 
     Return (content_type, body) ready for httplib.HTTP instance
     """
-    BOUNDARY = mimetools.choose_boundary()
+    # BOUNDARY = mimetools.choose_boundary()
+    BOUNDARY = id_generator()
     CRLF = '\r\n'
     L = []
     if isinstance(fields, dict):

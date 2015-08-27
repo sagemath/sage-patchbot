@@ -3,7 +3,6 @@ TRAC_REPO = "git://trac.sagemath.org/sage.git"
 
 import re
 import hashlib
-import urllib2
 import os
 import sys
 import tempfile
@@ -11,6 +10,11 @@ import traceback
 import time
 import subprocess
 import pprint
+
+try:
+    from urllib2 import urlopen  # python2
+except ImportError:
+    from urllib.request import urlopen  # python3
 
 from util import (do_or_die, now_str, describe_branch,
                   temp_build_suffix, ensure_free_space,
@@ -30,7 +34,7 @@ def get_url(url):
     """
     try:
         url = url.replace(' ', '%20')
-        handle = urllib2.urlopen(url, timeout=15)
+        handle = urlopen(url, timeout=15)
         data = handle.read()
         handle.close()
         return data
@@ -387,7 +391,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
                 if not os.path.exists('logs'):
                     os.mkdir('logs')
                 do_or_die("./sage -i ccache")
-    except Exception, exn:
+    except Exception as exn:
         if merge_failure or (not is_safe):
             raise
         else:
