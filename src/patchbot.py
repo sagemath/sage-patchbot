@@ -445,8 +445,12 @@ class Patchbot:
         while True:
             retry -= 1
             try:
-                full_str = urlopen("{}/{}".format(self.server, path), timeout=10).read()
-                ans = json.loads(full_str.decode('utf-8'))
+                handle = urlopen("{}/{}".format(self.server, path), timeout=10)
+                ans = json.load(handle)
+                handle.close()
+                # python3
+                # full_str = urlopen("{}/{}".format(self.server, path), timeout=10).read()
+                # ans = json.loads(full_str.decode('utf-8'))
                 return ans
             except HTTPError as err:
                 self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
@@ -1180,7 +1184,8 @@ class Patchbot:
         print("{}: {}".format(ticket['id'], status))
         fields = {'report': json.dumps(report)}
         if os.path.exists(log):
-            files = [('log', 'log', bz2.compress(open(log).read().encode('utf8')))]
+            files = [('log', 'log', bz2.compress(open(log).read()))]
+            # files = [('log', 'log', bz2.compress(open(log).read().encode('utf-8')))]  # py3
         else:
             files = []
         if not dry_run or status == 'Pending':
