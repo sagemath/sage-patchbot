@@ -125,7 +125,7 @@ class Tee:
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
-            print datetime()
+            print(datetime())
             self.start_time = time.time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -134,8 +134,9 @@ class Tee:
         if exc_type is not None:
             traceback.print_exc()
         if self.time:
-            print datetime()
-            print int(time.time() - self.start_time), "seconds"
+            print(datetime())
+            msg = "{} seconds".format(int(time.time() - self.start_time))
+            print(msg)
         self.tee.stdin.close()
         time.sleep(1)
         os.dup2(self._saved[0], sys.stdout.fileno())
@@ -173,7 +174,8 @@ class Timer:
         self._history.append((label, elapsed))
 
     def print_time(self, label, elapsed):
-        print label, '--', int(elapsed), 'seconds'
+        msg = '{} -- {} seconds'.format(label, int(elapsed))
+        print(msg)
 
     def print_all(self):
         for label, elapsed in self._history:
@@ -191,13 +193,26 @@ status = {'started': 'ApplyFailed',
           'skipped': 'Pending'}
 
 
-def plugin_boundary(name, end=False):
+def boundary(name, type):
     """
-    Return the text that bounds the plugins in the reports.
+    Return text that bound parts of the reports.
+
+    Type can be 'plugin', 'plugin_end', 'ticket' and 'spkg'
     """
-    if end:
+    if type == 'plugin':
+        letter = '='
+        length = '10'
+    elif type == 'plugin_end':
         name = 'end ' + name
-    return ' '.join(('=' * 10, name, '=' * 10))
+        letter = '='
+        length = '10'
+    elif type == 'ticket':
+        letter = '='
+        length = '30'
+    elif type == 'spkg':
+        letter = '+'
+        length = '10'
+    return ' '.join((letter * length, name, letter * length))
 
 
 def machine_data():
@@ -467,12 +482,12 @@ class Patchbot:
         res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:
-                print 'lookup using json'
+                print('lookup using json')
             return res[0]
         else:
             # trying using trac server instead
             if verbose:
-                print 'lookup using scrape'
+                print('lookup using scrape')
             return scrape(id)
 
     def get_config(self):
@@ -826,13 +841,12 @@ class Patchbot:
                            LOG_MAIN)
             return
 
-        print "\n" * 2
-        print "=" * 30, ticket['id'], "=" * 30
+        print("\n\n")
+        print(boundary(ticket['id'], 'ticket'))
         # title = unicode(ticket['title'], errors='ignore')
-        # print(title)
-        print ticket['title']
-        print "score", rating
-        print "\n" * 2
+        print(ticket['title'])
+        print("score = {}".format(rating))
+        print("\n\n")
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
         self.write_log('#{}: starting tests'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.plugin_only:
@@ -841,16 +855,13 @@ class Patchbot:
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                print self.banner()
+                print(self.banner())
 
                 if ticket['spkgs']:
                     state = 'spkg'
-                    print "\n".join(ticket['spkgs'])
-                    print
+                    print("\n".join(ticket['spkgs']))
                     for spkg in ticket['spkgs']:
-                        print
-                        print '+' * 10, spkg, '+' * 10
-                        print
+                        print(boundary(spkg, 'spkg'))
                         try:
                             self.check_spkg(spkg)
                         except Exception:
@@ -901,7 +912,7 @@ class Patchbot:
                                 baseline = pickle.load(open(os.path.join(self.log_dir, '0', name)))
                             else:
                                 baseline = None
-                            print plugin_boundary(name)
+                            print(boundary(name, 'plugin'))
                             do_or_die("git checkout patchbot/ticket_merged")
                             res = plugin(ticket, is_git=True,
                                          baseline=baseline, **kwds)
@@ -919,13 +930,13 @@ class Patchbot:
                                         os.mkdir(plugin_dir)
                                     pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
                                     passed = res.status == PluginResult.Passed
-                                    print name, res.status
+                                    print("{} {}".format(name, res.status))
                                     plugins_results.append((name, passed,
                                                             res.data))
                             else:
                                 plugins_results.append((name, passed, None))
                             t.finish(name)
-                            print plugin_boundary(name, end=True)
+                            print(boundary(name, 'plugin_end'))
                     plugins_passed = all(passed for (name, passed, data)
                                          in plugins_results)
                     self.report_ticket(ticket, status='Pending', log=log,
@@ -955,7 +966,6 @@ class Patchbot:
 
         except (urllib2.HTTPError, socket.error, ConfigException):
             # Don't report failure because the network/trac died...
-            print
             self.write_log('network failure... skip this ticket', LOG_MAIN)
             t.print_all()
             traceback.print_exc()
@@ -1022,25 +1032,25 @@ class Patchbot:
             return regex.findall(nm)[0]
 
         name_and_version = cut_sfx(basename)
-        print "> name and version = {}".format(name_and_version)
+        print("> name and version = {}".format(name_and_version))
         temp_dir = None
         try:
             temp_dir = tempfile.mkdtemp()
             local_spkg = os.path.join(temp_dir, basename)
 
             do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
-            print "> Successfully uploaded"
+            print("> Successfully uploaded")
 
             do_or_die("tar xf %s -C %s" % (local_spkg, temp_dir))
-            print "> Successfully unpacked"
-            print "Sha1 of {} is {}".format(basename, sha1file(local_spkg))
+            print("> Successfully unpacked")
+            print("Sha1 of {} is {}".format(basename, sha1file(local_spkg)))
 
             cwd = os.getcwd()
             do_or_die("cd {}/{}".format(temp_dir, name_and_version))
             os.chdir(cwd)
-            print "> Unpacked directory ok"
+            print("> Unpacked directory ok")
 
-            print "Now comparing to previous spkg."
+            print("Now comparing to previous spkg.")
             # Compare to the current version.
             old_path = old_url = listing = None
             if False:
@@ -1066,7 +1076,7 @@ class Patchbot:
                         old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, p.match.group(1))
                         break
                     else:
-                        print "No previous match."
+                        print("No previous match.")
                         break
             else:
                 p = subprocess.Popen(r"%s/sage -i --info %s" % (self.sage_root, base),
@@ -1084,7 +1094,7 @@ class Patchbot:
                         old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
                         break
                 if not old_path and not old_url:
-                    print "Unable to locate existing package %s." % base
+                    print("Unable to locate existing package %s." % base)
 
             if old_path is not None and old_path.startswith('/attachment/'):
                 old_url = 'git://trac.sagemath.org/sage_trac' + old_path
@@ -1097,12 +1107,10 @@ class Patchbot:
             if old_path is not None:
                 old_basename = os.path.basename(old_path)
                 if old_basename == basename:
-                    print "PACKAGE NOT RENAMED"
+                    print("PACKAGE NOT RENAMED")
                 else:
                     do_or_die("tar xf %s -C %s" % (old_path, temp_dir))
-                    print '\n\n', '-' * 20
                     do_or_die("diff -N -u -r -x src -x .hg %s/%s %s/%s; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
-                    print '\n\n', '-' * 20
                     do_or_die("diff -q -r %s/%s/src %s/%s/src; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
 
         finally:
@@ -1153,16 +1161,16 @@ class Patchbot:
                                               " dry_run" if dry_run else ""),
                            [LOG_MAIN, LOG_MAIN_SHORT])
 
-        print "REPORT"
+        print("REPORT")
         pprint.pprint(report)
-        print ticket['id'], status
+        print("{}: {}".format(ticket['id'], status))
         fields = {'report': json.dumps(report)}
         if os.path.exists(log):
             files = [('log', 'log', bz2.compress(open(log).read()))]
         else:
             files = []
         if not dry_run or status == 'Pending':
-            print post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files)
+            print(post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files))
 
     def git_commit(self, branch):
         return git_commit(self.sage_root, branch)
@@ -1228,7 +1236,7 @@ def main(args):
         sys.exit(0)
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
-        print "WARNING: Do not use this copy of sage while the patchbot is running."
+        print("WARNING: Do not use this copy of sage while the patchbot is running.")
     ensure_free_space(options.sage_root)
 
     if conf['use_ccache']:
@@ -1244,18 +1252,19 @@ def main(args):
         if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
             if res not in ('TestsPassed', 'PluginOnly'):
-                print "\n\n"
-                print "Current base:", conf['base_repo'], conf['base_branch']
+                print("\n\n")
+                print("Current base: {} {}".format(conf['base_repo'],
+                                                   conf['base_branch']))
                 if not options.interactive:
-                    print "Failing tests in your base install: exiting."
+                    print("Failing tests in your base install: exiting.")
                     sys.exit(1)
                 while True:
-                    print "Failing tests in your base install: %s. Continue anyways? [y/N] " % res
+                    print("Failing tests in your base install: %s. Continue anyways? [y/N] " % res)
                     try:
                         ans = sys.stdin.readline().lower().strip()
                     except IOError:
                         # Might not be interactive.
-                        print "Non interactive, not continuing."
+                        print("Non interactive, not continuing.")
                         ans = 'n'
                     if ans == '' or ans[0] == 'n':
                         sys.exit(1)
