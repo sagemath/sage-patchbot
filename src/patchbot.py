@@ -970,7 +970,11 @@ class Patchbot:
                                       exn.seconds_till_retry, exn),
                            LOG_MAIN)
         except Exception:
+            msg = "An exception has been raised during the test of #{}"
+            self.write_log(msg.format(ticket['id']),
+                           LOG_MAIN)
             traceback.print_exc()
+            self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
         except:
             # Don't try this again for a while.
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60

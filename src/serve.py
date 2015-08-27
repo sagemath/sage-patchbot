@@ -193,6 +193,7 @@ def ticket_list():
         base = 'latest'
     all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
+        # raw json file for communication with patchbot clients
         def filter_reports(all):
             for ticket in all:
                 current = sorted(current_reports(ticket),
@@ -210,6 +211,7 @@ def ticket_list():
                                             indent=indent))
         response.headers['Content-type'] = 'text/plain'
         return response
+
     summary = {key: 0 for key in status_order}
 
     def preprocess(all):
