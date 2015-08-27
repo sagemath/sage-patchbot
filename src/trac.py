@@ -114,13 +114,13 @@ def scrape(ticket_id, force=False, db=None):
     if tsv['branch'].strip():
         branch = tsv['branch']
         if branch.startswith('u/'):
-            authors.add(branch.split('/')[1])
+            authors.add((branch.split('/')[1]).strip())
     authors = list(authors)
 
     authors_fullnames = set()
     for auth in tsv['author'].split(','):
-        authors_fullnames.add(auth)
-    # this is not working, because at this point the git branch is not 
+        authors_fullnames.add(auth.strip())
+    # this is not working, because at this point the git branch is not
     # present in the local repo !
     # for auth in authors_from_git_branch(git_commit_of_branch):
     #     authors_fullnames.add(auth)
