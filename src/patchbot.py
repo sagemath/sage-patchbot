@@ -1038,6 +1038,7 @@ class Patchbot:
             temp_dir = tempfile.mkdtemp()
             local_spkg = os.path.join(temp_dir, basename)
 
+            # TODO: use here instead sage-upload-file
             do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
             print("> Successfully uploaded")
 
@@ -1102,6 +1103,7 @@ class Patchbot:
                 old_basename = os.path.basename(old_url)
                 old_path = os.path.join(temp_dir, old_basename)
                 if not os.path.exists(old_path):
+                    # TODO: use here instead sage-upload-file
                     do_or_die("wget --progress=dot:mega %s -O %s" % (old_url,
                                                                      old_path))
             if old_path is not None:
