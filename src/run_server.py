@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+
+WARNING: THIS IS OBSOLETE, NOW THE SERVER IS STARTED USING 'serve.wsgi'
+
+"""
 
 import os
 import signal
@@ -6,7 +11,12 @@ import subprocess
 import sys
 import time
 import traceback
-import urllib2
+
+try:
+    from urllib2 import urlopen, URLError  # python2
+except ImportError:
+    from urllib.request import urlopen  # python3
+    from urllib.error import URLError
 
 if not hasattr(subprocess.Popen, 'send_signal'):
     def send_signal(self, sig):
@@ -44,11 +54,11 @@ try:
         else:
             try:
                 print("Testing url...")
-                urllib2.urlopen("http://patchbot.sagemath.org/",
+                urlopen("http://patchbot.sagemath.org/",
                                 timeout=HTTP_TIMEOUT)
                 print("    ...good")
                 restart = False
-            except urllib2.URLError, e:
+            except URLError as e:
                 msg = "    ...bad {}".format(e)
                 print(msg)
                 restart = True

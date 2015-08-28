@@ -46,10 +46,7 @@ def git_rev_list(ticket, **kwds):
         print("only in base ({})".format(base_only))
         base = describe_branch('patchbot/ticket_upstream', tag_only=True)
         do_or_die("git diff --stat %s..patchbot/ticket_upstream" % base)
-        print
         do_or_die("git log --oneline %s..patchbot/ticket_upstream" % base)
-        print
-        print
         do_or_die("git log %s..patchbot/ticket_upstream" % base)
 
 
@@ -105,7 +102,6 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
     current[None] = total_docs, total_funcs
     if baseline:
-        print
         if baseline[None] == current[None]:
             print("Coverage remained unchanged.")
         else:
@@ -118,7 +114,6 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
     if baseline:
         print("=" * 20)
-    print
     print(all)
 
     return PluginResult(status, baseline=current, data=data)
@@ -354,7 +349,6 @@ def commit_messages(ticket, patches, **kwds):
             print(''.join(header[:10]))
             raise ValueError("Not a valid patch file: " + patch)
         print(''.join(header))
-        print
     print("All patches good.")
 
 
@@ -367,9 +361,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # Print out all the modules imported at startup.
     modules = subprocess.check_output([sage_binary, "-c", r"print '\n'.join(sorted(sys.modules.keys()))"]).split('\n')
 
-    print
     print("Total count: {}".format(len(modules)))
-    print
     if baseline is None:
         status = PluginResult.Passed
         data = {}
@@ -495,7 +487,6 @@ def startup_time(ticket, loops=5, total_samples=50,
         return PluginResult(status, data=data)
 
     finally:
-        print
         do_or_die(choose_ticket)
 
 

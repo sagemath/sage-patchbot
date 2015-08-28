@@ -5,13 +5,18 @@ import json
 import traceback
 import re
 import collections
-import urllib
 import time
 import difflib
-
-from cStringIO import StringIO
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
+
+from six.moves import cStringIO
+
+try:
+    from urllib import quote
+except ImportError:
+    from urllib.parse import quote
+
 import trac
 import patchbot
 import db
@@ -45,7 +50,7 @@ def timed_cached_function(refresh_rate=60):
 def latest_base(betas=False):
     versions = list(db.tickets.find({'id': 0}).distinct('reports.base'))
     if not betas:
-        versions = filter(re.compile(r'[0-9.]+$').match, versions)
+        versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
     versions.sort(compare_version)
     return versions[-1]
 
@@ -415,7 +420,7 @@ def render_ticket(ticket):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
-                item['base_log'] = urllib.quote(log_name(0, base_report))
+                item['base_log'] = quote(log_name(0, base_report))
             if 'patches' in item:
                 pass
                 # required = info['depends_on'] + info['patches']
@@ -582,7 +587,7 @@ def shorten(lines):
     from patchbot import boundary
     plugin_start = re.compile(boundary('.*', 'plugin'))
     plugin_end = re.compile(boundary('.*', 'plugin_end'))
-    for line in StringIO(lines):
+    for line in cStringIO(lines):
         if line.startswith('='):
             if plugin_end.match(line):
                 if prev:
@@ -628,7 +633,7 @@ def extract_plugin_log(data, plugin):
     end = boundary(plugin, 'plugin_end') + "\n"
     all = []
     include = False
-    for line in StringIO(data):
+    for line in cStringIO(data):
         if line == start:
             include = True
         if include:
@@ -814,7 +819,7 @@ def create_status_image(status, base=None):
                         end = (ix + 1) * width / len(status_list)
                         composite[:, start:end, :] = slice[:, start:end, :]
                     Image.fromarray(composite, 'RGBA').save(path)
-            except ImportError, exn:
+            except ImportError as exn:
                 print(exn)
                 status = min_status(status_list)
                 path = status_image_path(status)
@@ -825,7 +830,7 @@ def create_status_image(status, base=None):
             from PIL import Image, ImageDraw
             im = Image.open(path)
             ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
-            output = StringIO()
+            output = cStringIO()
             im.save(output, format='png')
             return output.getvalue()
         except ImportError:
