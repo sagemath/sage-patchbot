@@ -3,8 +3,8 @@ import re
 import subprocess
 
 from dateutil import parser
+from dateutil.tz import tzutc
 from datetime import datetime
-import pytz
 
 # check_output for Python < 2.7
 
@@ -21,39 +21,45 @@ if "check_output" not in subprocess.__dict__:  # duck punch it in!
 temp_build_suffix = "-sage-git-temp-"
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
+EPOCH = datetime(1970, 1, 1, tzinfo=tzutc())  # in the UTC timezone
 
 
 def now_str():
     """
     Return the current day and time as a string.
 
+    in the UTC timezone
+
     In [3]: now_str()
-    Out[3]: '2015-07-23 09:00:08 +0200'
+    Out[3]: '2015-07-23 09:00:08 +0000'
     """
-    return datetime.now(pytz.utc).strftime(DATE_FORMAT)
+    return datetime.now(tzutc()).strftime(DATE_FORMAT)
 
 
 def parse_datetime(s):
     """
-    Return the number of second since epoch.
+    Return the number of seconds since ``epoch``.
 
-    a = '2015-07-23 09:00:08 +0200'
+    The input s is assumed to be in utc timezone !
+
+    In [3]: a = '2015-07-23 09:00:08 +0200'
     In [4]: parse_datetime(a)
 
     In [6]: b = '2015-07-23T09:00:08+0200'
     In [7]: parse_datetime(b)
     """
     dt = parser.parse(s)
-    epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
-    return (dt - epoch).total_seconds()
+    return (dt - EPOCH).total_seconds()
 
 
 def prune_pending(ticket, machine=None, timeout=None):
     """
-    Remove pending reports from ``ticket.reports`` if ``machine`` is matched
-    and ``report.time`` is longer than ``timeout`` old.
+    Remove pending reports from ``ticket.reports``.
 
-    ``timeout`` is currently set to 6 hours by default
+    A pending report is removed if ``machine`` is matched
+    or ``report.time`` is longer than ``timeout`` old.
+
+    The ``timeout`` is currently set to 6 hours by default
     """
     if timeout is None:
         timeout = 6 * 60 * 60
@@ -61,7 +67,7 @@ def prune_pending(ticket, machine=None, timeout=None):
         reports = ticket['reports']
     else:
         return []
-    now = datetime.now(pytz.utc)
+    now = datetime.now(tzutc())  # in the utc timezone
     for report in list(reports):
         if report['status'] == 'Pending':
             t = parser.parse(report['time'])
@@ -120,7 +126,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
         first = lambda x: True
 
     reports = list(ticket['reports'])
-    reports.sort(key=lambda a: a['time'])
+    reports.sort(key=lambda a: parse_datetime(a['time']))
 
     if base == 'latest':
         base = latest_version(reports)

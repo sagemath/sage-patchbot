@@ -50,10 +50,13 @@ except ImportError:
     from urllib.error import HTTPError
     from urllib.parse import urlencode
 
+from datetime import datetime
+from dateutil.tz import tzlocal
+
 from optparse import OptionParser
 from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
-from util import (now_str as datetime, prune_pending, do_or_die,
+from util import (now_str, prune_pending, do_or_die,
                   get_version, current_reports, git_commit,
                   describe_branch, compare_version, temp_build_suffix,
                   ensure_free_space,
@@ -135,7 +138,7 @@ class Tee:
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
-            print(datetime())
+            print(now_str())
             self.start_time = time.time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -144,7 +147,7 @@ class Tee:
         if exc_type is not None:
             traceback.print_exc()
         if self.time:
-            print(datetime())
+            print(now_str())
             msg = "{} seconds".format(int(time.time() - self.start_time))
             print(msg)
         self.tee.stdin.close()
@@ -272,8 +275,7 @@ def check_time_of_day(hours):
 
     This is with respect to local time.
     """
-    from datetime import datetime
-    now = datetime.now()
+    now = datetime.now(tzlocal())
     hour = now.hour + now.minute / 60.
     for start, end in parse_time_of_day(hours):
         if start < end:
@@ -394,7 +396,7 @@ class Patchbot:
 
         try:
             if date:
-                logfile.write("[{}] ".format(datetime()))
+                logfile.write("[{}] ".format(now_str()))
             logfile.write(msg)
             logfile.write("\n")
         except AttributeError:
@@ -579,7 +581,7 @@ class Patchbot:
                            for name in conf["plugins"]]
 
         self.delete_log(LOG_CONFIG)
-        self.write_log("Configuration for the patchbot\n{}\n".format(datetime()), LOG_CONFIG, False)
+        self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
         self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
 
         if self.to_skip:
@@ -1147,7 +1149,7 @@ class Patchbot:
             'base': self.base,
             'user': self.config['user'],
             'machine': self.config['machine'],
-            'time': datetime(),
+            'time': now_str(),
             'plugins': plugins,
             'patchbot_version': self._version,
         }
