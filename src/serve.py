@@ -10,7 +10,11 @@ import difflib
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
 
-from six.moves import cStringIO
+# from six.moves import cStringIO
+try:
+    from cStringIO import StringIO  # python2
+except ImportError:
+    from io import StringIO  #python3
 
 try:
     from urllib import quote

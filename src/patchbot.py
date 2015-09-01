@@ -38,9 +38,11 @@ import json
 import socket
 import pprint
 
-from six.moves import cPickle as pickle
-# import cPickle as pickle  # python2
-# import pickle  # python3
+# from six.moves import cPickle as pickle
+try:
+    import cPickle as pickle  # python2
+except ImportError:
+    import pickle  # python3
 
 try:
     from urllib2 import urlopen, HTTPError  # python2
