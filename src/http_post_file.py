@@ -1,10 +1,9 @@
 # http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
 
 try:
-    from urllib2 import urlopen, Request, HTTPError  # python2
+    from urllib2 import urlopen, Request  # python2
 except ImportError:
     from urllib.request import urlopen, Request  # python3
-    from urllib.error import HTTPError  # python3
 
 import mimetypes
 # import mimetools  # python 2 only

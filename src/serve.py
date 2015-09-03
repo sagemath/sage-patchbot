@@ -14,7 +14,7 @@ from flask import Flask, render_template, make_response, request, Response
 try:
     from cStringIO import StringIO  # python2
 except ImportError:
-    from io import StringIO  #python3
+    from io import StringIO  # python3
 
 try:
     from urllib import quote
@@ -591,7 +591,7 @@ def shorten(lines):
     from patchbot import boundary
     plugin_start = re.compile(boundary('.*', 'plugin'))
     plugin_end = re.compile(boundary('.*', 'plugin_end'))
-    for line in cStringIO(lines):
+    for line in StringIO(lines):
         if line.startswith('='):
             if plugin_end.match(line):
                 if prev:
@@ -637,7 +637,7 @@ def extract_plugin_log(data, plugin):
     end = boundary(plugin, 'plugin_end') + "\n"
     all = []
     include = False
-    for line in cStringIO(data):
+    for line in StringIO(data):
         if line == start:
             include = True
         if include:
@@ -834,7 +834,7 @@ def create_status_image(status, base=None):
             from PIL import Image, ImageDraw
             im = Image.open(path)
             ImageDraw.Draw(im).text((5, 20), base.replace("alpha", "a").replace("beta", "b"), fill='#FFFFFF')
-            output = cStringIO()
+            output = StringIO()
             im.save(output, format='png')
             return output.getvalue()
         except ImportError:

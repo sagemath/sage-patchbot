@@ -446,7 +446,7 @@ def startup_time(ticket, loops=5, total_samples=50,
         print("Main:   %0.5g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1))
         print("Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2))
         print("Average %s of %0.2g secs or %0.2g%%." % (
-        inc_or_dec[increased][:-1], diff, 100 * diff / base))
+              inc_or_dec[increased][:-1], diff, 100 * diff / base))
         print("Using the Mann-Whitney U test to determine significance.")
 
         if increased:

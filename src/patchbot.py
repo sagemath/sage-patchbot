@@ -33,7 +33,6 @@ import time
 import traceback
 import tempfile
 import bz2
-import urllib
 import json
 import socket
 import pprint
@@ -498,7 +497,7 @@ class Patchbot:
         http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
         """
         path = "ticket/?" + urlencode({'raw': True,
-                                              'query': json.dumps({'id': id})})
+                                       'query': json.dumps({'id': id})})
         res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:

@@ -54,8 +54,7 @@ try:
         else:
             try:
                 print("Testing url...")
-                urlopen("http://patchbot.sagemath.org/",
-                                timeout=HTTP_TIMEOUT)
+                urlopen("http://patchbot.sagemath.org/", timeout=HTTP_TIMEOUT)
                 print("    ...good")
                 restart = False
             except URLError as e:
