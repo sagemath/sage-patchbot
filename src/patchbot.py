@@ -1066,11 +1066,6 @@ class Patchbot:
             print("> Successfully unpacked")
             print("Sha1 of {} is {}".format(basename, sha1file(local_spkg)))
 
-            cwd = os.getcwd()
-            do_or_die("cd {}/{}".format(temp_dir, name_and_version))
-            os.chdir(cwd)
-            print("> Unpacked directory ok")
-
             print("Now comparing to previous spkg.")
             # Compare to the current version.
             old_path = old_url = listing = None
