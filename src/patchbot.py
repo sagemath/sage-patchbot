@@ -1288,7 +1288,7 @@ def main(args):
                     elif ans[0] == 'y':
                         break
 
-    for k in xrange(count):
+    for k in range(count):
         if options.cleanup:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):

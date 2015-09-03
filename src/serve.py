@@ -61,11 +61,6 @@ def latest_base(betas=False):
 app = Flask(__name__)
 
 
-@app.route("/reports")
-def reports():
-    pass
-
-
 def compute_trusted_authors():
     """
     Define the trusted authors.
