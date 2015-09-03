@@ -38,7 +38,7 @@
 <tr>
 <td colspan="2">
 <ul>
-<li class="hori"><img alt="{{report.status}}" src="/blob/{{report.status}}"></li>
+<!--<li class="hori"><img alt="{{report.status}}" src="/blob/{{report.status}}"></li>-->
 <li class="hori"><img alt="{{report.status}}" width="48px" src="/svg/{{report.status}}"></li>
 <li class="hori">{{report.status}}</li>
 <li class="hori">{{report.base|safe}}</li>
@@ -66,7 +66,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
-<img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">
+<!--<img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">-->
 <img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/svg/{{['PluginOnlyFailed', 'PluginOnly'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
