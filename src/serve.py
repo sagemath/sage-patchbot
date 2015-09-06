@@ -51,7 +51,7 @@ def timed_cached_function(refresh_rate=60):
 
 
 @timed_cached_function()
-def latest_base(betas=False):
+def latest_base(betas=True):
     versions = list(db.tickets.find({'id': 0}).distinct('reports.base'))
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
@@ -144,11 +144,22 @@ def get_query(args):
     """
     Prepare the precise query for the database.
 
-    The result is a dict.
+    The result is a mongo-query dict.
+
+    Allowed keywords are:
+
+    - status
+    - authors
+    - author
+    - participant
+    - machine
+    - ticket
+    - base
 
     get_query({'participant':'yop'})
     """
     if 'query' in args:
+        # already formatted for mongo
         query = json.loads(args.get('query'))
     else:
         status = args.get('status', 'needs_review')
@@ -163,17 +174,24 @@ def get_query(args):
 
         if 'authors' in args:
             query['authors'] = {'$in': args.get('authors')}
+        elif 'author' in args:
+            query['authors'] = args.get('author')
+
+        if 'participant' in args:
+            query['participants'] = args.get('participant')
+
         if 'machine' in args:
             query['reports.machine'] = args['machine'].split(':')
+
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
 
+        if 'base' in args:
+            if not(base == 'all' or base == 'latest'):
+                query['reports.base'] = base
+
     query['milestone'] = {'$ne': 'sage-duplicate/invalid/wontfix'}
 
-    if 'author' in args:
-        query['authors'] = args.get('author')
-    if 'participant' in args:
-        query['participants'] = args.get('participant')
     print(query)
     return query
 
@@ -193,14 +211,16 @@ def ticket_list():
         order = request.args.get('order')
     else:
         order = 'last_activity'
-    limit = int(request.args.get('limit', 10000))
+    limit = int(request.args.get('limit', 1000))
     print(query)
+
     if 'base' in request.args:
         base = request.args.get('base')
         if base == 'all':
             base = None
     else:
         base = 'latest'
+
     all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
@@ -232,11 +252,17 @@ def ticket_list():
                                          if r['status'] == 'Pending'])
             summary[ticket['report_status']] += 1
             yield ticket
+
     ticket0 = db.lookup_ticket(0)
+    base_status = get_ticket_status(ticket0, base)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
-    return render_template("ticket_list.html", tickets=preprocess(all), summary=summary, base=base, base_status=get_ticket_status(db.lookup_ticket(0), base), versions=versions, status_order=status_order, compare_version=compare_version)
+
+    return render_template("ticket_list.html", tickets=preprocess(all),
+                           summary=summary, base=base, base_status=base_status,
+                           versions=versions, status_order=status_order,
+                           compare_version=compare_version)
 
 
 class MachineStats:
