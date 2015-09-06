@@ -187,7 +187,7 @@ def get_query(args):
             query['id'] = int(args['ticket'])
 
         if 'base' in args:
-            base = args.get['base']
+            base = args.get('base')
             if not(base == 'all' or base == 'latest'):
                 query['reports.base'] = base
 
