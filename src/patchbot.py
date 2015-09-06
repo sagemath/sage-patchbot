@@ -65,6 +65,8 @@ from util import (now_str, prune_pending, do_or_die,
 import version as patchbot_version
 from plugins import PluginResult
 
+from trac_server import TracServer, Config
+
 # name of the log files
 LOG_RATING = 'rating.log'
 LOG_RATING_SHORT = 'rating_summary.txt'
@@ -332,6 +334,7 @@ class Patchbot:
 
         self.sage_root = sage_root
         self.server = server
+        self.trac_server = TracServer(Config())
         self.base = get_version(sage_root)
         self.dry_run = dry_run
         self.plugin_only = plugin_only

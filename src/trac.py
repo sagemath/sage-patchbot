@@ -20,6 +20,21 @@ from util import (do_or_die, now_str, describe_branch,
                   temp_build_suffix, ensure_free_space,
                   ConfigException, SkipTicket)
 
+try:
+    # Python 3.3+
+    from xmlrpc.client import ServerProxy
+    from digest_transport import DigestTransport
+    from urllib import parse as url_parse
+except ImportError:
+    # Python 2.7
+    from xmlrpclib import ServerProxy
+    from digest_transport_py2 import DigestTransport
+    from urllib2 import urlparse as url_parse
+
+
+from cached_property import cached_property
+from trac_ticket import TracTicket
+
 
 def digest(s):
     """
@@ -55,18 +70,21 @@ def get_patch_url(ticket, patch, raw=True):
 
 def scrape(ticket_id, force=False, db=None):
     """
-    Scrapes the trac page for ``ticket_id``, updating the database if needed.
+    Return available information about given ticket
+    from the patchbot database, and update this information if necessary.
 
-    If force is ``True``, it will update the database even if the page hash is
-    unchanged.
+    The information is either taken from the patchbot database,
+    or obtained from the trac database.
+
+    If the trac-ticket-info has changed since the last update of the
+    patchbot-ticket-info, then the patchbot-ticket-info is refreshed.
+
+    If ``force`` is ``True``, it will update the patchbot-ticket-info
+    even if the trac-ticket-info has not changed.
 
     OUTPUT:
 
     a dictionary
-
-    This fails if some field contains a TAB character !
-
-    This does not like the unicode titles !
 
     EXAMPLES::
 
@@ -104,21 +122,25 @@ def scrape(ticket_id, force=False, db=None):
             return db_info
 
     # nothing in the database, now fetch the info from trac server
-    tab = get_url("{}/ticket/{}?format=tab".format(TRAC_URL, ticket_id))
-    # short_tab = get_url("%s/query?id=%s&format=tab" % (TRAC_URL, ticket_id))
-    tsv = parse_tsv(tab)
+
+    # obsolete TSV communication
+    # tab = get_url("{}/ticket/{}?format=tab".format(TRAC_URL, ticket_id))
+    # tsv = parse_tsv(tab)
+
+    trac_server = TracServer(Config())
+    tsv = trac_server.load(ticket_id)
 
     # this part is about finding the authors and it needs work !
     authors = set()
-    git_commit_of_branch = git_commit(tsv['branch'])
-    if tsv['branch'].strip():
-        branch = tsv['branch']
+    git_commit_of_branch = git_commit(tsv.branch)
+    if tsv.branch:
+        branch = tsv.branch
         if branch.startswith('u/'):
             authors.add((branch.split('/')[1]).strip())
     authors = list(authors)
 
     authors_fullnames = set()
-    for auth in tsv['author'].split(','):
+    for auth in tsv.author.split(','):
         author = auth.strip()
         if author:
             authors_fullnames.add(author)
@@ -130,21 +152,20 @@ def scrape(ticket_id, force=False, db=None):
 
     data = {
         'id': ticket_id,
-        'title': tsv['summary'],
+        'title': tsv.title,
         'page_hash': page_hash,
-        'status': tsv['status'],
-        'resolution': tsv['resolution'],
-        'milestone': tsv['milestone'],
-        'merged': tsv['merged'],
-        'priority': tsv['priority'],
-        'component': tsv['component'],
-        'depends_on': extract_depends_on(tsv),
-        'spkgs': extract_spkgs(tsv),
+        'status': tsv.status,
+        'resolution': tsv.resolution,  # not available ?
+        'milestone': tsv.milestone,
+        'priority': tsv.priority,
+        'component': tsv.component,
+        'depends_on': tsv.dependencies,
+        'spkgs': extract_spkgs(tsv.description),
         'authors': authors,
         'authors_fullnames': authors_fullnames,
         'participants': extract_participants(rss),
-        'git_branch': tsv['branch'],
-        'git_repo': TRAC_REPO if tsv['branch'].strip() else None,
+        'git_branch': tsv.branch,
+        'git_repo': TRAC_REPO if tsv.branch.strip() else None,
         'git_commit': git_commit_of_branch,
         'last_activity': now_str(),
     }
@@ -286,15 +307,14 @@ spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)).*?\.(?:spkg|ta
 #spkg_url_regex = re.compile(r"http://.*?\.spkg")
 
 
-def extract_spkgs(tsv):
+def extract_spkgs(description):
     """
-    Extracts any spkgs for a ticket from the html page.
+    Extracts any spkgs for a ticket from the description field of the
+    trac-ticket-info.
 
-    Just searches for urls ending in .spkg.
-
-    BEWARE: this seems to work only for old-style spkg !
+    Just searches for urls ending in .spkg, .tar.gz or .tar.bz2
     """
-    return list(set(spkg_url_regex.findall(tsv['description'])))
+    return list(set(spkg_url_regex.findall(description)))
 
 
 ticket_url_regex = re.compile(r"{}/ticket/(\d+)".format(TRAC_URL))
@@ -398,6 +418,56 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             raise
         else:
             raise ConfigException(exn.message)
+
+# ===================
+
+# trying to use XMLRPC
+
+
+class Config(object):
+
+    @property
+    def server_hostname(self):
+        return 'http://trac.sagemath.org'
+
+    @property
+    def server_anonymous_xmlrpc(self):
+        return 'xmlrpc'
+
+
+class TracServer(object):
+
+    def __init__(self, config):
+        self.config = config
+
+    @cached_property
+    def url_anonymous(self):
+        return url_parse.urljoin(self.config.server_hostname,
+                                 self.config.server_anonymous_xmlrpc)
+
+    @cached_property
+    def anonymous_proxy(self):
+        transport = DigestTransport()
+        return ServerProxy(self.url_anonymous, transport=transport)
+
+    def __repr__(self):
+        return "Trac server at " + self.config.server_hostname
+
+    def load(self, ticket_number):
+        ticket_number = int(ticket_number)
+        ticket = TracTicket(ticket_number, self.anonymous_proxy)
+        return ticket
+
+    def remote_branch(self, ticket_number):
+        ticket = self.load(ticket_number)
+        branch = ticket.branch
+        if branch == '':
+            raise ValueError('"Branch:" field is not set on ticket #'
+                             + str(ticket_number))
+        return branch
+
+
+# ===================
 
 
 if __name__ == '__main__':
