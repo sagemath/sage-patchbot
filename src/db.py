@@ -1,8 +1,8 @@
-# mongod --port=21000 --dbpath=data
-# ssh -N -L 21002:localhost:21002 boxen.math.washington.edu
+# to launch a mongo console:
+# mongod --port=21002
 
 import gridfs
-from pymongo.mongo_client import MongoClient  # formerly Connection
+from pymongo.mongo_client import MongoClient
 mongo_port = 21002
 
 mongodb = MongoClient(port=mongo_port).buildbot
@@ -30,8 +30,9 @@ def save_ticket(ticket_data):
     """
     Save ticket data in the database
     """
-    old = lookup_ticket(ticket_data['id'])
+    old = tickets.find_one({'id': ticket_data['id']})
     if old:
         old.update(ticket_data)
         ticket_data = old
-    tickets.save(ticket_data)
+    else:
+        tickets.save(ticket_data)

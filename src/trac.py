@@ -58,16 +58,6 @@ def get_url(url):
         raise
 
 
-def get_patch_url(ticket, patch, raw=True):
-    """
-    Should be obsolete now that we use git ?
-    """
-    if raw:
-        return "%s/raw-attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
-    else:
-        return "%s/attachment/ticket/%s/%s" % (TRAC_URL, ticket, patch)
-
-
 def scrape(ticket_id, force=False, db=None):
     """
     Return available information about given ticket
@@ -123,24 +113,20 @@ def scrape(ticket_id, force=False, db=None):
 
     # nothing in the database, now fetch the info from trac server
 
-    # obsolete TSV communication
-    # tab = get_url("{}/ticket/{}?format=tab".format(TRAC_URL, ticket_id))
-    # tsv = parse_tsv(tab)
-
     trac_server = TracServer(Config())
-    tsv = trac_server.load(ticket_id)
+    trac_info = trac_server.load(ticket_id)
 
     # this part is about finding the authors and it needs work !
     authors = set()
-    git_commit_of_branch = git_commit(tsv.branch)
-    if tsv.branch:
-        branch = tsv.branch
+    git_commit_of_branch = git_commit(trac_info.branch)
+    if trac_info.branch:
+        branch = trac_info.branch
         if branch.startswith('u/'):
             authors.add((branch.split('/')[1]).strip())
     authors = list(authors)
 
     authors_fullnames = set()
-    for auth in tsv.author.split(','):
+    for auth in trac_info.author.split(','):
         author = auth.strip()
         if author:
             authors_fullnames.add(author)
@@ -152,20 +138,20 @@ def scrape(ticket_id, force=False, db=None):
 
     data = {
         'id': ticket_id,
-        'title': tsv.title,
+        'title': trac_info.title,
         'page_hash': page_hash,
-        'status': tsv.status,
-        'resolution': tsv.resolution,  # not available ?
-        'milestone': tsv.milestone,
-        'priority': tsv.priority,
-        'component': tsv.component,
-        'depends_on': tsv.dependencies,
-        'spkgs': extract_spkgs(tsv.description),
+        'status': trac_info.status,
+        'resolution': trac_info.resolution,
+        'milestone': trac_info.milestone,
+        'priority': trac_info.priority,
+        'component': trac_info.component,
+        'depends_on': trac_info.dependencies,
+        'spkgs': extract_spkgs(trac_info.description),
         'authors': authors,
         'authors_fullnames': authors_fullnames,
         'participants': extract_participants(rss),
-        'git_branch': tsv.branch,
-        'git_repo': TRAC_REPO if tsv.branch.strip() else None,
+        'git_branch': trac_info.branch,
+        'git_repo': TRAC_REPO if trac_info.branch.strip() else None,
         'git_commit': git_commit_of_branch,
         'last_activity': now_str(),
     }
@@ -239,30 +225,6 @@ def git_commit(branch):
             return "unknown"
 
 
-def parse_tsv(tsv):
-    """
-    Convert tsv to dict.
-
-    First row gives the names of the fields, second row gives their values.
-
-    OUTPUT:
-
-    a dictionary
-
-    This will fail if some field contains a TAB character.
-    """
-    header, data = tsv.split('\n', 1)
-
-    def sanitize(items):
-        for item in items:
-            item = item.strip().replace('""', '"')
-            if item and item[0] == '"' and item[-1] == '"':
-                item = item[1:-1]
-            yield item
-    return dict(zip(sanitize(header.split('\t')),
-                    sanitize(data.split('\t'))))
-
-
 def extract_tag(sgml, tag):
     """
     Find the first occurrence of the tag start (including attributes) and
@@ -315,9 +277,6 @@ def extract_spkgs(description):
     Just searches for urls ending in .spkg, .tar.gz or .tar.bz2
     """
     return list(set(spkg_url_regex.findall(description)))
-
-
-ticket_url_regex = re.compile(r"{}/ticket/(\d+)".format(TRAC_URL))
 
 
 def extract_depends_on(tsv):
@@ -421,8 +380,8 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
 
 # ===================
 
-# trying to use XMLRPC
-
+# use XMLRPC to communicate with trac
+# taken from git-trac-plugin
 
 class Config(object):
 
@@ -497,4 +456,3 @@ if __name__ == '__main__':
                 print(msg)
                 traceback.print_exc()
         force = apply = False
-#    pull_from_trac('/Users/robertwb/sage/current', ticket, force=True)

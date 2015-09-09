@@ -21,13 +21,13 @@ try:
 except ImportError:
     from urllib.parse import quote
 
-import trac
+from trac import scrape
 import patchbot
 import db
 
 from db import tickets
 from util import (now_str, current_reports, latest_version,
-                  compare_version, parse_datetime)
+                  compare_version)
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 
@@ -52,7 +52,7 @@ def timed_cached_function(refresh_rate=60):
 
 @timed_cached_function()
 def latest_base(betas=True):
-    versions = list(db.tickets.find({'id': 0}).distinct('reports.base'))
+    versions = list(tickets.find({'id': 0}).distinct('reports.base'))
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
     versions.sort(compare_version)
@@ -228,7 +228,7 @@ def ticket_list():
         def filter_reports(all):
             for ticket in all:
                 current = sorted(current_reports(ticket),
-                                 key=lambda report: parse_datetime(report['time']))
+                                 key=lambda report: report['time'])
                 ticket['reports'] = list(reversed(current))[:10]
                 for report in ticket['reports']:
                     report['plugins'] = '...'
@@ -254,7 +254,7 @@ def ticket_list():
             summary[ticket['report_status']] += 1
             yield ticket
 
-    ticket0 = db.lookup_ticket(0)
+    ticket0 = tickets.find_one({'id': 0})
     base_status = get_ticket_status(ticket0, base)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
@@ -313,55 +313,19 @@ def machines():
                            status=request.args.get('status', 'needs_review'))
 
 
-def format_patches(ticket, patches, deps=None, required=None):
-    if deps is None:
-        deps = []
-    if required is not None:
-        required = set(required)
-
-    def format_item(item):
-        if required is None or item in required:
-            note = ""
-        else:
-            note = "<span style='color: red'>(mismatch)</span>"
-        item = str(item)
-        if '#' in item:
-            url = trac.get_patch_url(ticket, item, raw=False)
-            title = item
-        elif '.' in item:
-            url = '/?base=%s' % item
-            title = 'sage-%s' % item
-        else:
-            url = '/ticket/%s' % item
-            title = '#%s' % item
-        return "<a href='%s'>%s</a> %s" % (url, title, note)
-
-    missing_deps = missing_patches = ''
-    if required is not None:
-        required_patches_count = len([p for p in required if '#' in str(p)])
-        if len(deps) < len(required) - required_patches_count:
-            missing_deps = "<li><span style='color: red'>(missing deps)</span>\n"
-        if len(patches) < required_patches_count:
-            missing_patches = "<li><span style='color: red'>(missing patches)</span>\n"
-    if not missing_deps and not deps and not patches and not missing_patches:
-        return ''
-    return ("<ol>"
-            + missing_deps
-            + "<li>\n"
-            + "\n<li>".join(format_item(patch) for patch in (deps + patches))
-            + missing_patches
-            + "</ol>")
-
-
 @app.route("/ticket/<int:ticket>/")
 def render_ticket(ticket):
     """
     reports on a given ticket
 
     possible options: ?force and ?kick
+
+    ?force will refresh the info in the patchbot database
+
+    ?kick will tell the patchbot to retry the ticket
     """
     try:
-        info = trac.scrape(ticket, db=db, force='force' in request.args)
+        info = scrape(ticket, db=db, force='force' in request.args)
     except:
         info = tickets.find_one({'id': ticket})
     if info is None:
@@ -384,10 +348,7 @@ def render_ticket(ticket):
     def format_info(info):
         new_info = {}
         for key, value in info.items():
-            if key == 'patches':
-                # new_info['patches'] = format_patches(ticket, value)
-                pass
-            elif key == 'reports' or key == 'pending':
+            if key in ['patches', 'reports', 'pending']:
                 pass
             elif key == 'depends_on':
                 deps_status = {}
@@ -447,10 +408,6 @@ def render_ticket(ticket):
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
                 item['base_log'] = quote(log_name(0, base_report))
-            if 'patches' in item:
-                pass
-                # required = info['depends_on'] + info['patches']
-                # item['patch_list'] = format_patches(ticket, item['patches'], item.get('deps'), required)
             if 'git_base' in item:
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
@@ -516,7 +473,7 @@ def render_ticket_status(ticket):
         if 'fast' in request.args:
             info = tickets.find_one({'id': ticket})
         else:
-            info = trac.scrape(ticket, db=db)
+            info = scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
 
@@ -547,7 +504,7 @@ def render_ticket_status_svg(ticket):
         if 'fast' in request.args:
             info = tickets.find_one({'id': ticket})
         else:
-            info = trac.scrape(ticket, db=db)
+            info = scrape(ticket, db=db)
     except:
         info = tickets.find_one({'id': ticket})
 
@@ -571,9 +528,9 @@ def post_report(ticket_id):
     Posting a report to the database of reports.
     """
     try:
-        ticket = db.lookup_ticket(ticket_id)
+        ticket = tickets.find_one({'id': ticket_id})
         if ticket is None:
-            ticket = trac.scrape(ticket_id)
+            ticket = scrape(ticket_id)
         if 'reports' not in ticket:
             ticket['reports'] = []
         report = json.loads(request.form.get('report'))
