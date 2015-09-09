@@ -57,6 +57,7 @@ from dateutil.tz import tzlocal
 from optparse import OptionParser
 from http_post_file import post_multipart
 from trac import scrape, pull_from_trac
+from trac import TracServer, Config
 from util import (now_str, prune_pending, do_or_die,
                   get_version, current_reports, git_commit,
                   describe_branch, compare_version, temp_build_suffix,
@@ -65,7 +66,6 @@ from util import (now_str, prune_pending, do_or_die,
 import version as patchbot_version
 from plugins import PluginResult
 
-from trac_server import TracServer, Config
 
 # name of the log files
 LOG_RATING = 'rating.log'
