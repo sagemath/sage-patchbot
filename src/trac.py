@@ -145,7 +145,7 @@ def scrape(ticket_id, force=False, db=None):
         'milestone': trac_info.milestone,
         'priority': trac_info.priority,
         'component': trac_info.component,
-        'depends_on': trac_info.dependencies,
+        'depends_on': extract_depends_on(trac_info.dependencies),
         'spkgs': extract_spkgs(trac_info.description),
         'authors': authors,
         'authors_fullnames': authors_fullnames,
@@ -279,8 +279,7 @@ def extract_spkgs(description):
     return list(set(spkg_url_regex.findall(description)))
 
 
-def extract_depends_on(tsv):
-    deps_field = tsv['dependencies']
+def extract_depends_on(deps_field):
     deps = []
     for dep in re.finditer(r'#(\d+)', deps_field):
         deps.append(int(dep.group(1)))
