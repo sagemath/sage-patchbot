@@ -2,5 +2,5 @@
      xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink">
   <image x="0" y="0" width="48" height="48" xlink:href="/svg/{{status}}" />
-  <text x="0" y="24" fill="red">{{base}}</text>
+  <text x="0" y="32" style="color:black;font-size:24px;">{{base}}</text>
 </svg>
