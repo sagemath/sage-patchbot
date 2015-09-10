@@ -320,9 +320,9 @@ def render_ticket(ticket):
 
     possible options: ?force and ?kick
 
-    ?force will refresh the info in the patchbot database
+    ?force will refresh the info in the patchbot-server database
 
-    ?kick will tell the patchbot to retry the ticket
+    ?kick will tell the patchbot-clients to retry the ticket
     """
     try:
         info = scrape(ticket, db=db, force='force' in request.args)
@@ -367,7 +367,7 @@ def render_ticket(ticket):
                     else:
                         dep['style'] = ''
                     deps_status[dep['id']] = dep
-                new_info[key] = ', '.join("<img src='/ticket/%s/status.png?fast' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
+                new_info[key] = ', '.join("<img src='/ticket/%s/status.svg?fast' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors_fullnames':
