@@ -515,11 +515,15 @@ def render_ticket_status_svg(ticket):
 
     status = get_ticket_status(info, base=base)[1]  # single status
 
-    path = status_image_path(status, type='svg')
-    response = make_response(open(path).read())
-    response.headers['Content-type'] = 'image/svg+xml'
-    response.headers['Cache-Control'] = 'no-cache'
-    return response
+    shortbase = base.replace("alpha", "a").replace("beta", "b"),
+    return render_template("icon_with_base.svg", status=status, base=shortbase)
+
+    # previously without the base
+    # path = status_image_path(status, type='svg')
+    # response = make_response(open(path).read())
+    # response.headers['Content-type'] = 'image/svg+xml'
+    # response.headers['Cache-Control'] = 'no-cache'
+    # return response
 
 
 @app.route("/report/<int:ticket_id>", methods=['POST'])
