@@ -516,7 +516,7 @@ def render_ticket_status_svg(ticket):
     status = get_ticket_status(info, base=base)[1]  # single status
     path = status_image_path(status, type='svg')
 
-    if base is 'test':
+    if base == 'test':
         img = status_image_svg(status)
         shortbase = base.replace("alpha", "a").replace("beta", "b"),
         svg_icon = render_template("icon_with_base.svg", status=Markup(status),
