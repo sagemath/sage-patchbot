@@ -1,6 +1,6 @@
 <svg width="48px" height="48px" viewBox="0 0 48 48"
      xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink">
-  <image x="0" y="0" width="48" height="48" xlink:href="icon-{{status}}.svg" />
+  <image x="0" y="0" width="48" height="48" xlink:href="{{path}}" />
   <text x="0" y="24" fill="red">{{base}}</text>
 </svg>

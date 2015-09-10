@@ -514,14 +514,14 @@ def render_ticket_status_svg(ticket):
         base = latest_version(info.get('reports', []))
 
     status = get_ticket_status(info, base=base)[1]  # single status
+    path = status_image_path(status, type='svg')
 
     if base is not None:
         shortbase = base.replace("alpha", "a").replace("beta", "b"),
-        return render_template("icon_with_base.svg", status=status,
+        return render_template("icon_with_base.svg", path=path,
                                base=shortbase)
 
     # with no base
-    path = status_image_path(status, type='svg')
     response = make_response(open(path).read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'no-cache'
