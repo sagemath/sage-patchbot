@@ -519,7 +519,7 @@ def render_ticket_status_svg(ticket):
     if base is not None:
         shortbase = base.replace("alpha", "a").replace("beta", "b"),
         svg_icon = render_template("icon_with_base.svg", status=status,
-                                base=shortbase)
+                                    base=shortbase)
         response = make_response(svg_icon)
         response.content_type = 'image/svg+xml'
         return response
