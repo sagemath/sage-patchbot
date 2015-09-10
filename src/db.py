@@ -34,5 +34,4 @@ def save_ticket(ticket_data):
     if old:
         old.update(ticket_data)
         ticket_data = old
-    else:
-        tickets.save(ticket_data)
+    tickets.save(ticket_data)
