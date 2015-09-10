@@ -432,6 +432,7 @@ def render_ticket(ticket):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
     return render_template("ticket.html",
+                           latest_base=base,
                            reports=preprocess_reports(info['reports']),
                            ticket=ticket, info=format_info(info),
                            status=get_ticket_status(info, base=base)[2],
@@ -515,15 +516,6 @@ def render_ticket_status_svg(ticket):
 
     status = get_ticket_status(info, base=base)[1]  # single status
     path = status_image_path(status, type='svg')
-
-    if base == 'test':
-        img = status_image_svg(status)
-        shortbase = base.replace("alpha", "a").replace("beta", "b"),
-        svg_icon = render_template("icon_with_base.svg", status=Markup(status),
-                                   base=Markup(shortbase))
-        response = make_response(svg_icon)
-        response.content_type = 'image/svg+xml'
-        return response
 
     # with no base
     response = make_response(open(path).read())
