@@ -432,13 +432,12 @@ def render_ticket(ticket):
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
-    short_base = base.replace("alpha", "a").replace("beta", "b")
+    status_data = get_ticket_status(info, base=base)[1]  # single status
 
     return render_template("ticket.html",
-                           short_base=short_base,
                            reports=preprocess_reports(info['reports']),
                            ticket=ticket, info=format_info(info),
-                           status=get_ticket_status(info, base=base)[2],
+                           status=status_data,
                            normalize_plugin=normalize_plugin,
                            sort_fields=sort_fields)
 

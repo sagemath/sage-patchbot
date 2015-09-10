@@ -80,7 +80,7 @@ def prune_pending(ticket, machine=None, timeout=None):
 
 def latest_version(reports):
     """
-    Return newest report.base in reports.
+    Return the newest ``report.base`` in the given list of reports.
     """
     if reports:
         return max([r['base'] for r in reports], key=comparable_version)
@@ -126,7 +126,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
         first = lambda x: True
 
     reports = list(ticket['reports'])
-    reports.sort(key=lambda a: parse_datetime(a['time']))
+    reports.sort(key=lambda a: a['time'])
 
     if base == 'latest':
         base = latest_version(reports)
