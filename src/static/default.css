@@ -12,7 +12,7 @@ td.top {vertical-align: top;
 
 table.wide {width: 100%;}
 
-.banner {border: 3px solid #7f7fff;
+.banner {border: 1px solid #7f7fff;
 	 background: #efefff;
 	 padding: 0.5em;
 	 float: right;
@@ -28,7 +28,8 @@ img.bare {display: block;}
 .iconbox {position: relative;
 	  width:48px;
 	  height:66px;
-	  display:inline-block;}
+	  display:inline-block;
+	 vertical-align:middle;}
 
 .icontext {position: absolute;
 	   width:100%;
