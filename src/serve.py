@@ -8,7 +8,7 @@ import collections
 import time
 import difflib
 from optparse import OptionParser
-from flask import Flask, render_template, make_response, request, Response
+from flask import Flask, Markup, render_template, make_response, request, Response
 
 # from six.moves import cStringIO
 try:
@@ -516,10 +516,11 @@ def render_ticket_status_svg(ticket):
     status = get_ticket_status(info, base=base)[1]  # single status
     path = status_image_path(status, type='svg')
 
-    if base is not None:
+    if base is 'test':
+        img = status_image_svg(status)
         shortbase = base.replace("alpha", "a").replace("beta", "b"),
-        svg_icon = render_template("icon_with_base.svg", status=status,
-                                    base=shortbase)
+        svg_icon = render_template("icon_with_base.svg", status=Markup(status),
+                                   base=Markup(shortbase))
         response = make_response(svg_icon)
         response.content_type = 'image/svg+xml'
         return response
