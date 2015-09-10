@@ -26,10 +26,12 @@ li.hori {display:inline;
 img.bare {display: block;}
 
 .iconbox {position: relative;
-	  width:48px;height:66px;
-	  display:inline-flex;}
+	  width:48px;
+	  height:66px;
+	  display:inline-block;}
 
 .icontext {position: absolute;
+	   background-color:rgba(0,0,0,.4);
 	   width:100%;
 	   font-size:16px;
 	   text-align:center;}

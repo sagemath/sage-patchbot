@@ -7,12 +7,10 @@
 
 {% block body %}
 <h2>
-<img alt="{{status}}" src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">
+<!--<img alt="{{status}}" src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">-->
 <div class="iconbox">
 <img class="bare" alt="{{status}}" src="/ticket/{{ticket}}/status.svg" height="48px">
-<div class="icontext">
-{{latest_base}}
-</div>
+<div class="icontext">{{latest_base}}</div>
 </div>
 {{ticket}}
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">

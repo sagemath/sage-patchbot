@@ -345,6 +345,8 @@ def render_ticket(ticket):
     if old_reports != info['reports']:
         db.save_ticket(info)
 
+    base = latest_base()
+
     def format_info(info):
         new_info = {}
         for key, value in info.items():
@@ -388,7 +390,6 @@ def render_ticket(ticket):
             elif key not in ('id', '_id'):
                 new_info[key] = value
         return new_info
-    base = latest_base()
 
     def format_git_describe(res):
         if res:
@@ -431,8 +432,10 @@ def render_ticket(ticket):
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
+    latest_base = base.replace("alpha", "a").replace("beta", "b")
+
     return render_template("ticket.html",
-                           latest_base=base,
+                           latest_base=latest_base,
                            reports=preprocess_reports(info['reports']),
                            ticket=ticket, info=format_info(info),
                            status=get_ticket_status(info, base=base)[2],
