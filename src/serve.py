@@ -75,7 +75,7 @@ def compute_trusted_authors():
     authors = collections.defaultdict(int)
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket.get("authors_fullnames", []):
-            a = author.strip()
+            a = author.strip().encode('utf8')
             if a:
                 authors[a] += 1
     return authors
