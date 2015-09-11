@@ -78,6 +78,11 @@ def compute_trusted_authors():
             a = author.strip()
             if a:
                 authors[a] += 1
+        # code below is temporary and for backward compatibility only
+        for author in ticket.get("authors", []):
+            a = author.strip()
+            if a:
+                authors[a] += 1
     return authors
 
 
