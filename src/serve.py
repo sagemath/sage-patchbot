@@ -360,11 +360,11 @@ def render_ticket(ticket):
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors_fullnames':
-                auths = ', '.join("<a href='http://git.sagemath.org/sage.git/log/?qt=author&amp;q=%s'>%s</a>" % (a.replace(' ', '%20'), a)
+                auths = u", ".join(u"<a href='http://git.sagemath.org/sage.git/log/?qt=author&amp;q=%s'>%s</a>" % (a.replace(u" ", u"%20"), a)
                                           for a in value)
-                trust_check = "(<a href='/trust_check?who="
-                trust_check += ','.join("{}".format(a) for a in value)
-                trust_check += "'>Check trust</a>) "
+                trust_check = u"(<a href='/trust_check?who="
+                trust_check += u",".join(u"{}".format(a) for a in value)
+                trust_check += u"'>Check trust</a>) "
                 new_info[key] = trust_check + auths
             elif key == 'participants':
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
