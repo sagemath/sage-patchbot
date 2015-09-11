@@ -68,25 +68,12 @@ def compute_trusted_authors():
     Currently, somebody is trusted if he/she is the author of a closed patch
     with 'fixed' status.
 
-    Then 'git' and 'vbraun_spam' are added.
-
     The result is a dict, its keys being the trusted authors.
 
     This needs work ! We cannot rely on the branch names!
     """
     authors = collections.defaultdict(int)
-    authors['git'] += 1
-    authors['vbraun_spam'] += 1
-    for ticket in tickets.find({'status': 'closed : fixed'}):
-        for author in ticket["authors"]:
-            a = author.strip()
-            if a:
-                authors[a] += 1
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
-        for author in ticket["authors"]:
-            a = author.strip()
-            if a:
-                authors[a] += 1
         for author in ticket.get("authors_fullnames", []):
             a = author.strip()
             if a:
@@ -115,7 +102,7 @@ def trusted_authors():
         indent = None
     response = make_response(json.dumps(authors, default=lambda x: None,
                                         indent=indent))
-    response.headers['Content-type'] = 'text/plain'
+    response.headers['Content-type'] = 'text/plain; charset=utf-8'
     return response
 
 
@@ -136,7 +123,7 @@ def trust_check():
                   for a in given_list}
     response = make_response(json.dumps(trust_dict, default=lambda x: None,
                                         indent=4))
-    response.headers['Content-type'] = 'text/plain'
+    response.headers['Content-type'] = 'text/plain; charset=utf-8'
     return response
 
 
@@ -240,7 +227,7 @@ def ticket_list():
             indent = None
         response = make_response(json.dumps(list(all), default=lambda x: None,
                                             indent=indent))
-        response.headers['Content-type'] = 'text/plain'
+        response.headers['Content-type'] = 'text/plain; charset=utf-8'
         return response
 
     summary = {key: 0 for key in status_order}
@@ -678,7 +665,7 @@ def get_plugin_data(id, plugin_name, timestamp):
                     response = make_response(json.dumps(plugin[2],
                                                         default=lambda x: None,
                                                         indent=4))
-                    response.headers['Content-type'] = 'text/plain'
+                    response.headers['Content-type'] = 'text/plain; charset=utf-8'
                     return response
             return "Unknown plugin: " + plugin_name
     return "Unknown report: " + timestamp

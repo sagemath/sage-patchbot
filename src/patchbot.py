@@ -719,42 +719,48 @@ class Patchbot:
             if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                        'sage-feature', 'sage-pending',
                                        'sage-wishlist'):
-                self.write_log('  do not test if the milestone is not good (got {})'.format(ticket['milestone']),
+                self.write_log(' do not test if the milestone is not good (got {})'.format(ticket['milestone']),
                                logfile, False)
                 return
 
             bonus = self.config['bonus']  # load the dict of bonus
 
-            for author in ticket['authors']:
+            if not ticket['authors_fullnames']:
+                self.write_log(' do not test if no author is given',
+                               logfile, False)
+                return
+
+            for author in ticket['authors_fullnames']:
                 if author not in self.config['trusted_authors']:
-                    self.write_log('  do not test if some author is not trusted (got {})'.format(author),
+                    msg = ' do not test if some author is not trusted (got {})'
+                    self.write_log(msg.format(author),
                                    logfile, False)
                     return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
 
-            self.write_log('  rating {} after authors'.format(rating),
+            for author in ticket['authors']:
+                rating += 2 * bonus.get(author, 0)  # bonus for authors
+
+            self.write_log(' rating {} after authors'.format(rating),
                            logfile, False)
 
             for participant in ticket['participants']:
-                if participant not in self.config['trusted_authors']:
-                    self.write_log('  do not test if some participant is not trusted (got {})'.format(participant),
-                                   logfile, False)
-                    return
                 rating += bonus.get(participant, 0)  # bonus for participants
-            self.write_log('  rating {} after participants'.format(rating),
+
+            self.write_log(' rating {} after participants'.format(rating),
                            logfile, False)
 
             if 'component' in ticket:
                 rating += bonus.get(ticket['component'], 0)  # bonus for components
 
-            self.write_log('  rating {} after components'.format(rating),
+            self.write_log(' rating {} after components'.format(rating),
                            logfile, False)
 
             rating += bonus.get(ticket['status'], 0)
             rating += bonus.get(ticket['priority'], 0)
             rating += bonus.get(str(ticket['id']), 0)
 
-            msg = '  rating {} after status ({})/priority ({})/id ({})'
+            msg = ' rating {} after status ({})/priority ({})/id ({})'
             self.write_log(msg.format(rating, ticket['status'],
                                       ticket['priority'], ticket['id']),
                            logfile, False)
@@ -767,7 +773,7 @@ class Patchbot:
             uniqueness = (100,)
             # now let us look at previous reports
             if not retry:
-                self.write_log('  start report scanning', logfile, False)
+                self.write_log(' start report scanning', logfile, False)
                 for report in self.current_reports(ticket, newer=True):
                     if report.get('git_base'):
                         try:
@@ -775,11 +781,11 @@ class Patchbot:
                                                                        stderr=subprocess.PIPE))
                         except (ValueError, subprocess.CalledProcessError):
                             # report['git_base'] not in our repo
-                            self.write_log('  commit {} not in the local git repository'.format(report['git_base']),
+                            self.write_log(' commit {} not in the local git repository'.format(report['git_base']),
                                            logfile, date=False)
                             only_in_base = -1
                         rating += bonus['behind'] * only_in_base
-                    self.write_log('  rating {} after behind'.format(rating),
+                    self.write_log(' rating {} after behind'.format(rating),
                                    logfile, False)
 
                     report_uniqueness = compare_machines(report['machine'],
@@ -792,23 +798,23 @@ class Patchbot:
 
                     if report['status'] != 'ApplyFailed':
                         rating += bonus.get("applies", 0)
-                    self.write_log('  rating {} after applies'.format(rating),
+                    self.write_log(' rating {} after applies'.format(rating),
                                    logfile, False)
                     rating -= bonus.get("unique", 0)
-                    self.write_log('  rating {} after uniqueness'.format(rating),
+                    self.write_log(' rating {} after uniqueness'.format(rating),
                                    logfile, False)
-            self.write_log('  rating {} after report scanning'.format(rating),
+            self.write_log(' rating {} after report scanning'.format(rating),
                            logfile, False)
 
             if not any(uniqueness):
-                self.write_log('  already done', logfile, False)
+                self.write_log(' already done', logfile, False)
                 return
 
             if ticket['id'] in self.to_skip:
                 if self.to_skip[ticket['id']] < time.time():
                     del self.to_skip[ticket['id']]
                 else:
-                    self.write_log('  do not test if still in the skip delay',
+                    self.write_log(' do not test if still in the skip delay',
                                    logfile, False)
                     return
 
