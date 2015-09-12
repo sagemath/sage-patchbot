@@ -14,7 +14,7 @@ def get_version():
 
         sage: from version import get_version
         sage: get_version()
-        '2.3.2'
+        u'2.3.2'
     """
     src_dir = os.path.dirname(os.path.abspath(__file__))
     top = os.path.dirname(src_dir)

@@ -1009,6 +1009,7 @@ class Patchbot:
                            LOG_MAIN)
         except Exception:
             msg = "An exception has been raised during the test of #{}"
+            state = 'skipped'
             self.write_log(msg.format(ticket['id']),
                            LOG_MAIN)
             traceback.print_exc()
