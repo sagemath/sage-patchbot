@@ -725,15 +725,15 @@ class Patchbot:
 
             bonus = self.config['bonus']  # load the dict of bonus
 
-            if not ticket['authors_fullnames']:
+            if not ticket.get('authors_fullnames', []):
                 self.write_log(' do not test if no author is given',
                                logfile, False)
                 return
 
             for author in ticket['authors_fullnames']:
                 if author not in self.config['trusted_authors']:
-                    msg = ' do not test if some author is not trusted (got {})'
-                    self.write_log(msg.format(author),
+                    msg = u' do not test if some author is not trusted (got {})'
+                    self.write_log(msg.format(author).encode('utf-8'),
                                    logfile, False)
                     return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
