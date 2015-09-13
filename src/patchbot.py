@@ -333,6 +333,7 @@ class Patchbot:
                  plugin_only, options):
 
         self.sage_root = sage_root
+        self.sage_command = "{}/sage".format(self.sage_root)
         self.server = server
         self.trac_server = TracServer(Config())
         self.base = get_version(sage_root)
@@ -400,9 +401,9 @@ class Patchbot:
 
         try:
             if date:
-                logfile.write("[{}] ".format(now_str()))
+                logfile.write(u"[{}] ".format(now_str()))
             logfile.write(msg)
-            logfile.write("\n")
+            logfile.write(u"\n")
         except AttributeError:
             raise ValueError("logfile = {} must be either None, or a string or a list or a file".format(logfile))
 
@@ -451,13 +452,9 @@ class Patchbot:
         while True:
             retry -= 1
             try:
-                handle = urlopen("{}/{}".format(self.server, path), timeout=10)
-                ans = json.load(handle)
-                handle.close()
-                # python3
-                # full_str = urlopen("{}/{}".format(self.server, path), timeout=10).read()
-                # ans = json.loads(full_str.decode('utf-8'))
-                return ans
+                ad = "{}/{}".format(self.server, path)
+                full_str = urlopen(ad, timeout=10).read().decode('utf8')
+                return json.loads(full_str)
             except HTTPError as err:
                 self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
@@ -590,7 +587,7 @@ class Patchbot:
 
         if self.to_skip:
             s = ', '.join('#{} (until {})'.format(k, v)
-                          for k, v in self.to_skip.iteritems())
+                          for k, v in self.to_skip.items())
             self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
 
         return conf
@@ -607,6 +604,8 @@ class Patchbot:
         Check that the patchbot/base is synchro with 'base_branch'.
 
         Usually 'base_branch' is set to 'develop'.
+
+        This will update the patchbot/base if necessary.
         """
         self.write_log("Check base.", LOG_MAIN)
         cwd = os.getcwd()
@@ -639,12 +638,13 @@ class Patchbot:
 
     def human_readable_base(self):
         """
-        Return the human name of the base.
+        Return the human name of the base branch.
         """
         # TODO: Is this stable?
         version = get_version(self.sage_root)
-        commit_count = subprocess.check_output(['git', 'rev-list', '--count', '%s..patchbot/base' % version])
-        return "%s + %s commits" % (version, commit_count.strip())
+        commit_count = subprocess.check_output(['git', 'rev-list', '--count',
+                                                '%s..patchbot/base' % version])
+        return "{} + {} commits".format(version, commit_count.strip())
 
     def get_one_ticket(self, status='open', verbose=0):
         """
@@ -667,9 +667,9 @@ class Patchbot:
 
         # remove all tickets with None rating
         self.delete_log(LOG_RATING)
-        all = filter(lambda x: x[0] is not None,
-                     ((self.rate_ticket(t, verbose=(verbose == 2)), t)
-                      for t in all))
+        all = list(filter(lambda x: x[0] is not None,
+                          ((self.rate_ticket(t, verbose=(verbose == 2)), t)
+                           for t in all)))
 
         # sort tickets using their ratings
         all.sort()
@@ -691,7 +691,8 @@ class Patchbot:
 
         Return nothing when the ticket should not be tested.
         """
-        with open(os.path.join(self.log_dir, LOG_RATING), "a") as log_rating:
+        log_rat_path = os.path.join(self.log_dir, LOG_RATING)
+        with codecs.open(log_rat_path, "a", encoding="utf-8") as log_rating:
 
             if verbose:
                 logfile = [log_rating, sys.stdout]
@@ -733,8 +734,10 @@ class Patchbot:
             for author in ticket['authors_fullnames']:
                 if author not in self.config['trusted_authors']:
                     msg = u' do not test if some author is not trusted (got {})'
-                    self.write_log(msg.format(author).encode('utf-8'),
+                    self.write_log(msg.format(author),
                                    logfile, False)
+                    # self.write_log(msg.format(author).encode('utf-8'),
+                      #              logfile, False) #py2
                     return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
 
@@ -884,7 +887,6 @@ class Patchbot:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
                 print(self.banner())
-
                 if ticket['spkgs']:
                     state = 'spkg'
                     print("\n".join(ticket['spkgs']))
@@ -899,8 +901,8 @@ class Patchbot:
 
                 if not ticket['spkgs']:
                     state = 'started'
-                    os.environ['MAKE'] = "make -j%s" % self.config['parallelism']
                     os.environ['SAGE_ROOT'] = self.sage_root
+                    os.environ['MAKE'] = "make -j{}".format(self.config['parallelism'])
                     os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
                     os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
                     os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
@@ -975,17 +977,18 @@ class Patchbot:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
                     else:
                         if self.dry_run:
-                            test_target = "$SAGE_ROOT/src/sage/misc/a*.py"
+                            test_target = "{}/src/sage/misc/a*.py".format(self.sage_root)
                             # TODO: Remove
-                            test_target = "$SAGE_ROOT/src/sage/doctest/*.py"
+                            test_target = "{}/src/sage/doctest/*.py".format(self.sage_root)
                         else:
                             test_target = "--all --long"
                         if self.config['parallelism'] > 1:
                             test_cmd = "-tp %s" % self.config['parallelism']
                         else:
                             test_cmd = "-t"
-                        do_or_die("$SAGE_ROOT/sage %s %s" % (test_cmd,
-                                                             test_target))
+                        do_or_die("{} {} {}".format(self.sage_command,
+                                                    test_cmd,
+                                                    test_target))
                         t.finish("Tests")
                         state = 'tested'
 
@@ -1033,8 +1036,8 @@ class Patchbot:
                 time.sleep(self.config['idle'])
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
-        maybe_temp_root = os.environ['SAGE_ROOT']
-        if maybe_temp_root.endswith("-sage-git-temp-%s" % ticket['id']):
+        maybe_temp_root = os.environ.get('SAGE_ROOT')
+        if maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])):
             shutil.rmtree(maybe_temp_root)
         return status[state]
 
@@ -1084,7 +1087,7 @@ class Patchbot:
                 #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
 
                 import pexpect
-                p = pexpect.spawn("%s/sage" % self.sage_root,
+                p = pexpect.spawn("{}/sage".format(self.sage_root),
                                   ['-i', '--info', base])
                 while True:
                     index = p.expect([

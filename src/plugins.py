@@ -8,10 +8,10 @@ a PluginResult indicating success or failure, along with other data.
 
 The parameters are as follows:
 
-   ticket -- a dictionary of all the ticket information
-   sage_binary -- the path to $SAGE_ROOT/sage
-   baseline -- if a PluginResult was returned with a baseline for ticket 0,
-               it will be returned here for comparison
+- ticket -- a dictionary of all the ticket information
+- sage_binary -- the path to $SAGE_ROOT/sage
+- baseline -- if a PluginResult was returned with a baseline for ticket 0,
+  it will be returned here for comparison
 
 It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
@@ -357,7 +357,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     Count modules imported at startup.
     """
     # Sometimes the first run does something different...
-    do_or_die("$SAGE_ROOT/sage -c ''")
+    do_or_die(sage_binary + " -c ''")
     # Print out all the modules imported at startup.
     modules = subprocess.check_output([sage_binary, "-c", r"print '\n'.join(sorted(sys.modules.keys()))"]).split('\n')
 
@@ -402,11 +402,11 @@ def startup_time(ticket, loops=5, total_samples=50,
     choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
 
     def startup_times(samples):
-        do_or_die("$SAGE_ROOT/sage -c ''")
+        do_or_die(sage_binary + " -c ''")
         all = []
         for k in range(samples):
             start = time.time()
-            do_or_die("$SAGE_ROOT/sage -c ''")
+            do_or_die(sage_binary + " -c ''")
             all.append(time.time() - start)
         return all
 
