@@ -412,21 +412,16 @@ def startup_time(ticket, loops=5, total_samples=50,
 
     try:
         main_timings = []
-        ticket_timings = []
-
-        do_or_die(choose_ticket)
-        do_or_die("$SAGE_ROOT/sage -c ''")
-
         do_or_die(choose_base)
-        do_or_die("$SAGE_ROOT/sage -c ''")
-
         for k in range(loops):
-            do_or_die(choose_ticket)
-            ticket_timings.extend(startup_times(total_samples //
-                                                loops + 2 * k - loops + 1))
-            do_or_die(choose_base)
             main_timings.extend(startup_times(total_samples //
                                               loops + 2 * k - loops + 1))
+        ticket_timings = []
+        do_or_die(choose_ticket)
+        for k in range(loops):
+            ticket_timings.extend(startup_times(total_samples //
+                                                loops + 2 * k - loops + 1))
+
         print("main_timings = {}".format(main_timings))
         print("ticket_timings = {}".format(ticket_timings))
 
