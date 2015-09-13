@@ -532,6 +532,7 @@ class Patchbot:
                             "plugins.input_output_block",
                             "plugins.reference_block",
                             "plugins.triple_colon",
+                            "plugins.trac_links",
                             # "plugins.trailing_whitespace",
                             "plugins.startup_time",
                             "plugins.startup_modules",

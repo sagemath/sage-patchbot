@@ -263,6 +263,14 @@ def triple_colon(ticket, **kwds):
     exclude_new(ticket, regex=r'\:\:\:$', msg="Triple colon (:::)", **kwds)
 
 
+def trac_links(ticket, **kwds):
+    """
+    Look for the presence of badly formatted trac roles ``:trac:``,
+    missing the initial colon.
+    """
+    exclude_new(ticket, regex=r' trac\:`[0-9]$', msg="Bad trac link", **kwds)
+
+
 def non_ascii(ticket, **kwds):
     """
     Look for the presence of non-ascii characters in python and cython files.
