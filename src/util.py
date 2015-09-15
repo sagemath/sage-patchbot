@@ -21,7 +21,7 @@ if "check_output" not in subprocess.__dict__:  # duck punch it in!
 temp_build_suffix = "-sage-git-temp-"
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
-EPOCH = datetime(1970, 1, 1, tzinfo=tzutc())  # in the UTC timezone
+# EPOCH = datetime(1970, 1, 1, tzinfo=tzutc())  # in the UTC timezone
 
 
 def now_str():
@@ -34,22 +34,6 @@ def now_str():
     Out[3]: '2015-07-23 09:00:08 +0000'
     """
     return datetime.now(tzutc()).strftime(DATE_FORMAT)
-
-
-def parse_datetime(s):
-    """
-    Return the number of seconds since ``epoch``.
-
-    The input s is assumed to be in utc timezone !
-
-    In [3]: a = '2015-07-23 09:00:08 +0200'
-    In [4]: parse_datetime(a)
-
-    In [6]: b = '2015-07-23T09:00:08+0200'
-    In [7]: parse_datetime(b)
-    """
-    dt = parser.parse(s)
-    return (dt - EPOCH).total_seconds()
 
 
 def prune_pending(ticket, machine=None, timeout=None):
@@ -171,7 +155,8 @@ def git_commit(repo, branch):
     """
     ref = "refs/heads/{}".format(branch)
     try:
-        return subprocess.check_output(["git", "--git-dir={}/.git".format(repo),
+        return subprocess.check_output(["git",
+                                        "--git-dir={}/.git".format(repo),
                                         "show-ref",
                                         "--verify", ref]).split()[0]
     except subprocess.CalledProcessError:

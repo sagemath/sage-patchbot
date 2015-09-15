@@ -1,4 +1,6 @@
-# http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
+# reference:
+# http://code.activestate.com/recipes/
+# 146306-http-client-to-post-using-multipartform-data/
 
 try:
     from urllib2 import urlopen, Request  # python2

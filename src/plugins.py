@@ -395,7 +395,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=modules, data=data)
 
 
-def startup_time(ticket, loops=5, total_samples=50,
+def startup_time(ticket, sage_binary, loops=5, total_samples=50,
                  dry_run=False, **kwds):
     """
     Try to decide if the startup time is getting worse.

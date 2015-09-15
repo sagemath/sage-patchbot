@@ -8,7 +8,7 @@ import collections
 import time
 import difflib
 from optparse import OptionParser
-from flask import Flask, Markup, render_template, make_response, request, Response
+from flask import Flask, render_template, make_response, request, Response
 
 # from six.moves import cStringIO
 try:
@@ -31,7 +31,7 @@ from util import (now_str, current_reports, latest_version,
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
-OLDEST = '5.0'
+OLDEST = '6.0'
 
 
 def timed_cached_function(refresh_rate=60):
@@ -368,8 +368,9 @@ def render_ticket(ticket):
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors_fullnames':
-                auths = u", ".join(u"<a href='http://git.sagemath.org/sage.git/log/?qt=author&amp;q=%s'>%s</a>" % (a.replace(u" ", u"%20"), a)
-                                          for a in value)
+                link = u"<a href='http://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
+                auths = u", ".join(link.format(a.replace(u" ", u"%20"), a)
+                                   for a in value)
                 trust_check = u"(<a href='/trust_check?who="
                 trust_check += u",".join(u"{}".format(a) for a in value)
                 trust_check += u"'>Check trust</a>) "

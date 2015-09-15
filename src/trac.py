@@ -382,6 +382,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
 # use XMLRPC to communicate with trac
 # taken from git-trac-plugin
 
+
 class Config(object):
 
     @property

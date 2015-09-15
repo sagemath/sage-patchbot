@@ -58,7 +58,9 @@ class DigestTransport(SafeTransport):
     def single_request(self, host, handler, request_body, verbose):
         """
         Issue an XML-RPC request.
+
         EXAMPLES::
+
             sage: from sage.dev.digest_transport import DigestTransport
             sage: from sage.env import TRAC_SERVER_URI
             sage: import urllib.parse
