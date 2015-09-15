@@ -876,7 +876,7 @@ class Patchbot:
         print("\n\n")
         print(boundary(ticket['id'], 'ticket'))
         # title = unicode(ticket['title'], errors='ignore')
-        print(ticket['title'])
+        print(ticket['title'].encode('utf8'))
         print("score = {}".format(rating))
         print("\n\n")
         log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
@@ -887,7 +887,7 @@ class Patchbot:
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                print(self.banner())
+                print(self.banner().encode('utf8'))
                 if ticket['spkgs']:
                     state = 'spkg'
                     print("\n".join(ticket['spkgs']))
