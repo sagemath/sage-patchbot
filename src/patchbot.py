@@ -1089,7 +1089,7 @@ class Patchbot:
 
                 import pexpect
                 p = pexpect.spawn("{}/sage".format(self.sage_root),
-                                  ['-i', '--info', base])
+                                  ['--info', base])
                 while True:
                     index = p.expect([
                         r"Found package %s in (\S+)" % base,
@@ -1108,7 +1108,7 @@ class Patchbot:
                         print("No previous match.")
                         break
             else:
-                p = subprocess.Popen(r"%s/sage -i --info %s" % (self.sage_root, base),
+                p = subprocess.Popen(r"%s/sage --info %s" % (self.sage_root, base),
                                      shell=True, stdout=subprocess.PIPE)
                 for line in p.communicate()[0].split('\n'):
                     m = re.match(r"Found package %s in (\S+)" % base, line)
