@@ -252,7 +252,7 @@ def ticket_list():
     base_status = get_ticket_status(ticket0, base)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(compare_version)
-    versions = [u for u in version if compare_version(v, OLDEST)]
+    versions = [v for v in version if compare_version(v, OLDEST)]
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
 
     return render_template("ticket_list.html", tickets=preprocess(all),
