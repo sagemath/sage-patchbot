@@ -315,6 +315,15 @@ class Patchbot:
 
     This can be used in an interactive python or ipython session.
 
+    INPUT:
+
+    - sage_root -- path to the sage local repository
+    - server -- http address of the patchbot server
+    - config_path -- None or path to the config file
+    - dry_run -- boolean
+    - plugin_only -- boolean
+    - options
+    
     EXAMPLES::
 
         >>> from patchbot import Patchbot
@@ -846,6 +855,7 @@ class Patchbot:
         """
         self.reload_config()
 
+        # ------------- selection of ticket -------------
         if ticket is None:
             rating, ticket = self.get_one_ticket()
             self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
@@ -854,6 +864,7 @@ class Patchbot:
             ticket = self.lookup_ticket(N)
             rating = None
             self.write_log('testing given ticket #{}'.format(N), LOG_MAIN)
+
         if not ticket:
             self.write_log('no more tickets, take a nap',
                            [LOG_MAIN, LOG_MAIN_SHORT])
@@ -873,22 +884,40 @@ class Patchbot:
                            LOG_MAIN)
             return
 
+        # ------------- initialisation -------------
         print("\n\n")
         print(boundary(ticket['id'], 'ticket'))
-        # title = unicode(ticket['title'], errors='ignore')
         print(ticket['title'].encode('utf8'))
         print("score = {}".format(rating))
         print("\n\n")
-        log = '%s/%s-log.txt' % (self.log_dir, ticket['id'])
+        log = '{}/{}-log.txt'.format(self.log_dir, ticket['id'])
         self.write_log('#{}: starting tests'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
+        print(self.banner().encode('utf8'))
+        os.environ['SAGE_ROOT'] = self.sage_root
+        os.environ['MAKE'] = "make -j{}".format(self.config['parallelism'])
+        os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
+        os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
+        os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
-                print(self.banner().encode('utf8'))
+                state = 'started'
+
+                # ------------- pull and apply -------------
+                pull_from_trac(self.sage_root, ticket['id'], force=True,
+                               use_ccache=self.config['use_ccache'],
+                               safe_only=self.options.safe_only)
+                t.finish("Apply")
+                state = 'applied'
+                if not self.plugin_only:
+                    self.report_ticket(ticket, status='Pending',
+                                       log=log, pending_status=state)
+
                 if ticket['spkgs']:
+                    # ------------- treatment of spkgs -------------
                     state = 'spkg'
                     print("\n".join(ticket['spkgs']))
                     for spkg in ticket['spkgs']:
@@ -901,21 +930,7 @@ class Patchbot:
                     self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
 
                 if not ticket['spkgs']:
-                    state = 'started'
-                    os.environ['SAGE_ROOT'] = self.sage_root
-                    os.environ['MAKE'] = "make -j{}".format(self.config['parallelism'])
-                    os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
-                    os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
-                    os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
-                    pull_from_trac(self.sage_root, ticket['id'], force=True,
-                                   use_ccache=self.config['use_ccache'],
-                                   safe_only=self.options.safe_only)
-                    t.finish("Apply")
-                    state = 'applied'
-                    if not self.plugin_only:
-                        self.report_ticket(ticket, status='Pending',
-                                           log=log, pending_status=state)
-
+                    # ------------- make -------------
                     do_or_die("$MAKE doc-clean")
                     do_or_die("$MAKE")
                     t.finish("Build")
@@ -924,7 +939,7 @@ class Patchbot:
                         self.report_ticket(ticket, status='Pending',
                                            log=log, pending_status=state)
 
-                    # TODO: Exclude dependencies.
+                    # ------------- plugins -------------
                     patch_dir = tempfile.mkdtemp()
                     if ticket['id'] != 0:
                         do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
@@ -977,19 +992,18 @@ class Patchbot:
                     if self.plugin_only:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
                     else:
+                        # ------------- run tests -------------
                         if self.dry_run:
                             test_target = "{}/src/sage/misc/a*.py".format(self.sage_root)
-                            # TODO: Remove
-                            test_target = "{}/src/sage/doctest/*.py".format(self.sage_root)
                         else:
                             test_target = "--all --long"
                         if self.config['parallelism'] > 1:
-                            test_cmd = "-tp %s" % self.config['parallelism']
+                            test_cmd = "p {}".format(self.config['parallelism'])
                         else:
-                            test_cmd = "-t"
-                        do_or_die("{} {} {}".format(self.sage_command,
-                                                    test_cmd,
-                                                    test_target))
+                            test_cmd = ""
+                        do_or_die("{} -t{} {}".format(self.sage_command,
+                                                      test_cmd,
+                                                      test_target))
                         t.finish("Tests")
                         state = 'tested'
 
@@ -1023,6 +1037,7 @@ class Patchbot:
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
             raise
 
+        # ------------- reporting to patchbot server -------------
         for _ in range(5):
             try:
                 self.write_log("Reporting #{} with status {}".format(ticket['id'], status[state]),
@@ -1071,14 +1086,22 @@ class Patchbot:
             temp_dir = tempfile.mkdtemp()
             local_spkg = os.path.join(temp_dir, basename)
 
-            # TODO: use here instead sage-upload-file
+            # TODO: use here sage-upload-file instead of wget
             do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
             print("> Successfully uploaded")
 
             do_or_die("tar xf %s -C %s" % (local_spkg, temp_dir))
             print("> Successfully unpacked")
-            print("Sha1 of {} is {}".format(basename, sha1file(local_spkg)))
 
+            computed_sha = sha1file(local_spkg)
+            print("Sha1 of {} is {}".format(basename, computed_sha))
+            path = 'build/pkgs/{}/checksums.ini'.format(base)
+            given_sha = open(path).read().splitlines()[1].split('=')[1]
+            if computed_sha != given_sha:
+                raise SkipTicket("spkg has incorrect sha1")
+            print("> Correct sha1")
+
+            # ------------- CODE BELOW IS NOT CLEAR -------------
             print("Now comparing to previous spkg.")
             # Compare to the current version.
             old_path = old_url = listing = None
@@ -1243,8 +1266,6 @@ def main(args):
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
                       default=True,
                       help="whether to run the patchbot in safe-only mode")
-    parser.add_option("--interactive", action="store_true", dest="interactive",
-                      default=False)
 
     (options, args) = parser.parse_args(args)
 
@@ -1286,21 +1307,8 @@ def main(args):
                 print("\n\n")
                 print("Current base: {} {}".format(conf['base_repo'],
                                                    conf['base_branch']))
-                if not options.interactive:
-                    print("Failing tests in your base install: exiting.")
-                    sys.exit(1)
-                while True:
-                    print("Failing tests in your base install: %s. Continue anyways? [y/N] " % res)
-                    try:
-                        ans = sys.stdin.readline().lower().strip()
-                    except IOError:
-                        # Might not be interactive.
-                        print("Non interactive, not continuing.")
-                        ans = 'n'
-                    if ans == '' or ans[0] == 'n':
-                        sys.exit(1)
-                    elif ans[0] == 'y':
-                        break
+                print("Failing tests in your base install: exiting.")
+                sys.exit(1)
 
     for k in range(count):
         if options.cleanup:

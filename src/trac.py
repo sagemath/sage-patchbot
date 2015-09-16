@@ -302,9 +302,11 @@ def inplace_safe():
     for file in subprocess.check_output(cmd).split('\n'):
         if not file:
             continue
-        if (file.startswith("src/sage") or file.startswith("src/doc")
-                or file in ("src/setup.py", "src/module_list.py",
-                            "README.txt", ".gitignore")):
+        if (file.startswith("src/sage") or
+                file.startswith("src/doc") or
+                file.startswith("build/pkgs") or
+                file in ("src/setup.py", "src/module_list.py",
+                         "README.txt", ".gitignore")):
             continue
         else:
             msg = "Unsafe file: {}".format(file)
@@ -314,7 +316,7 @@ def inplace_safe():
 
 
 def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
-                   interactive=None, inplace=None, use_ccache=False,
+                   use_ccache=False,
                    safe_only=False):
     """
     Create four branches from base and ticket.
