@@ -52,7 +52,7 @@ def get_url(url):
         handle = urlopen(url, timeout=15)
         data = handle.read()
         handle.close()
-        return data
+        return data.decode('utf8')
     except:
         print(url)
         raise
@@ -101,7 +101,7 @@ def scrape(ticket_id, force=False, db=None):
 
     # hash is defined from the rss of trac page
     rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
-    page_hash = digest(rss)
+    page_hash = digest(rss.encode('utf8'))
 
     # First try to use the patchbot database
     if db is not None:

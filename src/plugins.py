@@ -320,7 +320,7 @@ def reference_block(ticket, **kwds):
     no :: after REFERENCE blocks
     """
     exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:\s*',
-                msg="Bad Input/Output blocks", **kwds)
+                msg="Bad reference blocks", **kwds)
 
 
 def doctest_continuation(ticket, **kwds):

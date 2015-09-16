@@ -353,7 +353,8 @@ class Patchbot:
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         # Make sure this file is writable.
-        handle = open(os.path.join(self.log_dir, 'install.log'), 'a')
+        handle = codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
+                             encoding='utf8')
         handle.close()
 
         self._version = patchbot_version.get_version()
@@ -689,7 +690,7 @@ class Patchbot:
         else:
             logfile = [LOG_RATING_SHORT]
         for rating, ticket in reversed(all):
-            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], rating[:2], ticket['title']),
+            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], str(rating[:2]), ticket['title']),
                            logfile, date=False)
 
         return all[-1]
@@ -955,6 +956,7 @@ class Patchbot:
                         try:
                             if ticket['id'] != 0 and os.path.exists(os.path.join(self.log_dir, '0', name)):
                                 baseline = pickle.load(open(os.path.join(self.log_dir, '0', name)))
+
                             else:
                                 baseline = None
                             print(boundary(name, 'plugin'))
