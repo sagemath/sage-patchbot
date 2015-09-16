@@ -52,7 +52,6 @@ except ImportError:
     from urllib.parse import urlencode
 
 from datetime import datetime
-from dateutil.tz import tzlocal
 
 from optparse import OptionParser
 from http_post_file import post_multipart
@@ -278,7 +277,7 @@ def check_time_of_day(hours):
 
     This is with respect to local time.
     """
-    now = datetime.now(tzlocal())
+    now = datetime.now(None)
     hour = now.hour + now.minute / 60.
     for start, end in parse_time_of_day(hours):
         if start < end:
@@ -319,11 +318,11 @@ class Patchbot:
 
     - sage_root -- path to the sage local repository
     - server -- http address of the patchbot server
-    - config_path -- None or path to the config file
+    - config_path -- ``None`` or path to the config file
     - dry_run -- boolean
     - plugin_only -- boolean
     - options
-    
+
     EXAMPLES::
 
         >>> from patchbot import Patchbot

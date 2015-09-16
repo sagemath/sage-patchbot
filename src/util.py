@@ -2,8 +2,6 @@ import os
 import re
 import subprocess
 
-from dateutil import parser
-from dateutil.tz import tzutc
 from datetime import datetime
 
 # check_output for Python < 2.7
@@ -20,8 +18,19 @@ if "check_output" not in subprocess.__dict__:  # duck punch it in!
 
 temp_build_suffix = "-sage-git-temp-"
 
-DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
+# DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 # EPOCH = datetime(1970, 1, 1, tzinfo=tzutc())  # in the UTC timezone
+
+
+def date_parser(date_string):
+    """
+    Parse a datetime string into a datetime object.
+
+    date_parser('2015-07-23 09:00:08')
+    ?
+    """
+    return datetime.strptime(date_string[:19], DATE_FORMAT)
 
 
 def now_str():
@@ -31,9 +40,9 @@ def now_str():
     in the UTC timezone
 
     In [3]: now_str()
-    Out[3]: '2015-07-23 09:00:08 +0000'
+    Out[3]: '2015-07-23 09:00:08'
     """
-    return datetime.now(tzutc()).strftime(DATE_FORMAT)
+    return datetime.utcnow().strftime(DATE_FORMAT)
 
 
 def prune_pending(ticket, machine=None, timeout=None):
@@ -51,10 +60,10 @@ def prune_pending(ticket, machine=None, timeout=None):
         reports = ticket['reports']
     else:
         return []
-    now = datetime.now(tzutc())  # in the utc timezone
+    now = datetime.utcnow()  # in the utc timezone
     for report in list(reports):
         if report['status'] == 'Pending':
-            t = parser.parse(report['time'])
+            t = date_parser(report['time'])
             if report['machine'] == machine:
                 reports.remove(report)
             elif (now - t).total_seconds() > timeout:
