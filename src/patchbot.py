@@ -546,7 +546,7 @@ class Patchbot:
                             "plugins.startup_time",
                             "plugins.startup_modules",
                             # "plugins.docbuild_pdf", # not yet tested
-                            # "plugins.docbuild",  # already done once in make
+                            "plugins.docbuild",
                             "plugins.git_rev_list"],
                 "bonus": {},
                 "machine": machine_data(),
@@ -932,7 +932,7 @@ class Patchbot:
                 if not ticket['spkgs']:
                     # ------------- make -------------
                     do_or_die("$MAKE doc-clean")
-                    do_or_die("$MAKE")
+                    do_or_die("$MAKE build")  # doc is made later in a plugin
                     t.finish("Build")
                     state = 'built'
                     if not self.plugin_only:
