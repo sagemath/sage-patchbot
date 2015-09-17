@@ -1022,15 +1022,15 @@ class Patchbot:
         except SkipTicket as exn:
             self.to_skip[ticket['id']] = time.time() + exn.seconds_till_retry
             state = 'skipped'
-            msg = "Skipping #{} for {} seconds {}"
+            msg = "Skipping #{} for {} seconds: {}"
             self.write_log(msg.format(ticket['id'],
                                       exn.seconds_till_retry, exn),
-                           LOG_MAIN)
-        except Exception:
-            msg = "An exception has been raised during the test of #{}"
+                           [LOG_MAIN, LOG_MAIN_SHORT])
+        except Exception as exn:
+            msg = "#{} raises an exception: {}"
             state = 'skipped'
-            self.write_log(msg.format(ticket['id']),
-                           LOG_MAIN)
+            self.write_log(msg.format(ticket['id'], exn),
+                           [LOG_MAIN, LOG_MAIN_SHORT])
             traceback.print_exc()
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
         except:
