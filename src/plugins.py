@@ -268,7 +268,8 @@ def trac_links(ticket, **kwds):
     Look for the presence of badly formatted trac roles ``:trac:``,
     missing the initial colon.
     """
-    exclude_new(ticket, regex=r' trac\:`[0-9]$', msg="Bad trac link", **kwds)
+    exclude_new(ticket, regex=r'^trac\:`[0-9]', msg="Bad trac link", **kwds)
+    exclude_new(ticket, regex=r'\strac\:`[0-9]', msg="Bad trac link", **kwds)
 
 
 def non_ascii(ticket, **kwds):
