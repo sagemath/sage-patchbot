@@ -1028,7 +1028,6 @@ class Patchbot:
                            [LOG_MAIN, LOG_MAIN_SHORT])
         except Exception as exn:
             msg = "#{} raises an exception: {}"
-            state = 'skipped'
             self.write_log(msg.format(ticket['id'], exn),
                            [LOG_MAIN, LOG_MAIN_SHORT])
             traceback.print_exc()
