@@ -581,6 +581,12 @@ class Patchbot:
         if "extra_trusted_authors" in conf:
             conf["trusted_authors"].update(conf["extra_trusted_authors"])
 
+        # force building the doc, so that the tests can pass
+        if not self.plugin_only:
+            active_plugins = conf['plugins']
+            if not "plugins.docbuild" in active_plugins:
+                conf['plugins'] = active_plugins + ["plugins.docbuild"]
+            
         def locate_plugin(name):
             ix = name.rindex('.')
             module = name[:ix]
