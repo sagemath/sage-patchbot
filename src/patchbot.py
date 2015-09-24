@@ -341,7 +341,7 @@ class Patchbot:
                  plugin_only, options):
 
         self.sage_root = sage_root
-        self.sage_command = "{}/sage".format(self.sage_root)
+        self.sage_command = os.path.join(self.sage_root, 'sage')
         self.server = server
         self.trac_server = TracServer(Config())
         self.base = get_version(sage_root)
@@ -896,8 +896,8 @@ class Patchbot:
         print(ticket['title'].encode('utf8'))
         print("score = {}".format(rating))
         print("\n\n")
-        log = '{}/{}-log.txt'.format(self.log_dir, ticket['id'])
-        self.write_log('#{}: starting tests'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
+        log = os.path.join(self.log_dir, '{}-log.txt'.format(ticket['id']))
+        self.write_log('#{}: init phase'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
@@ -937,7 +937,7 @@ class Patchbot:
 
                 if not ticket['spkgs']:
                     # ------------- make -------------
-                    do_or_die("$MAKE doc-clean")
+                    do_or_die('$MAKE doc-clean')
                     do_or_die("$MAKE build")  # doc is made later in a plugin
                     t.finish("Build")
                     state = 'built'
@@ -953,7 +953,7 @@ class Patchbot:
                     kwds = {
                         "patches": [os.path.join(patch_dir, p)
                                     for p in os.listdir(patch_dir)],
-                        "sage_binary": os.path.join(os.getcwd(), 'sage'),
+                        "sage_binary": self.sage_command,
                         "dry_run": self.dry_run,
                     }
                     # the keyword "patches" is used in plugin commit_messages
@@ -1001,7 +1001,8 @@ class Patchbot:
                     else:
                         # ------------- run tests -------------
                         if self.dry_run:
-                            test_target = "{}/src/sage/misc/a*.py".format(self.sage_root)
+                            test_target = os.path.join(self.sage_root,
+                                                       "src/sage/misc/a*.py")
                         else:
                             test_target = "--all --long"
                         if self.config['parallelism'] > 1:
