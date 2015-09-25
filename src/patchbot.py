@@ -937,6 +937,7 @@ class Patchbot:
 
                 if not ticket['spkgs']:
                     # ------------- make -------------
+                    do_or_die('./configure')
                     do_or_die('$MAKE doc-clean')
                     do_or_die("$MAKE build")  # doc is made later in a plugin
                     t.finish("Build")
