@@ -123,7 +123,7 @@ def docbuild(ticket, **kwds):
     """
     Build the documentation.
     """
-    do_or_die('$MAKE doc')
+    do_or_die('make doc')
 
 
 def docbuild_pdf(ticket, **kwds):
@@ -136,7 +136,7 @@ def docbuild_pdf(ticket, **kwds):
 
     STILL EXPERIMENTAL!
     """
-    do_or_die('$MAKE doc-pdf')
+    do_or_die('make doc-pdf')
 
 
 def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
