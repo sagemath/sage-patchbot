@@ -244,7 +244,7 @@ def triple_colon(ticket, **kwds):
     """
     Look for the presence of triple colons `:::`.
     """
-    exclude_new(ticket, regex=r'\:\:\:$', msg="Triple colon (:::)", **kwds)
+    exclude_new(ticket, regex=r'\:\:\:', msg="Triple colon (:::)", **kwds)
 
 
 def trac_links(ticket, **kwds):
@@ -252,7 +252,7 @@ def trac_links(ticket, **kwds):
     Look for the presence of badly formatted trac roles ``:trac:``,
     missing the initial colon.
     """
-    exclude_new(ticket, regex=r' trac\:`[0-9]$', msg="Bad trac link", **kwds)
+    exclude_new(ticket, regex=r'[^\:]trac\:`[0-9]', msg="Bad trac link", **kwds)
 
 
 def non_ascii(ticket, **kwds):
@@ -295,7 +295,7 @@ def input_output_block(ticket, **kwds):
     """
     no :: after INPUT and OUTPUT blocks
     """
-    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:\s*',
+    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:',
                 msg="Bad Input/Output blocks", **kwds)
 
 
@@ -303,7 +303,7 @@ def reference_block(ticket, **kwds):
     """
     no :: after REFERENCE blocks
     """
-    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:\s*',
+    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:',
                 msg="Bad reference blocks", **kwds)
 
 
