@@ -953,7 +953,7 @@ class Patchbot:
                         do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
 
                     kwds = {
-                        "make": botmake
+                        "make": botmake,
                         "patches": [os.path.join(patch_dir, p)
                                     for p in os.listdir(patch_dir)],
                         "sage_binary": self.sage_command,
