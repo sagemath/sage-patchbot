@@ -902,8 +902,8 @@ class Patchbot:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         print(self.banner().encode('utf8'))
+        botmake =  os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
         os.environ['SAGE_ROOT'] = self.sage_root
-        os.environ['MAKE'] = "make -j{}".format(self.config['parallelism'])
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
         os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
         os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
@@ -938,8 +938,9 @@ class Patchbot:
                 if not ticket['spkgs']:
                     # ------------- make -------------
                     do_or_die('./configure')
-                    do_or_die('$MAKE doc-clean')
-                    do_or_die("$MAKE build")  # doc is made later in a plugin
+                    do_or_die('{} doc-clean'.format(botmake))
+                    do_or_die("{} build".format(botmake))
+                    # doc is made later in a plugin
                     t.finish("Build")
                     state = 'built'
                     if not self.plugin_only:
@@ -952,6 +953,7 @@ class Patchbot:
                         do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
 
                     kwds = {
+                        "make": botmake
                         "patches": [os.path.join(patch_dir, p)
                                     for p in os.listdir(patch_dir)],
                         "sage_binary": self.sage_command,

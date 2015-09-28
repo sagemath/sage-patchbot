@@ -119,14 +119,14 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=current, data=data)
 
 
-def docbuild(ticket, **kwds):
+def docbuild(ticket, make, **kwds):
     """
     Build the documentation.
     """
-    do_or_die('make doc')
+    do_or_die('{} doc'.format(make))
 
 
-def docbuild_pdf(ticket, **kwds):
+def docbuild_pdf(ticket, make, **kwds):
     """
     Build the PDF documentation.
 
@@ -136,7 +136,7 @@ def docbuild_pdf(ticket, **kwds):
 
     STILL EXPERIMENTAL!
     """
-    do_or_die('make doc-pdf')
+    do_or_die('{} doc-pdf'.format(make))
 
 
 def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
@@ -309,7 +309,7 @@ def reference_block(ticket, **kwds):
 
 def doctest_continuation(ticket, **kwds):
     """
-    Make sure that doctest continuation use syntax `....:`.
+    Check that doctest continuation use syntax `....:`.
     """
     exclude_new(ticket, regex=r'^\s*\.\.\.\s',
                 msg="Old-style doctest continuation", **kwds)
@@ -317,7 +317,7 @@ def doctest_continuation(ticket, **kwds):
 
 def raise_statements(ticket, **kwds):
     """
-    Make sure that raise statements use python3 syntax.
+    Check that raise statements use python3 syntax.
     """
     exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error,',
                 msg="Old-style raise statement", **kwds)
@@ -379,7 +379,7 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     return PluginResult(status, baseline=modules, data=data)
 
 
-def startup_time(ticket, sage_binary, loops=5, total_samples=50,
+def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
                  dry_run=False, **kwds):
     """
     Try to decide if the startup time is getting worse.
@@ -390,8 +390,8 @@ def startup_time(ticket, sage_binary, loops=5, total_samples=50,
 
     print("{} samples in {} loops".format(total_samples, loops))
     ticket_id = ticket['id']
-    choose_base = "git checkout patchbot/base; make build > /dev/null"
-    choose_ticket = "git checkout patchbot/ticket_merged; make build  > /dev/null"
+    choose_base = "git checkout patchbot/base; {} build > /dev/null".format(make)
+    choose_ticket = "git checkout patchbot/ticket_merged; {} build  > /dev/null".format(make)
 
     def startup_times(samples):
         do_or_die(sage_binary + " -c ''")
