@@ -586,7 +586,7 @@ class Patchbot:
             active_plugins = conf['plugins']
             if not "plugins.docbuild" in active_plugins:
                 conf['plugins'] = active_plugins + ["plugins.docbuild"]
-            
+
         def locate_plugin(name):
             ix = name.rindex('.')
             module = name[:ix]
@@ -902,7 +902,7 @@ class Patchbot:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         print(self.banner().encode('utf8'))
-        botmake =  os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
+        botmake = os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
         os.environ['SAGE_ROOT'] = self.sage_root
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
         os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'

@@ -31,7 +31,7 @@ from util import (now_str, current_reports, latest_version,
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
-OLDEST = '6.0'
+OLDEST = '6.5'
 
 
 def timed_cached_function(refresh_rate=60):
