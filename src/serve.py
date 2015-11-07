@@ -184,7 +184,7 @@ def get_query(args):
             base = args.get('base')
             if base == 'latest' or base == 'develop':
                 query['reports.base'] = latest_base()
-            elif base != 'all'
+            elif base != 'all':
                 query['reports.base'] = base
 
     query['milestone'] = {'$ne': 'sage-duplicate/invalid/wontfix'}
