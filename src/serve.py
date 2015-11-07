@@ -31,7 +31,7 @@ from util import (now_str, current_reports, latest_version,
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
-OLDEST = '6.5'
+OLDEST = '6.6'
 
 
 def timed_cached_function(refresh_rate=60):
@@ -182,7 +182,9 @@ def get_query(args):
 
         if 'base' in args:
             base = args.get('base')
-            if not(base == 'all' or base == 'latest'):
+            if base == 'latest' or base == 'develop':
+                query['reports.base'] = latest_base()
+            elif base != 'all'
                 query['reports.base'] = base
 
     query['milestone'] = {'$ne': 'sage-duplicate/invalid/wontfix'}
@@ -197,6 +199,16 @@ def get_query(args):
 def ticket_list():
     authors = None
     machine = None
+
+    if 'base' in request.args:
+        base = request.args.get('base')
+        if base == 'all':
+            base = None
+        elif base == 'develop':
+            base = 'latest'
+    else:
+        base = 'latest'
+
     query = get_query(request.args)
     if 'machine' in request.args:
         machine = request.args.get('machine').split(':')
@@ -208,13 +220,6 @@ def ticket_list():
         order = 'last_activity'
     limit = int(request.args.get('limit', 1000))
     print(query)
-
-    if 'base' in request.args:
-        base = request.args.get('base')
-        if base == 'all':
-            base = None
-    else:
-        base = 'latest'
 
     all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
