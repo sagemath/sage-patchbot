@@ -416,7 +416,7 @@ def render_ticket(ticket):
         else:
             return '?'
 
-    def preprocess_reports(all, chosen_base):
+    def preprocess_reports(all):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
@@ -434,7 +434,7 @@ def render_ticket(ticket):
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
-            if chosen_base == 'all' or chosen_base == item['base']:
+            if base == 'all' or base == item['base']:
                 yield item
 
     def normalize_plugin(plugin):
@@ -448,7 +448,7 @@ def render_ticket(ticket):
     status_data = get_ticket_status(info, base=latest_base)[1]  # single status
 
     return render_template("ticket.html",
-                           reports=preprocess_reports(info['reports'], base),
+                           reports=preprocess_reports(info['reports']),
                            ticket=ticket, info=format_info(info),
                            status=status_data,
                            normalize_plugin=normalize_plugin,
