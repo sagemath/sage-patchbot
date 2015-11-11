@@ -326,11 +326,14 @@ def render_ticket(ticket):
 
     ?base to select reports according to their base
     """
-    latest_base = latest_base()
+    latest = latest_base()
 
-    base = request.args.get('base', 'all')
+    if 'base' in request.args:
+        base = request.args.get('base')
+    else:
+        base = 'all'
     if base == 'latest' or base == 'develop':
-        base = latest_base
+        base = latest
 
     try:
         info = scrape(ticket, db=db, force='force' in request.args)
@@ -425,7 +428,7 @@ def render_ticket(ticket):
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
             item['raw_base'] = item['base']
-            if compare_version(item['base'], latest_base) < 0:
+            if compare_version(item['base'], latest) < 0:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
