@@ -323,11 +323,20 @@ def render_ticket(ticket):
     ?force will refresh the info in the patchbot-server database
 
     ?kick will tell the patchbot-clients to retry the ticket
+
+    ?base to select reports according to their base
     """
+    latest_base = latest_base()
+
+    base = request.args.get('base', 'all')
+    if base == 'latest' or base == 'develop':
+        base = latest_base
+
     try:
         info = scrape(ticket, db=db, force='force' in request.args)
     except:
         info = tickets.find_one({'id': ticket})
+
     if info is None:
         return "No such ticket."
     if 'kick' in request.args:
@@ -344,8 +353,6 @@ def render_ticket(ticket):
     patchbot.prune_pending(info)
     if old_reports != info['reports']:
         db.save_ticket(info)
-
-    base = latest_base()
 
     def format_info(info):
         new_info = {}
@@ -409,7 +416,7 @@ def render_ticket(ticket):
         else:
             return '?'
 
-    def preprocess_reports(all):
+    def preprocess_reports(all, chosen_base):
         for item in all:
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
@@ -418,7 +425,7 @@ def render_ticket(ticket):
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
             item['raw_base'] = item['base']
-            if compare_version(item['base'], base) < 0:
+            if compare_version(item['base'], latest_base) < 0:
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)
@@ -427,7 +434,8 @@ def render_ticket(ticket):
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
-            yield item
+            if chosen_base == 'all' or chosen_base == item['base']:
+                yield item
 
     def normalize_plugin(plugin):
         while len(plugin) < 3:
@@ -437,10 +445,10 @@ def render_ticket(ticket):
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
-    status_data = get_ticket_status(info, base=base)[1]  # single status
+    status_data = get_ticket_status(info, base=latest_base)[1]  # single status
 
     return render_template("ticket.html",
-                           reports=preprocess_reports(info['reports']),
+                           reports=preprocess_reports(info['reports'], base),
                            ticket=ticket, info=format_info(info),
                            status=status_data,
                            normalize_plugin=normalize_plugin,
