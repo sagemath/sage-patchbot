@@ -331,7 +331,8 @@ def render_ticket(ticket):
     if 'base' in request.args:
         chosen_base = request.args.get('base')
     else:
-        chosen_base = 'all'
+        chosen_base = 'all' if ticket != 0 else 'develop'
+
     if chosen_base == 'latest' or chosen_base == 'develop':
         chosen_base = latest
 
