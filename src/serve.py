@@ -329,11 +329,11 @@ def render_ticket(ticket):
     latest = latest_base()
 
     if 'base' in request.args:
-        base = request.args.get('base')
+        chosen_base = request.args.get('base')
     else:
-        base = 'all'
-    if base == 'latest' or base == 'develop':
-        base = latest
+        chosen_base = 'all'
+    if chosen_base == 'latest' or chosen_base == 'develop':
+        chosen_base = latest
 
     try:
         info = scrape(ticket, db=db, force='force' in request.args)
@@ -421,6 +421,7 @@ def render_ticket(ticket):
 
     def preprocess_reports(all):
         for item in all:
+            base_of_this_report = item['base']
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
                 item['base_log'] = quote(log_name(0, base_report))
@@ -437,7 +438,7 @@ def render_ticket(ticket):
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
-            if base == 'all' or base == item['base']:
+            if chosen_base == 'all' or chosen_base == base_of_this_report:
                 yield item
 
     def normalize_plugin(plugin):
@@ -448,7 +449,7 @@ def render_ticket(ticket):
     def sort_fields(items):
         return sorted(items, key=(lambda x: (x[0] != 'title', x)))
 
-    status_data = get_ticket_status(info, base=latest_base)[1]  # single status
+    status_data = get_ticket_status(info, base=latest)[1]  # single status
 
     return render_template("ticket.html",
                            reports=preprocess_reports(info['reports']),
