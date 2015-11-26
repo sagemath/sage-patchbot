@@ -1239,6 +1239,11 @@ class Patchbot:
     def git_commit(self, branch):
         return git_commit(self.sage_root, branch)
 
+    def distclean(self):
+        r"""
+        Do a "make distclean" on the sage install
+        """
+        do_or_die('make distclean')
 
 def main(args):
     """
@@ -1306,6 +1311,9 @@ def main(args):
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
+    failure_status = ('BuildFailed', 'TestsFailed')
+    success_status = ('TestsPassed', 'PluginOnly')
+
     if not conf['skip_base']:
         patchbot.check_base()
 
@@ -1313,36 +1321,48 @@ def main(args):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
         if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
-            if res not in ('TestsPassed', 'PluginOnly'):
-                print("\n\n")
-                print("Current base: {} {}".format(conf['base_repo'],
-                                                   conf['base_branch']))
-                print("Failing tests in your base install: exiting.")
+            if res not in success_status:
+                patchbot.write_log("Current base: {} {}\n".format(conf['base_repo'],
+                                                   conf['base_branch']),
+                                   [LOG_MAIN, LOG_MAIN_SHORT])
+                patchbot.write_log("Failing tests in your base install: exiting.\n", [LOG_MAIN, LOG_MAIN_SHORT])
                 sys.exit(1)
 
+
     for k in range(count):
+        if not check_time_of_day(conf['time_of_day']):
+            patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
+            time.sleep(conf['idle'])
+            continue
+
         if options.cleanup:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):
                 patchbot.write_log("Cleaning up {}".format(path),
                                    [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
-        try:
-            if tickets:
-                ticket = tickets.pop(0)
-            else:
-                ticket = None
-            conf = patchbot.reload_config()
-            if check_time_of_day(conf['time_of_day']):
-                if not patchbot.check_base():
-                    patchbot.test_a_ticket(0)
-                patchbot.test_a_ticket(ticket)
-            else:
-                patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
-                time.sleep(conf['idle'])
-        except Exception:
-            traceback.print_exc()
-            time.sleep(conf['idle'])
+
+        if tickets:
+            ticket = tickets.pop(0)
+        else:
+            ticket = None
+        conf = patchbot.reload_config()
+        if not patchbot.check_base():
+            patchbot.test_a_ticket(0)
+        res = patchbot.test_a_ticket(ticket)
+
+        if res in failures:
+            patchbot.write_log("Failing build or tests: checking base again...\n", [LOG_MAIN, LOG_MAIN_SHORT])
+            rres = patchbot.test_a_ticket(0)
+
+            if rres not in success_status:
+                patchbot.write_log("Failing build or tests in the base... try a hard cleanup\n", [LOG_MAIN, LOG_MAIN_SHORT])
+                patchbot.distclean()
+                rres = patchbot.test_a_ticket(0)
+
+                if rres not in success_status:
+                    patchbot.write_log("Patchbot is definitely broken!\n", [LOG_MAIN, LOG_MAIN_SHORT])
+                    sys.exit(1)
 
 if __name__ == '__main__':
     # allow this script to serve as a single entry point for bots and
