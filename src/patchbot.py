@@ -1351,7 +1351,7 @@ def main(args):
             patchbot.test_a_ticket(0)
         res = patchbot.test_a_ticket(ticket)
 
-        if res in failures:
+        if res in failure_status:
             patchbot.write_log("Failing build or tests: checking base again...\n", [LOG_MAIN, LOG_MAIN_SHORT])
             rres = patchbot.test_a_ticket(0)
 
