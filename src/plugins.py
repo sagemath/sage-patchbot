@@ -167,7 +167,8 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
             pass
 
     full_msg = "{} inserted on {} non-empty lines"
-    print(full_msg.format(msg, bad_lines))
+    full_msg = full_msg.format(msg, bad_lines)
+    print(full_msg)
     if bad_lines:
         raise ValueError(full_msg)
 
@@ -190,7 +191,8 @@ def exclude_new(ticket, regex, msg, **kwds):
                                stdout=subprocess.PIPE).stdout
     bad_lines = exclude_new_in_diff(gitdiff, regex)
     full_msg = "{} inserted on {} non-empty lines"
-    print(full_msg.format(msg, bad_lines))
+    full_msg = full_msg.format(msg, bad_lines)
+    print(full_msg)
     if bad_lines:
         raise ValueError(full_msg)
 
