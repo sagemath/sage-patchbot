@@ -31,7 +31,10 @@ from util import (now_str, current_reports, latest_version,
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
-OLDEST = '6.7'
+OLDEST = '6.8'
+
+# machines that are banned from posting their reports
+BLACKLIST = ['hera-OptiPlex-7010']
 
 
 def timed_cached_function(refresh_rate=60):
@@ -558,7 +561,13 @@ def post_report(ticket_id):
         report = json.loads(request.form.get('report'))
         assert (isinstance(report, dict)), "report is not a dict"
         for fld in ['status', 'spkgs', 'base', 'machine', 'time']:
-            assert (fld in report), "{} missing in report".format(fld)
+                assert (fld in report), "{} missing in report".format(fld)
+
+        machine_name = report['machine'][-1]
+        if machine_name in BLACKLIST:
+            msg = 'machine {} is blacklisted'.format(machine_name)
+            raise RuntimeError(msg)
+
         patchbot.prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
         db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
