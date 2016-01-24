@@ -492,6 +492,8 @@ def reports_by_machine_and_base(ticket):
 def render_ticket_status(ticket):
     """
     Return the status image for the given ticket.
+
+    This now only renders a png image with the base.
     """
     try:
         if 'fast' in request.args:
@@ -513,7 +515,7 @@ def render_ticket_status(ticket):
     else:
         display_base = base
 
-    response = make_response(create_status_image(status, base=display_base))
+    response = make_response(create_base_image(base=display_base))
     response.headers['Content-type'] = 'image/png'
     response.headers['Cache-Control'] = 'no-cache'
     return response
@@ -784,6 +786,35 @@ def status_image_path(status, type='png'):
         return IMAGES_DIR + 'icon-{}.svg'.format(status)
 
 
+def create_base_image(base=None):
+    """
+    Return a png image containing only the sage version for the latest base
+
+    This is for the 'png' icon set.
+
+    INPUT:
+
+    - base -- the base
+
+    EXAMPLES::
+
+        create_base_image('6.4')
+    """
+    path = IMAGES_DIR + 'icon-Empty.png'  # should be done in SVG instead
+    if base is None:
+        base = ''
+    base = base.replace("alpha", "a").replace("beta", "b")
+    try:
+        from PIL import Image, ImageDraw
+        im = Image.open(path)
+        ImageDraw.Draw(im).text((5, 20), base, fill='#000000')
+        output = StringIO()
+        im.save(output, format='png')
+        return output.getvalue()
+    except ImportError:
+        return open(path).read()
+
+        
 def create_status_image(status, base=None):
     """
     Return a composite blob image for a concatenation of status
