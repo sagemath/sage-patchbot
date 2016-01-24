@@ -807,7 +807,8 @@ def create_base_image(base=None):
     try:
         from PIL import Image, ImageDraw
         im = Image.open(path)
-        ImageDraw.Draw(im).text((5, 20), base, fill='#000000')
+        wx, wy = ImageDraw.Draw(im).textsize(base)
+        ImageDraw.Draw(im).text(((48 - wx) // 2, 18), base, fill='#000000')
         output = StringIO()
         im.save(output, format='png')
         return output.getvalue()
