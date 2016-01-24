@@ -508,7 +508,7 @@ def render_ticket_status(ticket):
     else:
         base = latest_version(info.get('reports', []))
 
-    status = get_ticket_status(info, base=base)[2]  # composite status
+    # status = get_ticket_status(info, base=base)[2]  # composite status
 
     if 'fast' in request.args:
         display_base = None
@@ -815,7 +815,7 @@ def create_base_image(base=None):
     except ImportError:
         return open(path).read()
 
-        
+
 def create_status_image(status, base=None):
     """
     Return a composite blob image for a concatenation of status
