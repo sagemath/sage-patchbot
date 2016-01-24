@@ -918,7 +918,7 @@ def robots():
 @app.route("/favicon.ico")
 def favicon():
     """
-    Return the favicon image as a web page (green blob)
+    Return the favicon image as a web page (green icon)
 
     See http://patchbot.sagemath.org/favicon.ico for the result.
 
@@ -927,7 +927,7 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    response = make_response(open(IMAGES_DIR + 'icon-TestsPassed.png').read())
+    response = make_response(open(IMAGES_DIR + 'favicon.png').read())
     response.headers['Content-type'] = 'image/png'
     return response
 
