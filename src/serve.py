@@ -34,7 +34,7 @@ IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 OLDEST = '6.9'
 
 # machines that are banned from posting their reports
-BLACKLIST = ['hera-OptiPlex-7010']
+BLACKLIST = ['hera-OptiPlex-7010', 'librae']
 
 
 def timed_cached_function(refresh_rate=60):
@@ -396,10 +396,7 @@ def render_ticket(ticket):
                 new_info[key] = trust_check + auths
             elif key == 'participants':
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
-                trust_check = "(<a href='/trust_check?who="
-                trust_check += ','.join("{}".format(a) for a in value)
-                trust_check += "'>Check trust</a>) "
-                new_info[key] = trust_check + parts
+                new_info[key] = parts
             elif key == 'git_branch':
                 new_info[key] = '<a href="http://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
             elif key == 'spkgs':
