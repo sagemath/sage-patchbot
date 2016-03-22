@@ -27,8 +27,10 @@ def date_parser(date_string):
     """
     Parse a datetime string into a datetime object.
 
-    date_parser('2015-07-23 09:00:08')
-    ?
+    EXAMPLES::
+
+        date_parser('2015-07-23 09:00:08')
+        ?
     """
     return datetime.strptime(date_string[:19], DATE_FORMAT)
 
@@ -39,8 +41,10 @@ def now_str():
 
     in the UTC timezone
 
-    In [3]: now_str()
-    Out[3]: '2015-07-23 09:00:08'
+    EXAMPLES::
+
+        In [3]: now_str()
+        Out[3]: '2015-07-23 09:00:08'
     """
     return datetime.utcnow().strftime(DATE_FORMAT)
 
@@ -149,8 +153,10 @@ def is_git(sage_root):
 
     This should now always be true.
 
-    In [10]: is_git('/home/louis_de_funes/sage')
-    Out[10]: True
+    EXAMPLES::
+
+        In [10]: is_git('/home/louis_de_funes/sage')
+        Out[10]: True
     """
     return os.path.exists(sage_root + "/.git")
 
@@ -159,8 +165,10 @@ def git_commit(repo, branch):
     """
     Note: see almost the same function in trac.py
 
-    In [16]: git_commit('/home/marlon_brando/sage', 'develop')
-    Out[16]: '7eb8510dacf61b691664cd8f1d2e75e5d473e5a0'
+    EXAMPLES::
+
+        In [16]: git_commit('/home/marlon_brando/sage', 'develop')
+        Out[16]: '7eb8510dacf61b691664cd8f1d2e75e5d473e5a0'
     """
     ref = "refs/heads/{}".format(branch)
     try:
@@ -188,14 +196,14 @@ def comparable_version(version):
 
     EXAMPLES::
 
-    In [2]: comparable_version('6.6.rc0')
-    Out[2]: [(1, 6), (1, 6), (0, 'rc'), (1, 0), (0, 'z')]
+        In [2]: comparable_version('6.6.rc0')
+        Out[2]: [(1, 6), (1, 6), (0, 'rc'), (1, 0), (0, 'z')]
 
-    In [3]: comparable_version('6.6')
-    Out[3]: [(1, 6), (1, 6), (0, 'z')]
+        In [3]: comparable_version('6.6')
+        Out[3]: [(1, 6), (1, 6), (0, 'z')]
 
-    In [4]: comparable_version('6.6.beta4')
-    Out[4]: [(1, 6), (1, 6), (0, 'beta'), (1, 4), (0, 'z')]
+        In [4]: comparable_version('6.6.beta4')
+        Out[4]: [(1, 6), (1, 6), (0, 'beta'), (1, 4), (0, 'z')]
     """
     version = re.sub(r'([^.0-9])(\d+)', r'\1.\2', version) + '.z'
 
@@ -213,17 +221,17 @@ def compare_version(a, b):
 
     EXAMPLES::
 
-    In [5]: compare_version('6.4.rc0','6.4')
-    Out[5]: -1
+        In [5]: compare_version('6.4.rc0','6.4')
+        Out[5]: -1
 
-    In [6]: compare_version('6.4.rc0','6.4.beta2')
-    Out[6]: 1
+        In [6]: compare_version('6.4.rc0','6.4.beta2')
+        Out[6]: 1
 
-    In [7]: compare_version('6.4','6.3')
-    Out[7]: 1
+        In [7]: compare_version('6.4','6.3')
+        Out[7]: 1
 
-    In [8]: compare_version('6.3','6.3.1')
-    Out[8]: -1
+        In [8]: compare_version('6.3','6.3.1')
+        Out[8]: -1
     """
     return cmp(comparable_version(a), comparable_version(b))
 
@@ -236,8 +244,10 @@ def get_version(sage_root):
 
     This is found in the VERSION.txt file.
 
-    In [9]: get_version('/home/paul_gauguin/sage')
-    Out[9]: '6.6.rc0'
+    EXAMPLES::
+
+        In [9]: get_version('/home/paul_gauguin/sage')
+        Out[9]: '6.6.rc0'
     """
     sage_version = open(os.path.join(sage_root, 'VERSION.txt')).read()
     return sage_version.split()[2].strip(',')
@@ -247,8 +257,10 @@ def describe_branch(branch, tag_only=False):
     """
     Return the latest tag of the branch or the full branch description.
 
-    >>> describe_branch('develop', True)
-    '6.6.rc1'
+    EXAMPLES::
+
+        >>> describe_branch('develop', True)
+        '6.6.rc1'
     """
     res = subprocess.check_output(['git', 'describe', '--tags',
                                    '--match', '[0-9].[0-9]*', branch]).strip()

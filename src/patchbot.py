@@ -103,9 +103,11 @@ def compare_machines(a, b, machine_match=None):
 
     machine_match is a number of initial things to look at.
 
-    >>> m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
-    >>> m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
-    >>> compare_machines(m1, m2)
+    EXAMPLES::
+
+        >>> m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
+        >>> m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
+        >>> compare_machines(m1, m2)
     """
     if machine_match is not None:
         a = a[:machine_match]
@@ -212,7 +214,7 @@ def boundary(name, type):
     """
     Return text that bound parts of the reports.
 
-    Type can be 'plugin', 'plugin_end', 'ticket' and 'spkg'
+    type can be 'plugin', 'plugin_end', 'ticket' and 'spkg'
     """
     if type == 'plugin':
         letter = '='
@@ -236,8 +238,10 @@ def machine_data():
 
     This uses ``uname`` to find the data.
 
-    m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
-    m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
+    EXAMPLES::
+
+        m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
+        m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
     system, node, release, version, arch = os.uname()
     if system.lower() == "linux":
@@ -434,12 +438,26 @@ class Patchbot:
         Return the version of the patchbot.
 
         Something like '2.3.7'
+
+        EXAMPLES::
+
+            In [3]: P.version()
+            Out[3]: u'2.5.3'
         """
         return self._version
 
     def banner(self):
         """
         A banner for the patchbot
+
+        EXAMPLES::
+
+            In [7]: print(P.banner())
+            ┌─┬──────┐
+            │░│ ⊙  ʘ │        SageMath patchbot
+            │░│      │
+            │░│ ──── │        version 2.5.3
+            ╘═╧══════╛
         """
         s = u'┌─┬──────┐\n'
         s += u'│░│ ⊙  ʘ │        SageMath patchbot\n'
@@ -842,6 +860,11 @@ class Patchbot:
     def current_reports(self, ticket, newer=False):
         """
         Return the list of current reports on a ticket.
+
+        EXAMPLES::
+
+            In [4]: P.current_reports(20240)
+            Out[4]: []
         """
         if isinstance(ticket, (int, str)):
             ticket = self.lookup_ticket(ticket)
