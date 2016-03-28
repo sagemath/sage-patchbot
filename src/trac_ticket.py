@@ -120,10 +120,13 @@ class TicketChange_class(object):
         elif self.new == '':
             return u'{change.old} deleted'.format(change=self)
         else:
-            return u'changed from {change.old} to {change.new}'.format(change=self)
+            txt = u'changed from {change.old} to {change.new}'
+            return txt.format(change=self)
 
     def __repr__(self):
-        return self.get_author() + u' changed ' + self.get_change() + self.get_data()
+        txt = self.get_author() + u' changed ' + self.get_change()
+        txt += self.get_data()
+        return txt
 
 
 class TicketComment_class(TicketChange_class):

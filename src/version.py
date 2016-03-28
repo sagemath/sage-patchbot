@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def get_version():
+def get_patchbot_version():
     """
     Get the version of sage-patchbot.
 
@@ -12,8 +12,8 @@ def get_version():
 
     EXAMPLES::
 
-        sage: from version import get_version
-        sage: get_version()
+        sage: from version import get_patchbot_version
+        sage: get_patchbot_version()
         u'2.3.2'
     """
     src_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,4 +34,4 @@ def get_version():
     return "unknown"
 
 if __name__ == '__main__':
-    print(get_version())
+    print(get_patchbot_version())

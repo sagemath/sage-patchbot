@@ -236,7 +236,7 @@ def compare_version(a, b):
     return cmp(comparable_version(a), comparable_version(b))
 
 
-def get_version(sage_root):
+def get_sage_version(sage_root):
     """
     Get the sage version.
 
@@ -246,7 +246,7 @@ def get_version(sage_root):
 
     EXAMPLES::
 
-        In [9]: get_version('/home/paul_gauguin/sage')
+        In [9]: get_sage_version('/home/paul_gauguin/sage')
         Out[9]: '6.6.rc0'
     """
     sage_version = open(os.path.join(sage_root, 'VERSION.txt')).read()

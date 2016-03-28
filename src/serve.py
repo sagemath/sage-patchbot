@@ -1,3 +1,4 @@
+# global python imports
 import os
 import sys
 import bz2
@@ -21,13 +22,14 @@ try:
 except ImportError:
     from urllib.parse import quote
 
+# imports from patchbot sources
 from trac import scrape
-import patchbot
-import db
-
-from db import tickets
 from util import (now_str, current_reports, latest_version,
                   compare_version)
+from patchbot import filter_on_authors, prune_pending
+
+import db
+from db import tickets
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
@@ -224,7 +226,7 @@ def ticket_list():
     limit = int(request.args.get('limit', 1000))
     print(query)
 
-    all = patchbot.filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
+    all = filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
         def filter_reports(all):
@@ -299,7 +301,7 @@ def machines():
         authors = request.args.get('authors').split(':')
     else:
         authors = None
-    all = patchbot.filter_on_authors(tickets.find(query).limit(100), authors)
+    all = filter_on_authors(tickets.find(query).limit(100), authors)
     machines = {}
     for ticket in all:
         for report in ticket.get('reports', []):
@@ -357,7 +359,7 @@ def render_ticket(ticket):
     base_reports = base_reports_by_machine_and_base()
 
     old_reports = list(info['reports'])
-    patchbot.prune_pending(info)
+    prune_pending(info)
     if old_reports != info['reports']:
         db.save_ticket(info)
 
@@ -567,7 +569,7 @@ def post_report(ticket_id):
             msg = 'machine {} is blacklisted'.format(machine_name)
             raise RuntimeError(msg)
 
-        patchbot.prune_pending(ticket, report['machine'])
+        prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
         db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
         if 'retry' in ticket:

@@ -6,7 +6,7 @@
 # This is the main script for the patchbot. It pulls branches from
 # trac, applies them, and publishes the results of the tests to a
 # server running serve.py.  Configuration is primarily done via an
-# optional conf.txt file passed in as a command line argument.
+# optional conf.txt file (json format) passed in as a command line argument.
 #
 #          Author: Robert Bradshaw <robertwb@gmail.com>
 #
@@ -18,6 +18,7 @@
 #                  http://www.gnu.org/licenses/
 ####################################################################
 
+# global python imports
 import codecs
 import hashlib
 import signal
@@ -52,19 +53,18 @@ except ImportError:
     from urllib.parse import urlencode
 
 from datetime import datetime
-
 from optparse import OptionParser
-from http_post_file import post_multipart
-from trac import scrape, pull_from_trac
-from trac import TracServer, Config
+
+# imports from patchbot sources
+from trac import scrape, pull_from_trac, TracServer, Config
 from util import (now_str, prune_pending, do_or_die,
-                  get_version, current_reports, git_commit,
+                  get_sage_version, current_reports, git_commit,
                   describe_branch, compare_version, temp_build_suffix,
                   ensure_free_space,
                   ConfigException, SkipTicket)
-import version as patchbot_version
+from http_post_file import post_multipart
 from plugins import PluginResult
-
+from version import get_patchbot_version
 
 # name of the log files
 LOG_RATING = 'rating.log'
@@ -348,7 +348,7 @@ class Patchbot:
         self.sage_command = os.path.join(self.sage_root, 'sage')
         self.server = server
         self.trac_server = TracServer(Config())
-        self.base = get_version(sage_root)
+        self.base = get_sage_version(sage_root)
         self.dry_run = dry_run
         self.plugin_only = plugin_only
         self.config_path = config_path
@@ -361,7 +361,7 @@ class Patchbot:
                              encoding='utf8')
         handle.close()
 
-        self._version = patchbot_version.get_version()
+        self._version = get_patchbot_version()
         self.last_pull = 0
         self.to_skip = {}
 
@@ -675,7 +675,7 @@ class Patchbot:
         Return the human name of the base branch.
         """
         # TODO: Is this stable?
-        version = get_version(self.sage_root)
+        version = get_sage_version(self.sage_root)
         commit_count = subprocess.check_output(['git', 'rev-list', '--count',
                                                 '%s..patchbot/base' % version])
         return "{} + {} commits".format(version, commit_count.strip())

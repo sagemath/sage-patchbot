@@ -108,7 +108,8 @@ def scrape(ticket_id, force=False, db=None):
         # TODO: perhaps the db caching should be extracted outside of
         # this function...
         db_info = db.lookup_ticket(ticket_id)
-        if not force and db_info is not None and db_info['page_hash'] == page_hash:
+        if (not force and db_info is not None and
+                db_info['page_hash'] == page_hash):
             return db_info
 
     # nothing in the database, now fetch the info from trac server
@@ -282,10 +283,12 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
 
     There are four branches at play here:
 
-    patchbot/base -- the latest release that all tickets are merged into for testing
-    patchbot/base_upstream -- temporary staging area for patchbot/base
-    patchbot/ticket_upstream -- pristine clone of the ticket on trac
-    patchbot/ticket_merged -- merge of patchbot/ticket_upstream into patchbot/base
+    - patchbot/base -- the latest release that all tickets are merged into
+      for testing
+    - patchbot/base_upstream -- temporary staging area for patchbot/base
+    - patchbot/ticket_upstream -- pristine clone of the ticket on trac
+    - patchbot/ticket_merged -- merge of patchbot/ticket_upstream into
+      patchbot/base
     """
     merge_failure = False
     is_safe = False
