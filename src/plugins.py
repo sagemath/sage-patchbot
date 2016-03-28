@@ -52,7 +52,7 @@ def git_rev_list(ticket, **kwds):
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     """
-    TODO: This doesn't check that tests were added to existing doctests for
+    TODO: This does not check that tests were added to existing doctests for
     new functionality.
     """
     all = subprocess.check_output([sage_binary, '-coverageall'])

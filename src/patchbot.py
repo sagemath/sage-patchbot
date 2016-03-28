@@ -371,14 +371,16 @@ class Patchbot:
 
         self.reload_config()
 
+        self.owner = "unknown owner"
         if options is None:
             # ugly workaround to simplify interactive use of Patchbot
-
             class opt:
                 safe_only = True
             self.options = opt
         else:
             self.options = options
+            if options.owner is not None:
+                self.owner = options.owner
 
     def write_log(self, msg, logfile=None, date=True):
         r"""
@@ -1045,11 +1047,11 @@ class Patchbot:
                             state = 'tests_passed_plugins_failed'
 
         except (HTTPError, socket.error, ConfigException):
-            # Don't report failure because the network/trac died...
+            # Do not report failure because the network/trac died...
             self.write_log('network failure... skip this ticket', LOG_MAIN)
             t.print_all()
             traceback.print_exc()
-            # Don't try this again for at least an hour.
+            # Do not try this again for at least an hour.
             self.to_skip[ticket['id']] = time.time() + 60 * 60
             state = 'network_error'
         except SkipTicket as exn:
@@ -1066,7 +1068,7 @@ class Patchbot:
             traceback.print_exc()
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
         except:
-            # Don't try this again for a while.
+            # Do not try this again for a while.
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
             raise
 
@@ -1227,10 +1229,13 @@ class Patchbot:
             report['base'] = ticket_base = sorted(tags, compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
+            if ticket['id'] == 0:
+                report['owner'] = self.owner
             if ticket['id'] != 0:
                 report['git_branch'] = ticket.get('git_branch', None)
                 report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base]).strip().split('\n')
-                # If apply failed, we don't want to be stuck in an infinite loop.
+                # If apply failed, we do not want to be stuck in an
+                # infinite loop.
                 report['git_commit'] = self.git_commit('patchbot/ticket_upstream')
                 report['git_commit_human'] = describe_branch('patchbot/ticket_upstream')
                 report['git_merge'] = self.git_commit('patchbot/ticket_merged')
@@ -1299,6 +1304,9 @@ def main(args):
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
                       default=True,
                       help="whether to run the patchbot in safe-only mode")
+    parser.add_option("--owner", action="store_true", dest="owner",
+                      default=None,
+                      help="name and email of the human behind the bot")
 
     (options, args) = parser.parse_args(args)
 
