@@ -210,7 +210,7 @@ def comparable_version(version):
     def maybe_int(s):
         try:
             return 1, int(s)
-        except:
+        except ValueError:
             return 0, s
     return [maybe_int(s) for s in version.split('.')]
 
