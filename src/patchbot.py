@@ -557,6 +557,7 @@ class Patchbot:
                             "plugins.coverage",
                             "plugins.non_ascii",
                             "plugins.doctest_continuation",
+                            "plugins.next_method",
                             "plugins.raise_statements",
                             "plugins.input_output_block",
                             "plugins.reference_block",

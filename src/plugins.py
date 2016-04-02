@@ -316,6 +316,13 @@ def doctest_continuation(ticket, **kwds):
     exclude_new(ticket, regex=r'^\s*\.\.\.\s',
                 msg="Old-style doctest continuation", **kwds)
 
+def next_method(ticket, **kwds):
+    """
+    Check that `next` builtin function is used instead of `.next()` method.
+    """
+    exclude_new(ticket, regex=r'\.next\(\)',
+                msg="python2-only .next() method", **kwds)
+
 
 def raise_statements(ticket, **kwds):
     """
