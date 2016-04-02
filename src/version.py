@@ -1,3 +1,6 @@
+"""
+Get the version of sage-patchbot
+"""
 import os
 import subprocess
 

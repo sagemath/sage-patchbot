@@ -539,7 +539,7 @@ def render_ticket_status_svg(ticket):
         base = latest_version(info.get('reports', []))
 
     status = get_ticket_status(info, base=base)[1]  # single status
-    path = status_image_path(status, type='svg')
+    path = status_image_path(status, image_type='svg')
 
     # with no base
     response = make_response(open(path).read())
@@ -562,7 +562,7 @@ def post_report(ticket_id):
         report = json.loads(request.form.get('report'))
         assert (isinstance(report, dict)), "report is not a dict"
         for fld in ['status', 'spkgs', 'base', 'machine', 'time']:
-                assert (fld in report), "{} missing in report".format(fld)
+            assert (fld in report), "{} missing in report".format(fld)
 
         machine_name = report['machine'][-1]
         if machine_name in BLACKLIST:
@@ -764,14 +764,14 @@ def status_image_svg(status):
     # stupid choice for the moment
     if len(liste) > 1:
         status = liste[0]
-    path = status_image_path(status, type='svg')
+    path = status_image_path(status, image_type='svg')
     response = make_response(open(path).read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
 
-def status_image_path(status, type='png'):
+def status_image_path(status, image_type='png'):
     """
     Return the blob image address for a single status
 
@@ -779,7 +779,7 @@ def status_image_path(status, type='png'):
 
     For example, the result for 'TestsPassed' should be images/green-blob.png
     """
-    if type == 'png':
+    if image_type == 'png':
         return IMAGES_DIR + '{}-blob.png'.format(status_colors[status])
     else:
         return IMAGES_DIR + 'icon-{}.svg'.format(status)

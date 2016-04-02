@@ -27,7 +27,10 @@ from trac import do_or_die
 from util import describe_branch
 
 
-class PluginResult:
+class PluginResult(object):
+    """
+    Container class for the results of plugins
+    """
     Passed = "Passed"
     Failed = "Failed"
 
@@ -158,10 +161,10 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     changed_files = [f.strip("\n") for f in changed_files]
 
     bad_lines = 0
-    for file in changed_files:
+    for a_file in changed_files:
         try:
-            if file_condition(file):
-                gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', file], stdout=subprocess.PIPE).stdout)
+            if file_condition(a_file):
+                gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
                 bad_lines += exclude_new_in_diff(gitdiff, regex)
         except IOError:  # file has been deleted
             pass
@@ -198,7 +201,7 @@ def exclude_new(ticket, regex, msg, **kwds):
 
 
 def exclude_new_in_diff(gitdiff, regex):
-    """
+    r"""
     Search in the given diff for patterns that should be avoided.
 
     The pattern in given by a regular expression, for example r'\:\:\:$'
@@ -263,8 +266,8 @@ def non_ascii(ticket, **kwds):
 
     This should be done file by file to check for unicode declaration.
     """
-    not_declared = lambda file: (not(check_unicode_declaration(file)) and
-                                 file.split('.')[-1] in ['py', 'pyx'])
+    not_declared = lambda a_file: (not(check_unicode_declaration(a_file)) and
+                                   a_file.split('.')[-1] in ['py', 'pyx'])
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
@@ -315,6 +318,7 @@ def doctest_continuation(ticket, **kwds):
     """
     exclude_new(ticket, regex=r'^\s*\.\.\.\s',
                 msg="Old-style doctest continuation", **kwds)
+
 
 def next_method(ticket, **kwds):
     """
@@ -404,12 +408,12 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
 
     def startup_times(samples):
         do_or_die(sage_binary + " -c ''")
-        all = []
+        all_times = []
         for k in range(samples):
             start = time.time()
             do_or_die(sage_binary + " -c ''")
-            all.append(time.time() - start)
-        return all
+            all_times.append(time.time() - start)
+        return all_times
 
     try:
         main_timings = []
@@ -441,8 +445,8 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
 
         print("Main:   %0.5g sec (%s samples, std_dev=%0.3g)" % (p1, n1, s1))
         print("Ticket: %0.5g sec (%s samples, std_dev=%0.3g)" % (p2, n2, s2))
-        print("Average %s of %0.2g secs or %0.2g%%." % (
-              inc_or_dec[increased][:-1], diff, 100 * diff / base))
+        print("Average %s of %0.2g secs or %0.2g%%." %
+              (inc_or_dec[increased][:-1], diff, 100 * diff / base))
         print("Using the Mann-Whitney U test to determine significance.")
 
         if increased:
@@ -490,10 +494,10 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
 
 
 def mann_whitney_U(a, b, offset=0):
-    all = [(x, 0) for x in a] + [(x - offset, 1) for x in b]
-    all.sort()
+    all_points = [(x, 0) for x in a] + [(x - offset, 1) for x in b]
+    all_points.sort()
     R = [0, 0]
-    for ix, (x, k) in enumerate(all):
+    for ix, (x, k) in enumerate(all_points):
         R[k] += ix + 1
     n0 = len(a)
     n1 = len(b)

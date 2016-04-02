@@ -271,6 +271,9 @@ def describe_branch(branch, tag_only=False):
 
 
 def ensure_free_space(path):
+    """
+    check that available free space is at least 4 Go
+    """
     stats = os.statvfs(path)
     free = stats.f_bfree * stats.f_frsize
     if stats.f_bfree * stats.f_frsize < (4 << 30):
