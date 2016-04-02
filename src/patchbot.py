@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Main script for the patchbot client.
 
-####################################################################
-#
-# This is the main script for the patchbot. It pulls branches from
-# trac, applies them, and publishes the results of the tests to a
-# server running serve.py.  Configuration is primarily done via an
-# optional conf.txt file (json format) passed in as a command line argument.
-#
+This is the main script for the patchbot client. It pulls branches
+from trac, applies them, and publishes the results of the tests to a
+server running ``serve.py``.  Configuration is primarily done via an
+optional ``conf.json`` file (json format) passed in as a command line
+argument.
+"""
+
+# -------------------------------------------------------------------
 #          Author: Robert Bradshaw <robertwb@gmail.com>
 #
 #               Copyright 2010-14 (C) Google, Inc.
@@ -16,7 +19,8 @@
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-####################################################################
+# -------------------------------------------------------------------
+
 
 # global python imports
 import codecs
@@ -126,7 +130,7 @@ def alarm_handler(signum, frame):
     raise TimeOut
 
 
-class Tee:
+class Tee(object):
     def __init__(self, filepath, time=False, timeout=None, timer=None):
         if timeout is None:
             timeout = 60 * 60 * 24
@@ -172,7 +176,7 @@ class Tee:
         return False
 
 
-class Timer:
+class Timer(object):
     def __init__(self):
         self._starts = {}
         self._history = []
@@ -210,23 +214,23 @@ status = {'started': 'ApplyFailed',
           'skipped': 'Pending'}
 
 
-def boundary(name, type):
+def boundary(name, text_type):
     """
     Return text that bound parts of the reports.
 
     type can be 'plugin', 'plugin_end', 'ticket' and 'spkg'
     """
-    if type == 'plugin':
+    if text_type == 'plugin':
         letter = '='
         length = 10
-    elif type == 'plugin_end':
+    elif text_type == 'plugin_end':
         name = 'end ' + name
         letter = '='
         length = 10
-    elif type == 'ticket':
+    elif text_type == 'ticket':
         letter = '='
         length = 30
-    elif type == 'spkg':
+    elif text_type == 'spkg':
         letter = '+'
         length = 10
     return ' '.join((letter * length, str(name), letter * length))
@@ -312,7 +316,7 @@ def sha1file(path, blocksize=None):
     return h.hexdigest()
 
 
-class Patchbot:
+class Patchbot(object):
     """
     Main class of the patchbot.
 
@@ -374,7 +378,7 @@ class Patchbot:
         self.owner = "unknown owner"
         if options is None:
             # ugly workaround to simplify interactive use of Patchbot
-            class opt:
+            class opt(object):
                 safe_only = True
             self.options = opt
         else:
@@ -511,7 +515,7 @@ class Patchbot:
             self._default_trusted = set(trusted)
             return self._default_trusted
 
-    def lookup_ticket(self, id, verbose=False):
+    def lookup_ticket(self, t_id, verbose=False):
         """
         Retrieve information about one ticket from the patchbot server.
 
@@ -526,7 +530,7 @@ class Patchbot:
         http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
         """
         path = "ticket/?" + urlencode({'raw': True,
-                                       'query': json.dumps({'id': id})})
+                                       'query': json.dumps({'id': t_id})})
         res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:
@@ -536,7 +540,7 @@ class Patchbot:
             # trying using trac server instead
             if verbose:
                 print('lookup using scrape')
-            return scrape(id)
+            return scrape(t_id)
 
     def get_config(self):
         """
@@ -700,27 +704,31 @@ class Patchbot:
         query = "raw&status={}".format(status)
 
         self.write_log("Getting ticket list...", LOG_MAIN)
-        all = self.load_json_from_server("ticket/?" + query, retry=10)
+        all_tickets = self.load_json_from_server("ticket/?" + query, retry=10)
+
+        # rating for all tickets
+        self.delete_log(LOG_RATING)
+        all_tickets = [(self.rate_ticket(ti, verbose=(verbose == 2)), ti)
+                       for ti in all_tickets]
 
         # remove all tickets with None rating
-        self.delete_log(LOG_RATING)
-        all = list(filter(lambda x: x[0] is not None,
-                          ((self.rate_ticket(t, verbose=(verbose == 2)), t)
-                           for t in all)))
+        all_tickets = [ti for ti in all_tickets if ti[0] is not None]
 
         # sort tickets using their ratings
-        all.sort()
+        all_tickets.sort()
 
         self.delete_log(LOG_RATING_SHORT)
         if verbose >= 1:
             logfile = [LOG_RATING_SHORT, sys.stdout]
         else:
             logfile = [LOG_RATING_SHORT]
-        for rating, ticket in reversed(all):
-            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'], str(rating[:2]), ticket['title']),
+        for rating, ticket in reversed(all_tickets):
+            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'],
+                                                   str(rating[:2]),
+                                                   ticket['title']),
                            logfile, date=False)
 
-        return all[-1]
+        return all_tickets[-1]
 
     def rate_ticket(self, ticket, verbose=False):
         """
