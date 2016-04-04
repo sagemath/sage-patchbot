@@ -935,7 +935,8 @@ class Patchbot(object):
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
-        print(self.banner().encode('utf8'))
+        if not self.options.no_banner:
+            print(self.banner().encode('utf8'))
         botmake = os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
         os.environ['SAGE_ROOT'] = self.sage_root
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
@@ -1316,6 +1317,8 @@ def main(args):
     parser.add_option("--owner", action="store_true", dest="owner",
                       default=None,
                       help="name and email of the human behind the bot")
+    parser.add_option("--no-banner" action="store_true", dest="no_banner"
+                      help="disable the banner art at bot startup")
 
     (options, args) = parser.parse_args(args)
 
