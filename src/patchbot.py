@@ -327,14 +327,12 @@ class Patchbot(object):
     - sage_root -- path to the sage local repository
     - server -- http address of the patchbot server
     - config_path -- ``None`` or path to the config file
-    - dry_run -- boolean
-    - plugin_only -- boolean
-    - options
+    - options -- an option class or ``None``
 
     EXAMPLES::
 
         >>> from patchbot import Patchbot
-        >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org',None,False,True,None)
+        >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org')
         >>> import os
         >>> os.chdir(P.sage_root)
         >>> P.test_a_ticket(12345)
@@ -345,18 +343,36 @@ class Patchbot(object):
 
     written inside the config.json file passed using --config=config.json
     """
-    def __init__(self, sage_root, server, config_path, dry_run,
-                 plugin_only, options):
+    def __init__(self, sage_root, server, config_path=None, options=None):
 
         self.sage_root = sage_root
         self.sage_command = os.path.join(self.sage_root, 'sage')
         self.server = server
         self.trac_server = TracServer(Config())
         self.base = get_sage_version(sage_root)
-        self.dry_run = dry_run
-        self.plugin_only = plugin_only
         self.config_path = config_path
 
+        # preparing the options
+        if options is None:
+            # this default is for test of patchbot in ipython session
+            class opt(object):
+                # two attribute options
+                dry_run = False
+                plugin_only = True
+                # four other options
+                no_banner = False
+                owner = None
+                safe_only = True
+                skip_base = True
+            self.options = opt
+        else:
+            self.options = options
+
+        # two special options are set as attributes
+        self.dry_run = self.options.dry_run
+        self.plugin_only = self.options.plugin_only
+
+        # preparing the logs
         self.log_dir = os.path.join(self.sage_root, 'logs', 'patchbot')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -373,18 +389,8 @@ class Patchbot(object):
             self._version,
             self.sage_root), LOG_MAIN)
 
+        # other options are handled here
         self.reload_config()
-
-        self.owner = "unknown owner"
-        if options is None:
-            # ugly workaround to simplify interactive use of Patchbot
-            class opt(object):
-                safe_only = True
-            self.options = opt
-        else:
-            self.options = options
-            if options.owner is not None:
-                self.owner = options.owner
 
     def write_log(self, msg, logfile=None, date=True):
         r"""
@@ -547,12 +553,22 @@ class Patchbot(object):
         Return the configuration.
 
         Either by default, or from a json config file.
+
+        This is done in the following order:
+
+        1) give all keys the default values as stored in the code here
+
+        2) override with values from json config file if given
+
+        3) override from the options class if given
         """
+        # loading the json config file
         if self.config_path is None:
             unicode_conf = {}
         else:
             unicode_conf = json.load(open(self.config_path))
-        # defaults
+
+        # hardcoded defaults
         conf = {"idle": 300,
                 "time_of_day": "0-0",  # midnight-midnight
                 "parallelism": 3,
@@ -583,8 +599,12 @@ class Patchbot(object):
                 "max_behind_commits": 0,
                 "max_behind_days": 1.0,
                 "use_ccache": True,
+                # four options that can also be changed using sage --xx
+                "no_banner": False,
+                "owner": "unknown owner",
                 "safe_only": True,
                 "skip_base": False}
+
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
                          "blocker": 100,
@@ -594,22 +614,37 @@ class Patchbot(object):
                          "applies": 20,
                          "behind": 1}
 
+        # now override the default by the config file
         for key, value in unicode_conf.items():
             conf[str(key)] = value
 
+        # complete back the bonus from config file if needed
         for key, value in default_bonus.items():
             if key not in conf['bonus']:
                 conf['bonus'][key] = value
 
+        # using default trust procedure if no trust list given
         if "trusted_authors" not in conf:
             conf["trusted_authors"] = self.default_trusted_authors()
         if "extra_trusted_authors" in conf:
             conf["trusted_authors"].update(conf["extra_trusted_authors"])
 
-        # force building the doc, so that the tests can pass
+        # now override with some values from options
+        # coming from sage -patchbot --xx
+        if self.options.no_banner is not None:
+            conf['no_banner'] = self.options.no_banner
+        if self.options.owner is not None:
+            conf['owner'] = self.options.owner
+        if self.options.safe_only is not None:
+            conf['safe_only'] = self.options.safe_only
+        if self.options.skip_base is not None:
+            conf['skip_base'] = self.options.skip_base
+
+        # plugin setup
         if not self.plugin_only:
             active_plugins = conf['plugins']
             if not "plugins.docbuild" in active_plugins:
+                # force building the doc, so that the tests can pass
                 conf['plugins'] = active_plugins + ["plugins.docbuild"]
 
         def locate_plugin(name):
@@ -619,9 +654,11 @@ class Patchbot(object):
             plugin = getattr(__import__(module, fromlist=[name]), name)
             assert callable(plugin)
             return plugin
+
         conf["plugins"] = [(name, locate_plugin(name))
                            for name in conf["plugins"]]
 
+        # logs
         self.delete_log(LOG_CONFIG)
         self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
         self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
@@ -935,7 +972,8 @@ class Patchbot(object):
         if not self.plugin_only:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
-        print(self.banner().encode('utf8'))
+        if not self.config['no_banner']:
+            print(self.banner().encode('utf8'))
         botmake = os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
         os.environ['SAGE_ROOT'] = self.sage_root
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
@@ -1279,58 +1317,74 @@ class Patchbot(object):
 
 def main(args):
     """
-    Most configuration is done in the config file, which is reread between
-    each ticket for live configuration of the patchbot.
+    Most configuration is done in the json config file, which is
+    reread between each ticket for live configuration of the patchbot.
     """
     global conf
     parser = OptionParser()
-    parser.add_option("--config", dest="config",
-                      help="specify the config file")
+
+    # options that are passed as arguments to the class "Patchbot"
     parser.add_option("--sage-root", dest="sage_root",
                       default=os.environ.get('SAGE_ROOT'),
                       help="specify another sage root directory")
     parser.add_option("--server", dest="server",
                       default="http://patchbot.sagemath.org/",
                       help="specify another patchbot server adress")
-    parser.add_option("--count", dest="count", default=1000000)
-    parser.add_option("--ticket", dest="ticket", default=None,
-                      help="test only a list of tickets, for example '12345,19876'")
-    parser.add_option("--list", dest="list", action="store_true", default=False,
+    parser.add_option("--config", dest="config",
+                      help="specify the json config file")
+
+    # options that are only used directly here
+    parser.add_option("--cleanup", action="store_true", dest="cleanup",
+                      default=False,
+                      help="whether to cleanup the temporary files")
+    parser.add_option("--count", dest="count",
+                      default=1000000,
+                      help="how many tickets to test")
+    parser.add_option("--list", action="store_true", dest="list",
+                      default=False,
                       help="only write informations about tickets "
                            "that would be tested in the form: "
                            "[ticket id] [rating] [ticket title]")
-    parser.add_option("--skip-base", action="store_true", dest="skip_base",
-                      default=False,
-                      help="whether to check that the base is errorless")
+    parser.add_option("--ticket", dest="ticket",
+                      default=None,
+                      help="test only a list of tickets, for example"
+                           " '12345,19876'")
+
+    # options that are passed to the patchbot via the class "options"
+    # first two attribute options
     parser.add_option("--dry-run", action="store_true", dest="dry_run",
                       default=False)
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
                       default=False,
                       help="run the patchbot in plugin-only mode")
-    parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=False,
-                      help="whether to cleanup the temporary files")
-    parser.add_option("--safe-only", action="store_true", dest="safe_only",
-                      default=True,
-                      help="whether to run the patchbot in safe-only mode")
-    parser.add_option("--owner", action="store_true", dest="owner",
-                      default=None,
+    # then four other options that will be stored in conf
+    parser.add_option("--no-banner", action="store_true", dest="no_banner",
+                      help="wether to print the utf8 banner")
+    parser.add_option("--owner", dest="owner",
                       help="name and email of the human behind the bot")
+    parser.add_option("--safe-only", action="store_true", dest="safe_only",
+                      help="whether to run the patchbot in safe-only mode")
+    parser.add_option("--skip-base", action="store_true", dest="skip_base",
+                      help="whether to check that the base is errorless")
 
     (options, args) = parser.parse_args(args)
 
+    # path to the json config file or None
     conf_path = options.config and os.path.abspath(options.config)
+
+    patchbot = Patchbot(os.path.abspath(options.sage_root),
+                        options.server,
+                        conf_path,
+                        options=options)
+    conf = patchbot.get_config()
+
     if options.ticket:
+        # only test the given list of tickets
         tickets = [int(t) for t in options.ticket.split(',')]
         count = len(tickets)
     else:
         tickets = None
         count = int(options.count)
-
-    patchbot = Patchbot(os.path.abspath(options.sage_root), options.server,
-                        conf_path, dry_run=options.dry_run,
-                        plugin_only=options.plugin_only, options=options)
-    conf = patchbot.get_config()
 
     if options.list:
         # the option "--list" allows to see tickets that will be tested
@@ -1342,7 +1396,8 @@ def main(args):
     ensure_free_space(options.sage_root)
 
     if conf['use_ccache']:
-        do_or_die("'%s'/sage -i ccache" % options.sage_root, exn_class=ConfigException)
+        do_or_die("'%s'/sage -i ccache" %
+                  options.sage_root, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
