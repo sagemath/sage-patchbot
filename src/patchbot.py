@@ -978,7 +978,7 @@ class Patchbot(object):
         os.environ['SAGE_ROOT'] = self.sage_root
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
         os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
-        os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:00'
+        os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:01'
         try:
             t = Timer()
             with Tee(log, time=True, timeout=self.config['timeout'], timer=t):
