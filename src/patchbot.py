@@ -1359,7 +1359,7 @@ def main(args):
                       help="run the patchbot in plugin-only mode")
     # then four other options that will be stored in conf
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
-                      help="wether to print the utf8 banner")
+                      help="whether to print the utf8 banner")
     parser.add_option("--owner", dest="owner",
                       help="name and email of the human behind the bot")
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
