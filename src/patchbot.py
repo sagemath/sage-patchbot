@@ -356,10 +356,10 @@ class Patchbot(object):
         if options is None:
             # this default is for test of patchbot in ipython session
             class opt(object):
-                # two attribute options
-                dry_run = False
+                # one attribute options
                 plugin_only = True
-                # four other options
+                # five other options
+                dry_run = False
                 no_banner = False
                 owner = None
                 safe_only = True
@@ -368,8 +368,7 @@ class Patchbot(object):
         else:
             self.options = options
 
-        # two special options are set as attributes
-        self.dry_run = self.options.dry_run
+        # one special option is set as attribute
         self.plugin_only = self.options.plugin_only
 
         # preparing the logs
@@ -631,6 +630,8 @@ class Patchbot(object):
 
         # now override with some values from options
         # coming from sage -patchbot --xx
+        if self.options.dry_run is not None:
+            conf['dry_run'] = self.options.dry_run
         if self.options.no_banner is not None:
             conf['no_banner'] = self.options.no_banner
         if self.options.owner is not None:
@@ -1029,7 +1030,7 @@ class Patchbot(object):
                         "patches": [os.path.join(patch_dir, p)
                                     for p in os.listdir(patch_dir)],
                         "sage_binary": self.sage_command,
-                        "dry_run": self.dry_run,
+                        "dry_run": self.config['dry_run'],
                     }
                     # the keyword "patches" is used in plugin commit_messages
 
@@ -1075,7 +1076,7 @@ class Patchbot(object):
                         state = 'plugins' if plugins_passed else 'plugins_failed'
                     else:
                         # ------------- run tests -------------
-                        if self.dry_run:
+                        if self.config['dry_run']:
                             test_target = os.path.join(self.sage_root,
                                                        "src/sage/misc/a*.py")
                         else:
@@ -1126,7 +1127,7 @@ class Patchbot(object):
                                LOG_MAIN)
                 self.report_ticket(ticket, status=status[state], log=log,
                                    plugins=plugins_results,
-                                   dry_run=self.dry_run)
+                                   dry_run=self.config['dry_run'])
                 self.write_log("Done reporting #{}".format(ticket['id']), LOG_MAIN)
                 break
             except IOError:
@@ -1351,13 +1352,13 @@ def main(args):
                            " '12345,19876'")
 
     # options that are passed to the patchbot via the class "options"
-    # first two attribute options
-    parser.add_option("--dry-run", action="store_true", dest="dry_run",
-                      default=False)
+    # first one attribute option
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
                       default=False,
                       help="run the patchbot in plugin-only mode")
-    # then four other options that will be stored in conf
+    # then five other options that will be stored in conf
+    parser.add_option("--dry-run", action="store_true", dest="dry_run",
+                      default=False)
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
                       help="whether to print the utf8 banner")
     parser.add_option("--owner", dest="owner",
