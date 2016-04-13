@@ -369,6 +369,7 @@ class Patchbot(object):
             self.options = options
 
         # one special option is set as attribute
+        # TODO: this should be converted to behave as the other options
         self.plugin_only = self.options.plugin_only
 
         # preparing the logs
@@ -988,7 +989,7 @@ class Patchbot(object):
                 # ------------- pull and apply -------------
                 pull_from_trac(self.sage_root, ticket['id'], force=True,
                                use_ccache=self.config['use_ccache'],
-                               safe_only=self.options.safe_only)
+                               safe_only=self.config['safe_only'])
                 t.finish("Apply")
                 state = 'applied'
                 if not self.plugin_only:
