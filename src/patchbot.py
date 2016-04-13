@@ -1278,7 +1278,7 @@ class Patchbot(object):
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] == 0:
-                report['owner'] = self.owner
+                report['owner'] = self.config['owner']
             if ticket['id'] != 0:
                 report['git_branch'] = ticket.get('git_branch', None)
                 report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base]).strip().split('\n')
