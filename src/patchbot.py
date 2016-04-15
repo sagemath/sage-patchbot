@@ -356,21 +356,15 @@ class Patchbot(object):
         if options is None:
             # this default is for test of patchbot in ipython session
             class opt(object):
-                # one attribute options
-                plugin_only = True
-                # five other options
                 dry_run = False
                 no_banner = False
                 owner = None
+                plugin_only = True
                 safe_only = True
                 skip_base = True
             self.options = opt
         else:
             self.options = options
-
-        # one special option is set as attribute
-        # TODO: this should be converted to behave as the other options
-        self.plugin_only = self.options.plugin_only
 
         # preparing the logs
         self.log_dir = os.path.join(self.sage_root, 'logs', 'patchbot')
@@ -599,9 +593,11 @@ class Patchbot(object):
                 "max_behind_commits": 0,
                 "max_behind_days": 1.0,
                 "use_ccache": True,
-                # four options that can also be changed using sage --xx
+                # 6 options that can also be changed using sage --xx
+                "dry_run": False,
                 "no_banner": False,
                 "owner": "unknown owner",
+                "plugin_only": False,
                 "safe_only": True,
                 "skip_base": False}
 
@@ -614,11 +610,11 @@ class Patchbot(object):
                          "applies": 20,
                          "behind": 1}
 
-        # now override the default by the config file
+        # now override the default by the json config file
         for key, value in unicode_conf.items():
             conf[str(key)] = value
 
-        # complete back the bonus from config file if needed
+        # complete back the bonus from json config file if needed
         for key, value in default_bonus.items():
             if key not in conf['bonus']:
                 conf['bonus'][key] = value
@@ -637,13 +633,15 @@ class Patchbot(object):
             conf['no_banner'] = self.options.no_banner
         if self.options.owner is not None:
             conf['owner'] = self.options.owner
+        if self.options.plugin_only is not None:
+            conf['plugin_only'] = self.options.plugin_only
         if self.options.safe_only is not None:
             conf['safe_only'] = self.options.safe_only
         if self.options.skip_base is not None:
             conf['skip_base'] = self.options.skip_base
 
         # plugin setup
-        if not self.plugin_only:
+        if not conf['plugin_only']:
             active_plugins = conf['plugins']
             if not "plugins.docbuild" in active_plugins:
                 # force building the doc, so that the tests can pass
@@ -971,7 +969,7 @@ class Patchbot(object):
         print("\n\n")
         log = os.path.join(self.log_dir, '{}-log.txt'.format(ticket['id']))
         self.write_log('#{}: init phase'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
-        if not self.plugin_only:
+        if not self.config['plugin_only']:
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         if not self.config['no_banner']:
@@ -992,7 +990,7 @@ class Patchbot(object):
                                safe_only=self.config['safe_only'])
                 t.finish("Apply")
                 state = 'applied'
-                if not self.plugin_only:
+                if not self.config['plugin_only']:
                     self.report_ticket(ticket, status='Pending',
                                        log=log, pending_status=state)
 
@@ -1017,7 +1015,7 @@ class Patchbot(object):
                     # doc is made later in a plugin
                     t.finish("Build")
                     state = 'built'
-                    if not self.plugin_only:
+                    if not self.config['plugin_only']:
                         self.report_ticket(ticket, status='Pending',
                                            log=log, pending_status=state)
 
@@ -1073,7 +1071,7 @@ class Patchbot(object):
                                        pending_status='plugins_passed'
                                        if plugins_passed else 'plugins_failed')
 
-                    if self.plugin_only:
+                    if self.config['plugin_only']:
                         state = 'plugins' if plugins_passed else 'plugins_failed'
                     else:
                         # ------------- run tests -------------
@@ -1353,17 +1351,16 @@ def main(args):
                            " '12345,19876'")
 
     # options that are passed to the patchbot via the class "options"
-    # first one attribute option
-    parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
-                      default=False,
-                      help="run the patchbot in plugin-only mode")
-    # then five other options that will be stored in conf
+    # these 6 options will be stored in conf
     parser.add_option("--dry-run", action="store_true", dest="dry_run",
                       default=False)
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
                       help="whether to print the utf8 banner")
     parser.add_option("--owner", dest="owner",
                       help="name and email of the human behind the bot")
+    parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
+                      default=False,
+                      help="run the patchbot in plugin-only mode")
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
                       help="whether to run the patchbot in safe-only mode")
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
@@ -1408,7 +1405,7 @@ def main(args):
 
         def good(report):
             return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-        if options.plugin_only or not any(good(report) for report in patchbot.current_reports(0)):
+        if conf['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
             if res not in ('TestsPassed', 'PluginOnly'):
                 print("\n\n")
