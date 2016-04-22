@@ -173,7 +173,8 @@ def git_commit(branch):
     if branch.strip():
         try:
             return subprocess.check_output(['git', 'ls-remote',
-                                            TRAC_REPO, branch]).split()[0]
+                                            TRAC_REPO, branch],
+                                           universal_newlines=True).split()[0]
         except Exception:
             return "unknown"
 
@@ -252,7 +253,8 @@ def inplace_safe():
     # TODO: Are removed files sufficiently cleaned up?
     cmd = ["git", "diff", "--name-only",
            "patchbot/base..patchbot/ticket_merged"]
-    for file in subprocess.check_output(cmd).split('\n'):
+    for file in subprocess.check_output(cmd,
+                                        universal_newlines=True).split('\n'):
         if not file:
             continue
         if (file.startswith("src/sage") or

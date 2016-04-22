@@ -4,18 +4,6 @@ import subprocess
 
 from datetime import datetime
 
-# check_output for Python < 2.7
-
-if "check_output" not in subprocess.__dict__:  # duck punch it in!
-    def check_output(args):
-        process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        output, _ = process.communicate()
-        retcode = process.poll()
-        if retcode:
-            raise subprocess.CalledProcessError(retcode, args[0])
-        return output
-    subprocess.check_output = check_output
-
 temp_build_suffix = "-sage-git-temp-"
 
 # DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
@@ -29,8 +17,8 @@ def date_parser(date_string):
 
     EXAMPLES::
 
-        date_parser('2015-07-23 09:00:08')
-        ?
+        In [4]: date_parser('2015-07-23 09:00:08')
+        Out[4]: datetime.datetime(2015, 7, 23, 9, 0, 8)
     """
     return datetime.strptime(date_string[:19], DATE_FORMAT)
 
@@ -172,10 +160,12 @@ def git_commit(repo, branch):
     """
     ref = "refs/heads/{}".format(branch)
     try:
-        return subprocess.check_output(["git",
-                                        "--git-dir={}/.git".format(repo),
-                                        "show-ref",
-                                        "--verify", ref]).split()[0]
+        res = subprocess.check_output(["git",
+                                       "--git-dir={}/.git".format(repo),
+                                       "show-ref",
+                                       "--verify", ref],
+                                      universal_newlines=True)
+        return res.split()[0]
     except subprocess.CalledProcessError:
         return None
 
@@ -263,7 +253,9 @@ def describe_branch(branch, tag_only=False):
         '6.6.rc1'
     """
     res = subprocess.check_output(['git', 'describe', '--tags',
-                                   '--match', '[0-9].[0-9]*', branch]).strip()
+                                   '--match', '[0-9].[0-9]*', branch],
+                                  universal_newlines=True)
+    res = res.strip()
     if tag_only:
         return res.split('-')[0]
     else:
