@@ -302,14 +302,19 @@ def sha1file(path, blocksize=None):
 
     This is used to check spkgs.
 
-    not working in py3
+    should now be working in py3
+
+    EXAMPLES::
+
+        In [2]: sha1file('sage/upstream/tachyon-0.98.9.tar.bz2')
+        Out[2]: '9866dc93e129115994708efa6e7ca16e20d58237'
     """
     if blocksize is None:
         blocksize = 2 ** 16
     h = hashlib.sha1()
-    handle = open(path)
+    handle = open(path, 'rb')
     buf = handle.read(blocksize)
-    while len(buf) > 0:
+    while len(buf):
         h.update(buf)
         buf = handle.read(blocksize)
     handle.close()
