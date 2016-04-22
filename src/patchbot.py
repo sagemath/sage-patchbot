@@ -1256,18 +1256,28 @@ class Patchbot(object):
                       dry_run=False, pending_status=None):
         """
         Report about a ticket.
+
+        INPUT:
+
+        - ticket -- the ticket id, for example '21345'
+        - status -- can be 'Pending', 'TestsPassed', etc
+        - log -- the log
+        - plugins -- results of the plugins
+        - dry_run -- ?
+        - pending_status -- can be 'applied', 'built', 'plugins_passed',
+          'plugins_failed'
         """
-        report = {
-            'status': status,
-            'deps': ticket['depends_on'],
-            'spkgs': ticket['spkgs'],
-            'base': self.base,
-            'user': self.config['user'],
-            'machine': self.config['machine'],
-            'time': now_str(),
-            'plugins': plugins,
-            'patchbot_version': self._version,
-        }
+        report = {'status': status,
+                  'deps': ticket['depends_on'],
+                  'spkgs': ticket['spkgs'],
+                  'base': self.base,
+                  'user': self.config['user'],
+                  'owner': self.config['owner'],
+                  'machine': self.config['machine'],
+                  'time': now_str(),
+                  'plugins': plugins,
+                  'patchbot_version': self._version}
+
         if pending_status:
             report['pending_status'] = pending_status
         try:
@@ -1276,9 +1286,7 @@ class Patchbot(object):
             report['base'] = ticket_base = sorted(tags, compare_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
-            if ticket['id'] == 0:
-                report['owner'] = self.config['owner']
-            if ticket['id'] != 0:
+            if ticket['id'] != 0:  # not on fake ticket 0
                 report['git_branch'] = ticket.get('git_branch', None)
                 report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base]).strip().split('\n')
                 # If apply failed, we do not want to be stuck in an
@@ -1287,10 +1295,14 @@ class Patchbot(object):
                 report['git_commit_human'] = describe_branch('patchbot/ticket_upstream')
                 report['git_merge'] = self.git_commit('patchbot/ticket_merged')
                 report['git_merge_human'] = describe_branch('patchbot/ticket_merged')
-            else:
+            else:  # on fake ticket 0
                 report['git_branch'] = self.config['base_branch']
+                report['git_commit'] = report['git_base']
+                report['git_commit_human'] = report['git_base_human']
+                report['git_merge'] = report['git_base']
+                report['git_merge_human'] = report['git_base_human']
                 report['git_log'] = []
-                report['git_commit'] = report['git_merge'] = report['git_base']
+
         except Exception:
             traceback.print_exc()
 
