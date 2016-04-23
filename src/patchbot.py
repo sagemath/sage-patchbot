@@ -1270,7 +1270,7 @@ class Patchbot(object):
         - plugins -- results of the plugins
         - dry_run -- ?
         - pending_status -- can be 'applied', 'built', 'plugins_passed',
-          'plugins_failed'
+          'plugins_failed', etc
         """
         report = {'status': status,
                   'deps': ticket['depends_on'],
@@ -1321,12 +1321,17 @@ class Patchbot(object):
         print("{}: {}".format(ticket['id'], status))
         fields = {'report': json.dumps(report)}
         if os.path.exists(log):
-            files = [('log', 'log', bz2.compress(open(log).read()))]
-            # files = [('log', 'log', bz2.compress(open(log).read().encode('utf-8')))]  # py3
+            # py3 : opens the file, get bytes
+            # py2 : opens the file, get str=bytes
+            local_log = open(log, 'rb').read()
+            compressed = bz2.compress(local_log)
+            files = [('log', 'log', compressed)]
         else:
             files = []
         if not dry_run or status == 'Pending':
-            print(post_multipart("%s/report/%s" % (self.server, ticket['id']), fields, files))
+            print(post_multipart("{}/report/{}".format(self.server,
+                                                       ticket['id']),
+                                 fields, files))
 
     def git_commit(self, branch):
         return git_commit(self.sage_root, branch)
