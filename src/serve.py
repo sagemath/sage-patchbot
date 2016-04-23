@@ -25,7 +25,7 @@ except ImportError:
 # imports from patchbot sources
 from trac import scrape
 from util import (now_str, current_reports, latest_version,
-                  compare_version)
+                  comparable_version)
 from patchbot import filter_on_authors, prune_pending
 
 import db
@@ -33,7 +33,7 @@ from db import tickets
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
 # oldest version of sage about which we still care
-OLDEST = '7.0'
+OLDEST = comparable_version('7.1')
 
 # machines that are banned from posting their reports
 BLACKLIST = ['hera-OptiPlex-7010']
@@ -62,7 +62,7 @@ def latest_base(betas=True):
     versions = list(tickets.find({'id': 0}).distinct('reports.base'))
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
-    versions.sort(compare_version)
+    versions.sort(key=comparable_version)
     return versions[-1]
 
 app = Flask(__name__)
@@ -261,14 +261,13 @@ def ticket_list():
     ticket0 = tickets.find_one({'id': 0})
     base_status = get_ticket_status(ticket0, base)
     versions = list(set(report['base'] for report in ticket0['reports']))
-    versions.sort(compare_version)
-    versions = [v for v in versions if compare_version(v, OLDEST) == 1]
+    versions.sort(key=comparable_version)
+    versions = [v for v in versions if comparable_version(v) >= OLDEST]
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
 
     return render_template("ticket_list.html", tickets=preprocess(all),
                            summary=summary, base=base, base_status=base_status,
-                           versions=versions, status_order=status_order,
-                           compare_version=compare_version)
+                           versions=versions, status_order=status_order)
 
 
 class MachineStats:
@@ -432,7 +431,7 @@ def render_ticket(ticket):
                 git_log = item.get('git_log')
                 item['git_log_len'] = '?' if git_log is None else len(git_log)
             item['raw_base'] = item['base']
-            if compare_version(item['base'], latest) < 0:
+            if comparable_version(item['base']) <= comparable_version(latest):
                 item['base'] = "<span style='color: red'>%s</span>" % item['base']
             if 'time' in item:
                 item['log'] = log_name(info['id'], item)

@@ -205,27 +205,6 @@ def comparable_version(version):
     return [maybe_int(s) for s in version.split('.')]
 
 
-def compare_version(a, b):
-    """
-    Compare two versions a and b.
-
-    EXAMPLES::
-
-        In [5]: compare_version('6.4.rc0','6.4')
-        Out[5]: -1
-
-        In [6]: compare_version('6.4.rc0','6.4.beta2')
-        Out[6]: 1
-
-        In [7]: compare_version('6.4','6.3')
-        Out[7]: 1
-
-        In [8]: compare_version('6.3','6.3.1')
-        Out[8]: -1
-    """
-    return cmp(comparable_version(a), comparable_version(b))
-
-
 def get_sage_version(sage_root):
     """
     Get the sage version.

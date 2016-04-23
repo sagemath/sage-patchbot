@@ -63,7 +63,7 @@ from optparse import OptionParser
 from trac import scrape, pull_from_trac, TracServer, Config
 from util import (now_str, prune_pending, do_or_die,
                   get_sage_version, current_reports, git_commit,
-                  describe_branch, compare_version, temp_build_suffix,
+                  describe_branch, comparable_version, temp_build_suffix,
                   ensure_free_space,
                   ConfigException, SkipTicket)
 from http_post_file import post_multipart
@@ -1288,7 +1288,7 @@ class Patchbot(object):
         try:
             tags = [describe_branch('patchbot/base', tag_only=True),
                     describe_branch('patchbot/ticket_upstream', tag_only=True)]
-            report['base'] = ticket_base = sorted(tags, compare_version)[-1]
+            report['base'] = ticket_base = sorted(tags, key=comparable_version)[-1]
             report['git_base'] = self.git_commit('patchbot/base')
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:  # not on fake ticket 0
