@@ -725,9 +725,10 @@ class Patchbot(object):
         """
         # TODO: Is this stable?
         version = get_sage_version(self.sage_root)
-        commit_count = subprocess.check_output(['git', 'rev-list', '--count',
-                                                '%s..patchbot/base' % version])
-        return "{} + {} commits".format(version, commit_count.strip())
+        commit_count = int(subprocess.check_output(['git', 'rev-list',
+                                                    '--count',
+                                                    '%s..patchbot/base' % version]))
+        return "{} + {} commits".format(version, commit_count)
 
     def get_one_ticket(self, status='open', verbose=0):
         """
@@ -1040,9 +1041,9 @@ class Patchbot(object):
 
                     for name, plugin in self.config['plugins']:
                         try:
-                            if ticket['id'] != 0 and os.path.exists(os.path.join(self.log_dir, '0', name)):
-                                baseline = pickle.load(open(os.path.join(self.log_dir, '0', name)))
-
+                            plug0log = os.path.join(self.log_dir, '0', name)
+                            if ticket['id'] != 0 and os.path.exists(plug0log):
+                                baseline = pickle.load(open(plug0log, 'rb'))
                             else:
                                 baseline = None
                             print(boundary(name, 'plugin'))
@@ -1061,7 +1062,7 @@ class Patchbot(object):
                                                               str(ticket['id']))
                                     if not os.path.exists(plugin_dir):
                                         os.mkdir(plugin_dir)
-                                    pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'w'))
+                                    pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'wb'))
                                     passed = res.status == PluginResult.Passed
                                     print("{} {}".format(name, res.status))
                                     plugins_results.append((name, passed,
@@ -1293,7 +1294,7 @@ class Patchbot(object):
             report['git_base_human'] = describe_branch('patchbot/base')
             if ticket['id'] != 0:  # not on fake ticket 0
                 report['git_branch'] = ticket.get('git_branch', None)
-                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base]).strip().split('\n')
+                report['git_log'] = subprocess.check_output(['git', 'log', '--oneline', '%s..patchbot/ticket_upstream' % ticket_base], universal_newlines=True).strip().split('\n')
                 # If apply failed, we do not want to be stuck in an
                 # infinite loop.
                 report['git_commit'] = self.git_commit('patchbot/ticket_upstream')

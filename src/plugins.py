@@ -58,7 +58,8 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     TODO: This does not check that tests were added to existing doctests for
     new functionality.
     """
-    all = subprocess.check_output([sage_binary, '-coverageall'])
+    all = subprocess.check_output([sage_binary, '-coverageall'],
+                                  universal_newlines=True)
     current = {}
     total_funcs = 0
     total_docs = 0
@@ -158,13 +159,14 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     This could be useful to check for unicode declaration.
     """
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
-    changed_files = [f.strip("\n") for f in changed_files]
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
 
     bad_lines = 0
     for a_file in changed_files:
         try:
             if file_condition(a_file):
                 gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
+                gitdiff = [f.decode('utf8') for f in gitdiff]
                 bad_lines += exclude_new_in_diff(gitdiff, regex)
         except IOError:  # file has been deleted
             pass
@@ -191,7 +193,8 @@ def exclude_new(ticket, regex, msg, **kwds):
     """
     gitdiff = subprocess.Popen(['git', 'diff',
                                 'patchbot/base..patchbot/ticket_merged'],
-                               stdout=subprocess.PIPE).stdout
+                               stdout=subprocess.PIPE,
+                               universal_newlines=True).stdout
     bad_lines = exclude_new_in_diff(gitdiff, regex)
     full_msg = "{} inserted on {} non-empty lines"
     full_msg = full_msg.format(msg, bad_lines)
@@ -364,7 +367,10 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # Sometimes the first run does something different...
     do_or_die(sage_binary + " -c ''")
     # Print out all the modules imported at startup.
-    modules = subprocess.check_output([sage_binary, "-c", r"print '\n'.join(sorted(sys.modules.keys()))"]).split('\n')
+    modules = subprocess.check_output([sage_binary,
+                                       "-c",
+                                       r"print '\n'.join(sorted(sys.modules.keys()))"], universal_newlines=True)
+    modules = modules.split('\n')
 
     print("Total count: {}".format(len(modules)))
     if baseline is None:
