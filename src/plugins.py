@@ -367,9 +367,13 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # Sometimes the first run does something different...
     do_or_die(sage_binary + " -c ''")
     # Print out all the modules imported at startup.
+    # old way:
+    # list_command = r"print '\n'.join(sorted([u for u in sys.modules.keys()]))"
+    # new way:
+    list_command = r"print '\n'.join(sorted([u for u, v in sys.modules.items() if v]))"
     modules = subprocess.check_output([sage_binary,
-                                       "-c",
-                                       r"print '\n'.join(sorted(sys.modules.keys()))"], universal_newlines=True)
+                                       "-c", list_command],
+                                      universal_newlines=True)
     modules = modules.split('\n')
 
     print("Total count: {}".format(len(modules)))
