@@ -492,6 +492,8 @@ def render_ticket_status(ticket):
     Return the status image for the given ticket.
 
     This now only renders a png image with the base.
+
+    Should be replaced by an svg picture.
     """
     try:
         if 'fast' in request.args:
@@ -519,10 +521,46 @@ def render_ticket_status(ticket):
     return response
 
 
+@app.route("/ticket/<int:ticket>/base.svg")
+def render_ticket_base_svg(ticket):
+    """
+    Return the svg base version image for the given ticket.
+    """
+    try:
+        if 'fast' in request.args:
+            info = tickets.find_one({'id': ticket})
+        else:
+            info = scrape(ticket, db=db)
+    except:
+        info = tickets.find_one({'id': ticket})
+
+    if 'base' in request.args:
+        base = request.args.get('base')
+    else:
+        base = latest_version(info.get('reports', []))
+
+    base = base.replace("alpha", "a").replace("beta", "b")
+    split_base = base.split('.')
+    if len(split_base) == 2:
+        v_main = base
+        v_sub = ''
+    else:
+        x, y, z = split_base
+        v_main = x + '.' + y
+        v_sub = z
+    svg = render_template('icon-Version.svg', version_main=v_main,
+                          version_sub=v_sub)
+    response = make_response(svg)
+    response.content_type = 'image/svg+xml'
+    return response
+
+
 @app.route("/ticket/<int:ticket>/status.svg")
 def render_ticket_status_svg(ticket):
     """
     Return the svg status image for the given ticket.
+
+    This displays the current status (TestsPassed, etc) as an svg icon.
     """
     try:
         if 'fast' in request.args:
