@@ -539,6 +539,9 @@ def render_ticket_base_svg(ticket):
     else:
         base = latest_version(info.get('reports', []))
 
+    if base is None:
+        base = ''
+
     base = base.replace("alpha", "a").replace("beta", "b")
     split_base = base.split('.')
     if len(split_base) == 2:
