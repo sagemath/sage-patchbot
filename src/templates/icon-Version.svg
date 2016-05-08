@@ -10,10 +10,10 @@
 <path fill-opacity="1" fill="url(#a)" d="m169.549 16.27c-41.314 0.23878-85.887 8.8774-115.5 39.688-26.362 27.196-36.78 65.845-37.231 102.91-1.9274 41.743-0.35141 86.561 22.562 122.84 15.805 25.369 41.807 43.508 70.661 50.754 37.631 10.404 77.493 8.826 115.91 4.6919 36.901-5.6687 73.513-24.402 92.421-57.732 22.606-37.531 22.811-82.86 21.11-125.36-1.7508-36.259-12.434-74.128-39.062-99.969-27.095-26.721-65.988-36.32-103.28-37.466-9.1917-0.44824-18.397-0.362-27.596-0.3469z"/>
 <g style="font-size:150px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-anchor:middle;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Charter">
 <text x="178" y="150">
-  <tspan>{{{version_main}}}</tspan>
+  <tspan>{{ version_main }}</tspan>
 </text>
 <text x="178" y="300">
-  <tspan>{{{version_sub}}}</tspan>
+  <tspan>{{ version_sub }}</tspan>
 </text>
 </g>
 </svg>
