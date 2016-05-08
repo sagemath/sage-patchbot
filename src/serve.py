@@ -740,12 +740,14 @@ def create_base_image_svg():
     base = base.replace("alpha", "a").replace("beta", "b")
     split_base = base.split('.')
     if len(split_base) == 2:
-        x, y = split_base
-        z = ''
+        v_main = base
+        v_sub = ''
     else:
         x, y, z = split_base
-    svg = render_template('icon-Version.svg', version_main=x + y,
-                          version_sub=z)
+        v_main = x + '.' + y
+        v_sub = z
+    svg = render_template('icon-Version.svg', version_main=v_main,
+                          version_sub=v_sub)
     response = make_response(svg)
     response.content_type = 'image/svg+xml'
     return response
