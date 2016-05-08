@@ -729,6 +729,28 @@ status_colors = {'New': 'white',
                  'Spkg': 'purple'}
 
 
+@app.route('/icon-Version.svg')
+def create_base_image_svg():
+    """
+    Create an svg picture displaying a version number.
+
+    EXPERIMENTAL !
+    """
+    base = request.args.get('base', '7.2.beta8')
+    base = base.replace("alpha", "a").replace("beta", "b")
+    split_base = base.split('.')
+    if len(split_base) == 2:
+        x, y = split_base
+        z = ''
+    else:
+        x, y, z = split_base
+    svg = render_template('icon-Version.svg', version_main=x + y,
+                          version_sub=z)
+    response = make_response(svg)
+    response.content_type = 'image/svg+xml'
+    return response
+
+
 @app.route("/blob/<status>")
 def status_image(status):
     """
@@ -916,7 +938,9 @@ def robots():
 @app.route("/favicon.ico")
 def favicon():
     """
-    Return the favicon image as a web page (green icon)
+    Return the favicon image as a web page.
+
+    This is currently a 16 x 16 png version of icon-TestsPassed.svg.
 
     See http://patchbot.sagemath.org/favicon.ico for the result.
 
