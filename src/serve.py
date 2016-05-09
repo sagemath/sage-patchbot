@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # global python imports
 import os
 import sys
@@ -542,7 +543,7 @@ def render_ticket_base_svg(ticket):
     if base is None:
         base = ''
 
-    base = base.replace("alpha", "a").replace("beta", "b")
+    base = base.replace("alpha", u'α').replace("beta", u'β')
     split_base = base.split('.')
     if len(split_base) == 2:
         v_main = base
@@ -781,7 +782,7 @@ def create_base_image_svg():
     EXPERIMENTAL !
     """
     base = request.args.get('base', '7.2.beta8')
-    base = base.replace("alpha", "a").replace("beta", "b")
+    base = base.replace("alpha", u'α').replace("beta", u'β')
     split_base = base.split('.')
     if len(split_base) == 2:
         v_main = base
