@@ -3,7 +3,7 @@ HTTP transport to the trac server
 AUTHORS:
 - David Roe, Julian Rueth, Robert Bradshaw: initial version
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 David Roe <roed.math@gmail.com>
 #                          Julian Rueth <julian.rueth@fsfe.org>
 #                          Robert Bradshaw <robertwb@gmail.com>
@@ -11,7 +11,7 @@ AUTHORS:
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#*****************************************************************************
+# ****************************************************************************
 
 import urllib.request
 import urllib.parse

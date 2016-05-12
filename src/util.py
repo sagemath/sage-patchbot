@@ -108,7 +108,9 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 seen.add(x)
                 return True
     else:
-        first = lambda x: True
+
+        def first(x):
+            return True
 
     reports = list(ticket['reports'])
     reports.sort(key=lambda a: a['time'])
@@ -117,9 +119,9 @@ def current_reports(ticket, base=None, unique=False, newer=False):
         base = latest_version(reports)
 
     def base_ok(report_base):
-        return (not base or base == report_base
-                or (newer and comparable_version(base) <=
-                    comparable_version(report_base)))
+        return (not base or base == report_base or
+                (newer and comparable_version(base) <=
+                 comparable_version(report_base)))
 
     if ticket['id'] == 0:
         return [rep for rep in reports if base_ok(rep['base'])]

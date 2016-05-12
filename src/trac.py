@@ -1,6 +1,3 @@
-TRAC_URL = "http://trac.sagemath.org/sage_trac"
-TRAC_REPO = "git://trac.sagemath.org/sage.git"
-
 import re
 import hashlib
 import os
@@ -31,9 +28,12 @@ except ImportError:
     from digest_transport_py2 import DigestTransport
     from urllib2 import urlparse as url_parse
 
-
 from cached_property import cached_property
 from trac_ticket import TracTicket
+
+
+TRAC_URL = "http://trac.sagemath.org/sage_trac"
+TRAC_REPO = "git://trac.sagemath.org/sage.git"
 
 
 def digest(s):
@@ -220,7 +220,7 @@ def extract_participants(rss):
 spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/))(.*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
-#spkg_url_regex = re.compile(r"http://.*?\.spkg")
+# spkg_url_regex = re.compile(r"http://.*?\.spkg")
 
 
 def extract_spkgs(description):
@@ -382,8 +382,8 @@ class TracServer(object):
         ticket = self.load(ticket_number)
         branch = ticket.branch
         if branch == '':
-            raise ValueError('"Branch:" field is not set on ticket #'
-                             + str(ticket_number))
+            msg = '"Branch:" field is not set on ticket #{}'
+            raise ValueError(msg.format(ticket_number))
         return branch
 
 

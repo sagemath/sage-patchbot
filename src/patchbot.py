@@ -338,8 +338,6 @@ class Patchbot(object):
 
         >>> from patchbot import Patchbot
         >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org')
-        >>> import os
-        >>> os.chdir(P.sage_root)
         >>> P.test_a_ticket(12345)
 
     How to more or less ban an author: have
@@ -351,6 +349,8 @@ class Patchbot(object):
     def __init__(self, sage_root, server, config_path=None, options=None):
 
         self.sage_root = sage_root
+        os.chdir(self.sage_root)
+
         self.sage_command = os.path.join(self.sage_root, 'sage')
         self.server = server
         self.trac_server = TracServer(Config())
@@ -648,7 +648,7 @@ class Patchbot(object):
         # plugin setup
         if not conf['plugin_only']:
             active_plugins = conf['plugins']
-            if not "plugins.docbuild" in active_plugins:
+            if "plugins.docbuild" not in active_plugins:
                 # force building the doc, so that the tests can pass
                 conf['plugins'] = active_plugins + ["plugins.docbuild"]
 
@@ -690,9 +690,8 @@ class Patchbot(object):
 
         This will update the patchbot/base if necessary.
         """
-        self.write_log("Check base.", LOG_MAIN)
-        cwd = os.getcwd()
         os.chdir(self.sage_root)
+        self.write_log("Check base.", LOG_MAIN)
         try:
             do_or_die("git checkout patchbot/base")
         except Exception:
@@ -706,17 +705,15 @@ class Patchbot(object):
         only_in_upstream = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/base_upstream"]))
 
         max_behind_time = self.config['max_behind_days'] * 60 * 60 * 24
-        if (only_in_base > 0
-                or only_in_upstream > self.config['max_behind_commits']
-                or (only_in_upstream > 0 and
-                    time.time() - self.last_pull < max_behind_time)):
+        if (only_in_base > 0 or
+                only_in_upstream > self.config['max_behind_commits'] or
+                (only_in_upstream > 0 and
+                 time.time() - self.last_pull < max_behind_time)):
             do_or_die("git checkout patchbot/base_upstream")
             do_or_die("git branch -f patchbot/base patchbot/base_upstream")
             do_or_die("git checkout patchbot/base")
             self.last_pull = time.time()
-            os.chdir(cwd)
             return False
-        os.chdir(cwd)
         return True
 
     def human_readable_base(self):
@@ -779,6 +776,7 @@ class Patchbot(object):
 
         Return nothing when the ticket should not be tested.
         """
+        os.chdir(self.sage_root)
         log_rat_path = os.path.join(self.log_dir, LOG_RATING)
         with codecs.open(log_rat_path, "a", encoding="utf-8") as log_rating:
 
@@ -825,7 +823,7 @@ class Patchbot(object):
                     self.write_log(msg.format(author),
                                    logfile, False)
                     # self.write_log(msg.format(author).encode('utf-8'),
-                      #              logfile, False) #py2
+                    # logfile, False) #py2
                     return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
 
@@ -937,7 +935,7 @@ class Patchbot(object):
           * if an integer or a string, use this ticket number
         """
         self.reload_config()
-
+        os.chdir(self.sage_root)
         # ------------- selection of ticket -------------
         if ticket is None:
             rating, ticket = self.get_one_ticket()

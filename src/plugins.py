@@ -269,8 +269,10 @@ def non_ascii(ticket, **kwds):
 
     This should be done file by file to check for unicode declaration.
     """
-    not_declared = lambda a_file: (not(check_unicode_declaration(a_file)) and
-                                   a_file.split('.')[-1] in ['py', 'pyx'])
+
+    def not_declared(a_file):
+        return (not(check_unicode_declaration(a_file)) and
+                a_file.split('.')[-1] in ['py', 'pyx'])
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)

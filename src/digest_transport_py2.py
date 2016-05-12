@@ -4,7 +4,7 @@ Python 2.7 version of the HTTP transport to the trac server
 AUTHORS:
 - David Roe, Julian Rueth, Robert Bradshaw: initial version
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2013 David Roe <roed.math@gmail.com>
 #                          Julian Rueth <julian.rueth@fsfe.org>
 #                          Robert Bradshaw <robertwb@gmail.com>
@@ -13,11 +13,13 @@ AUTHORS:
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
-#*****************************************************************************
+# ****************************************************************************
 
 import sys
 from xmlrpclib import SafeTransport, Fault
 import urllib2
+from trac_error import TracInternalError, TracConnectionError
+from cached_property import cached_property
 
 # Monkey patch http://bugs.python.org/issue8194
 if (sys.version_info[0] == 2 and
@@ -39,10 +41,6 @@ if (sys.version_info[0] == 2 and
             return self.headers.items()
 
     urllib2.addinfourl = patched_addinfourl
-
-from trac_error import \
-    TracInternalError, TracConnectionError
-from cached_property import cached_property
 
 
 class DigestTransport(object, SafeTransport):
