@@ -23,8 +23,8 @@ import sys
 import subprocess
 import time
 
-from trac import do_or_die
-from util import describe_branch
+from .trac import do_or_die
+from .util import describe_branch
 
 
 class PluginResult(object):

@@ -1,3 +1,4 @@
+# global python imports
 import re
 import hashlib
 import os
@@ -9,27 +10,24 @@ import subprocess
 import pprint
 
 try:
-    from urllib2 import urlopen  # python2
-except ImportError:
-    from urllib.request import urlopen  # python3
-
-from util import (do_or_die, now_str, describe_branch,
-                  temp_build_suffix, ensure_free_space,
-                  ConfigException, SkipTicket)
-
-try:
     # Python 3.3+
     from xmlrpc.client import ServerProxy
-    from digest_transport import DigestTransport
+    from .digest_transport import DigestTransport
     from urllib import parse as url_parse
+    from urllib.request import urlopen
 except ImportError:
     # Python 2.7
     from xmlrpclib import ServerProxy
-    from digest_transport_py2 import DigestTransport
+    from .digest_transport_py2 import DigestTransport
     from urllib2 import urlparse as url_parse
+    from urllib2 import urlopen
 
-from cached_property import cached_property
-from trac_ticket import TracTicket
+# imports from patchbot sources
+from .cached_property import cached_property
+from .util import (do_or_die, now_str, describe_branch,
+                   temp_build_suffix, ensure_free_space,
+                   ConfigException, SkipTicket)
+from .trac_ticket import TracTicket
 
 
 TRAC_URL = "http://trac.sagemath.org/sage_trac"

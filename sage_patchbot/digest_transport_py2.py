@@ -18,8 +18,9 @@ AUTHORS:
 import sys
 from xmlrpclib import SafeTransport, Fault
 import urllib2
-from trac_error import TracInternalError, TracConnectionError
-from cached_property import cached_property
+
+from .trac_error import TracInternalError, TracConnectionError
+from .cached_property import cached_property
 
 # Monkey patch http://bugs.python.org/issue8194
 if (sys.version_info[0] == 2 and

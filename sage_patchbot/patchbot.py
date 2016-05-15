@@ -31,6 +31,7 @@ import platform
 import glob
 import re
 import os
+import pexpect
 import shutil
 import sys
 import subprocess
@@ -60,15 +61,15 @@ from datetime import datetime
 from optparse import OptionParser
 
 # imports from patchbot sources
-from trac import scrape, pull_from_trac, TracServer, Config
-from util import (now_str, prune_pending, do_or_die,
-                  get_sage_version, current_reports, git_commit,
-                  describe_branch, comparable_version, temp_build_suffix,
-                  ensure_free_space,
-                  ConfigException, SkipTicket)
-from http_post_file import post_multipart
-from plugins import PluginResult
-from version import get_patchbot_version
+from .trac import scrape, pull_from_trac, TracServer, Config
+from .util import (now_str, prune_pending, do_or_die,
+                   get_sage_version, current_reports, git_commit,
+                   describe_branch, comparable_version, temp_build_suffix,
+                   ensure_free_space,
+                   ConfigException, SkipTicket)
+from .http_post_file import post_multipart
+from .plugins import PluginResult
+from .version import __version__
 
 # name of the log files
 LOG_RATING = 'rating.log'
@@ -380,12 +381,12 @@ class Patchbot(object):
                              encoding='utf8')
         handle.close()
 
-        self._version = get_patchbot_version()
+        self.__version__ = __version__
         self.last_pull = 0
         self.to_skip = {}
 
         self.write_log('Launching patchbot {} with SAGE_ROOT={}'.format(
-            self._version,
+            self.__version__,
             self.sage_root), LOG_MAIN)
 
         # other options are handled here
@@ -455,7 +456,7 @@ class Patchbot(object):
             In [3]: P.version()
             Out[3]: u'2.5.3'
         """
-        return self._version
+        return self.__version__
 
     def banner(self):
         """
@@ -572,22 +573,22 @@ class Patchbot(object):
                 "time_of_day": "0-0",  # midnight-midnight
                 "parallelism": 3,
                 "timeout": 3 * 60 * 60,
-                "plugins": ["plugins.commit_messages",
-                            "plugins.coverage",
-                            "plugins.non_ascii",
-                            "plugins.doctest_continuation",
-                            "plugins.next_method",
-                            "plugins.raise_statements",
-                            "plugins.input_output_block",
-                            "plugins.reference_block",
-                            "plugins.triple_colon",
-                            "plugins.trac_links",
-                            # "plugins.trailing_whitespace",
-                            "plugins.startup_time",
-                            "plugins.startup_modules",
-                            # "plugins.docbuild_pdf", # not yet tested
-                            "plugins.docbuild",
-                            "plugins.git_rev_list"],
+                "plugins": ["commit_messages",
+                            "coverage",
+                            "non_ascii",
+                            "doctest_continuation",
+                            "next_method",
+                            "raise_statements",
+                            "input_output_block",
+                            "reference_block",
+                            "triple_colon",
+                            "trac_links",
+                            # "trailing_whitespace",
+                            "startup_time",
+                            "startup_modules",
+                            # "docbuild_pdf", # not yet tested
+                            "docbuild",
+                            "git_rev_list"],
                 "bonus": {},
                 "machine": machine_data(),
                 "machine_match": 5,
@@ -648,18 +649,20 @@ class Patchbot(object):
         # plugin setup
         if not conf['plugin_only']:
             active_plugins = conf['plugins']
-            if "plugins.docbuild" not in active_plugins:
+            if "docbuild" not in active_plugins:
                 # force building the doc, so that the tests can pass
-                conf['plugins'] = active_plugins + ["plugins.docbuild"]
+                conf['plugins'] = active_plugins + ["docbuild"]
 
         def locate_plugin(name):
-            ix = name.rindex('.')
-            module = name[:ix]
-            name = name[ix + 1:]
-            plugin = getattr(__import__(module, fromlist=[name]), name)
+            plugin = getattr(__import__("sage_patchbot.plugins",
+                                        fromlist=[name]), name)
             assert callable(plugin)
             return plugin
 
+        # for backward compatibility (allow both plugins.X and just X)
+        conf["plugins"] = [name.split('.')[-1] for name in conf["plugins"]]
+
+        # activation of plugins
         conf["plugins"] = [(name, locate_plugin(name))
                            for name in conf["plugins"]]
 
@@ -1196,7 +1199,6 @@ class Patchbot(object):
                 #  File "/data/sage/sage-5.5/local/lib/python2.7/site-packages/pexpect.py", line 1137, in which
                 #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
 
-                import pexpect
                 p = pexpect.spawn("{}/sage".format(self.sage_root),
                                   ['--info', base])
                 while True:
@@ -1280,7 +1282,7 @@ class Patchbot(object):
                   'machine': self.config['machine'],
                   'time': now_str(),
                   'plugins': plugins,
-                  'patchbot_version': self._version}
+                  'patchbot_version': self.__version__}
 
         if pending_status:
             report['pending_status'] = pending_status
@@ -1460,10 +1462,6 @@ def main(args):
             time.sleep(conf['idle'])
 
 if __name__ == '__main__':
-    # allow this script to serve as a single entry point for bots and
-    # the server
+    # this script is the entry point for the bot clients
     args = list(sys.argv)
-    if len(args) > 1 and args[1] == '--serve':
-        del args[1]
-        from serve import main
     main(args)

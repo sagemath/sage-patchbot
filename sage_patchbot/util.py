@@ -5,10 +5,7 @@ import subprocess
 from datetime import datetime
 
 temp_build_suffix = "-sage-git-temp-"
-
-# DATE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-# EPOCH = datetime(1970, 1, 1, tzinfo=tzutc())  # in the UTC timezone
 
 
 def date_parser(date_string):

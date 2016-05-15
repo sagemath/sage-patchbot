@@ -24,15 +24,15 @@ except ImportError:
     from urllib.parse import quote
 
 # imports from patchbot sources
-from trac import scrape
-from util import (now_str, current_reports, latest_version,
-                  comparable_version)
-from patchbot import filter_on_authors, prune_pending
+from .trac import scrape
+from .util import (now_str, current_reports, latest_version,
+                   comparable_version)
+from .patchbot import filter_on_authors, prune_pending
 
-import db
-from db import tickets
+from . import db
+from .db import tickets
 
-IMAGES_DIR = '/home/patchbot/sage-patchbot/src/images/'
+IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
 # oldest version of sage about which we still care
 OLDEST = comparable_version('7.1')
 

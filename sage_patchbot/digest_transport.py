@@ -18,9 +18,8 @@ import urllib.parse
 
 from xmlrpc.client import SafeTransport, Fault
 
-from trac_error import \
-    TracInternalError, TracConnectionError
-from cached_property import cached_property
+from .trac_error import TracInternalError, TracConnectionError
+from .cached_property import cached_property
 
 
 class DigestTransport(SafeTransport):
