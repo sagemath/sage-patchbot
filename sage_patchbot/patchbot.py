@@ -31,7 +31,6 @@ import platform
 import glob
 import re
 import os
-import pexpect
 import shutil
 import sys
 import subprocess
@@ -1198,7 +1197,7 @@ class Patchbot(object):
                 # There seems to be a bug...
                 #  File "/data/sage/sage-5.5/local/lib/python2.7/site-packages/pexpect.py", line 1137, in which
                 #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
-
+                import pexpect
                 p = pexpect.spawn("{}/sage".format(self.sage_root),
                                   ['--info', base])
                 while True:
