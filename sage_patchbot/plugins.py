@@ -301,6 +301,37 @@ def check_unicode_declaration(file):
     return False
 
 
+def check_future_imports(file)
+    """
+    Check that the file contains the exact line
+
+    from __future__ import absolute_import, division, print_function
+
+    Return True if and only if this exact line is found.
+    """
+    regex = re.compile(r"from __future__ import absolute_import, division, print_function")
+    with open(file) as f:
+        for line in f:
+            if regex.match(line):
+                return True
+    return False
+
+
+def future_imports(ticket, **kwds):
+    """
+    every new .py or .pyx file must contain the exact line:
+
+    from __future__ import absolute_import, division, print_function
+    """
+
+    def is_bad_file(a_file):
+        return (not(check_future_imports(a_file)) and
+                a_file.split('.')[-1] in ['py', 'pyx'])
+    exclude_new_file_by_file(ticket, regex=r'',
+                             file_condition=is_bad_file,
+                             msg="Missing 'from __future__ import'", **kwds)
+
+
 def input_output_block(ticket, **kwds):
     """
     no :: after INPUT and OUTPUT blocks
