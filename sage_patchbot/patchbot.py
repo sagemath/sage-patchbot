@@ -577,6 +577,7 @@ class Patchbot(object):
                             "non_ascii",
                             "doctest_continuation",
                             "next_method",
+                            "oldstyle_print",
                             "raise_statements",
                             "input_output_block",
                             "reference_block",

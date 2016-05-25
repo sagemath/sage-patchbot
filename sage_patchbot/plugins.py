@@ -41,7 +41,13 @@ class PluginResult(object):
         self.baseline = baseline or data
 
 
+# --- several general plugins ---
+
+
 def git_rev_list(ticket, **kwds):
+    """
+    some comparison of git branches
+    """
     if str(ticket['id']) != '0':
         base_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/ticket_upstream..patchbot/base"]))
         ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/ticket_upstream"]))
@@ -55,6 +61,8 @@ def git_rev_list(ticket, **kwds):
 
 def coverage(ticket, sage_binary, baseline=None, **kwds):
     """
+    Try to check that coverage did increase.
+
     TODO: This does not check that tests were added to existing doctests for
     new functionality.
     """
@@ -125,7 +133,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
 
 def docbuild(ticket, make, **kwds):
     """
-    Build the documentation.
+    Build the html documentation.
     """
     do_or_die('{} doc'.format(make))
 
@@ -138,9 +146,12 @@ def docbuild_pdf(ticket, make, **kwds):
 
     It may report false failures if some LaTeX packages are missing.
 
-    STILL EXPERIMENTAL!
+    STILL EXPERIMENTAL! needs to be tested.
     """
     do_or_die('{} doc-pdf'.format(make))
+
+
+# --- pattern-exclusion helper functions ---
 
 
 def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
@@ -156,7 +167,7 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
 
     .. SEEALSO:: exclude_new
 
-    This could be useful to check for unicode declaration.
+    This is used to check for unicode declaration.
     """
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
@@ -241,26 +252,29 @@ def exclude_new_in_diff(gitdiff, regex):
     return bad_lines
 
 
-def trailing_whitespace(ticket, **kwds):
-    """
-    Look for the presence of trailing whitespaces.
-    """
-    exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
+# --- plugins with file-by-file pattern exclusion ---
 
 
-def triple_colon(ticket, **kwds):
+def check_unicode_declaration(file):
     """
-    Look for the presence of triple colons `:::`.
-    """
-    exclude_new(ticket, regex=r'\:\:\:', msg="Triple colon (:::)", **kwds)
+    Check if the encoding is declared as utf-8 as in PEP0263.
 
+    Return True if there is a correct utf-8 declaration.
 
-def trac_links(ticket, **kwds):
+    This is one example of the file condition that can be used
+    in exclude_new_file_by_file.
+
+    This is useful in the `non_ascii` plugin.
     """
-    Look for the presence of badly formatted trac roles ``:trac:``,
-    missing the initial colon.
-    """
-    exclude_new(ticket, regex=r'[^\:]trac\:`[0-9]', msg="Bad trac link", **kwds)
+    regex = re.compile(r"coding[:=]\s*([-\w.]+)")
+    with open(file) as f:
+        L0 = regex.split(f.readline())
+        L1 = regex.split(f.readline())
+    if len(L0) >= 2 and L0[1] == 'utf-8':
+        return True
+    if len(L1) >= 2 and L1[1] == 'utf-8':
+        return True
+    return False
 
 
 def non_ascii(ticket, **kwds):
@@ -278,41 +292,26 @@ def non_ascii(ticket, **kwds):
                              msg="Non-ascii characters", **kwds)
 
 
-def check_unicode_declaration(file):
-    """
-    Check if the encoding is declared as utf-8 as in PEP0263.
-
-    Return True if there is a correct utf-8 declaration.
-
-    This is one example of the file condition that can be used
-    in exclude_new_file_by_file.
-
-    This one is useful in the `non_ascii` plugin.
-    """
-    regex = re.compile(r"coding[:=]\s*([-\w.]+)")
-    f = open(file)
-    L0 = regex.split(f.readline())
-    L1 = regex.split(f.readline())
-    f.close()
-    if len(L0) >= 2 and L0[1] == 'utf-8':
-        return True
-    if len(L1) >= 2 and L1[1] == 'utf-8':
-        return True
-    return False
 
 
 def check_future_imports(file)
     """
-    Check that the file contains the exact line
+    Check that the file contains a line
 
     from __future__ import absolute_import, division, print_function
 
-    Return True if and only if this exact line is found.
+    with the arguments in any order
+
+    Return True if and only if such a line is found.
     """
-    regex = re.compile(r"from __future__ import absolute_import, division, print_function")
+    regex = re.compile(r"from __future__ import")
+    r1 = re.compile(r"absolute_import")
+    r2 = re.compile(r"division")
+    r3 = re.compile(r"print_function")
     with open(file) as f:
         for line in f:
-            if regex.match(line):
+            if (regex.match(line) and r1.search(line) and
+                    r2.search(line) and r3.search(line)):
                 return True
     return False
 
@@ -322,6 +321,8 @@ def future_imports(ticket, **kwds):
     every new .py or .pyx file must contain the exact line:
 
     from __future__ import absolute_import, division, print_function
+
+    THIS IS NOT READY
     """
 
     def is_bad_file(a_file):
@@ -332,20 +333,7 @@ def future_imports(ticket, **kwds):
                              msg="Missing 'from __future__ import'", **kwds)
 
 
-def input_output_block(ticket, **kwds):
-    """
-    no :: after INPUT and OUTPUT blocks
-    """
-    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:',
-                msg="Bad Input/Output blocks", **kwds)
-
-
-def reference_block(ticket, **kwds):
-    """
-    no :: after REFERENCE blocks
-    """
-    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:',
-                msg="Bad reference blocks", **kwds)
+# --- simple pattern-exclusion plugins ---
 
 
 def doctest_continuation(ticket, **kwds):
@@ -356,6 +344,14 @@ def doctest_continuation(ticket, **kwds):
                 msg="Old-style doctest continuation", **kwds)
 
 
+def input_output_block(ticket, **kwds):
+    """
+    no :: after INPUT and OUTPUT blocks
+    """
+    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:',
+                msg="Bad Input/Output blocks", **kwds)
+
+
 def next_method(ticket, **kwds):
     """
     Check that `next` builtin function is used instead of `.next()` method.
@@ -364,12 +360,53 @@ def next_method(ticket, **kwds):
                 msg="python2-only .next() method", **kwds)
 
 
+def oldstyle_print(ticket, **kwds):
+    """
+    Check that print is using python 3 syntax.
+    """
+    exclude_new(ticket, regex=r'print[ ]*[^\(]',
+                msg="python2-only print syntax", **kwds)
+
+
 def raise_statements(ticket, **kwds):
     """
     Check that raise statements use python3 syntax.
     """
     exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error,',
                 msg="Old-style raise statement", **kwds)
+
+
+def reference_block(ticket, **kwds):
+    """
+    no :: after REFERENCE blocks
+    """
+    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:',
+                msg="Bad reference blocks", **kwds)
+
+
+def trac_links(ticket, **kwds):
+    """
+    Look for the presence of badly formatted trac roles ``:trac:``,
+    missing the initial colon.
+    """
+    exclude_new(ticket, regex=r'[^\:]trac\:`[0-9]', msg="Bad trac link", **kwds)
+
+
+def trailing_whitespace(ticket, **kwds):
+    """
+    Look for the presence of trailing whitespaces.
+    """
+    exclude_new(ticket, regex=r'\s+$', msg="Trailing whitespace", **kwds)
+
+
+def triple_colon(ticket, **kwds):
+    """
+    Look for the presence of triple colons `:::`.
+    """
+    exclude_new(ticket, regex=r'\:\:\:', msg="Triple colon (:::)", **kwds)
+
+
+# --- not pattern-related plugins ---
 
 
 def commit_messages(ticket, patches, **kwds):
@@ -396,6 +433,8 @@ def commit_messages(ticket, patches, **kwds):
 def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     """
     Count modules imported at startup.
+
+    And compares to stored data.
     """
     # Sometimes the first run does something different...
     do_or_die(sage_binary + " -c ''")
@@ -533,7 +572,7 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
         do_or_die(choose_ticket)
 
 
-# Some utility functions.
+# Some statistical utility functions.
 
 
 def mann_whitney_U(a, b, offset=0):
