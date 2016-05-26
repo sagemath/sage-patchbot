@@ -240,16 +240,16 @@ def describe_branch(branch, tag_only=False):
         return res
 
 
-def ensure_free_space(path):
+def ensure_free_space(path, N=4):
     """
-    check that available free space is at least 4 Go
+    check that available free space is at least N Go
     """
     stats = os.statvfs(path)
     free = stats.f_bfree * stats.f_frsize
-    if stats.f_bfree * stats.f_frsize < (4 << 30):
-        msg = "Refusing to build with less than 4G free ({} bytes "
+    if stats.f_bfree * stats.f_frsize < (N << 30):
+        msg = "Refusing to build with less than {}G free ({} bytes "
         msg += "available on {})"
-        raise ConfigException(msg.format(free, path))
+        raise ConfigException(msg.format(N, free, path))
 
 
 class ConfigException(Exception):

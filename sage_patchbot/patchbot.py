@@ -1372,6 +1372,10 @@ def main(args):
                       default=None,
                       help="test only a list of tickets, for example"
                            " '12345,19876'")
+    parser.add_option("--free_giga", dest="free_giga",
+                      default=4,
+                      help="number of required free gigabytes"
+                      )
 
     # options that are passed to the patchbot via the class "options"
     # these 6 options will be stored in conf
@@ -1415,7 +1419,7 @@ def main(args):
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print("WARNING: Do not use this copy of sage while the patchbot is running.")
-    ensure_free_space(options.sage_root)
+    ensure_free_space(options.sage_root, N=options.free_giga)
 
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" %
