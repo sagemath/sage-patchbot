@@ -761,19 +761,6 @@ status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
                 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
 
 
-status_colors = {'New': 'white',
-                 'ApplyFailed': 'red',
-                 'BuildFailed': 'orange',
-                 'TestsFailed': 'yellow',
-                 'TestsPassed': 'green',
-                 'PluginFailed': 'blue',
-                 'Pending': 'white',
-                 'PluginOnly': 'lightgreen',
-                 'PluginOnlyFailed': 'lightblue',
-                 'NoPatch': 'purple',
-                 'Spkg': 'purple'}
-
-
 @app.route('/icon-Version.svg')
 def create_base_image_svg():
     """
@@ -841,14 +828,15 @@ def status_image_svg(status):
 
 def status_image_path(status, image_type='png'):
     """
-    Return the blob image address for a single status
+    Return the blob image address for a single status.
 
     There are two different icon sets : 'png' and 'svg'
 
-    For example, the result for 'TestsPassed' should be images/green-blob.png
+    For example, the result for 'TestsPassed' should be
+    images/icon-TestsPassed.png
     """
     if image_type == 'png':
-        return IMAGES_DIR + '{}-blob.png'.format(status_colors[status])
+        return IMAGES_DIR + 'icon-{}.png'.format(status)
     else:
         return IMAGES_DIR + 'icon-{}.svg'.format(status)
 
