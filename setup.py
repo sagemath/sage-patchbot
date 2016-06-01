@@ -17,7 +17,7 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-setup(name='sage-patchbot',
+setup(name='patchbot',
       version=find_version('sage_patchbot', 'version.py'),
       description='bot for automatic test of sagemath trac tickets',
       url='https://github.com/robertwb/sage-patchbot',
