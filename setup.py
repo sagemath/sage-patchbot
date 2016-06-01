@@ -2,7 +2,7 @@ import codecs
 import os
 import re
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -25,7 +25,7 @@ setup(name='sage-patchbot',
       license='GPL',
       entry_points={
           'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
-      packages=find_packages(),
+      packages=['sage_patchbot'],
       package_data={'sage_patchbot': ['static/*.css',
                                       'images/*.png','images/*.svg',
                                       'templates/*.html',
