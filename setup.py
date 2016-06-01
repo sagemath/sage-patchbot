@@ -30,5 +30,6 @@ setup(name='sage-patchbot',
                                       'images/*.png','images/*.svg',
                                       'templates/*.html',
                                       'templates/*.svg',
-                                      'templates/*.txt']},
+                                      'templates/*.txt',
+                                      'sage_patchbot/serve.wsgi']},
       zip_safe=False)
