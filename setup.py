@@ -23,7 +23,12 @@ setup(name='sage-patchbot',
       url='https://github.com/robertwb/sage-patchbot',
       author='Robert Bradshaw',
       license='GPL',
-      entry_points = {
-          'console_scripts': ['patchbot=sage_patchbot.patchbot:main'],
-      packages = find_packages(),
+      entry_points={
+          'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
+      packages=find_packages(),
+      package_data={'sage_patchbot': ['static/*.css',
+                                      'images/*.png','images/*.svg',
+                                      'templates/*.html',
+                                      'templates/*.svg',
+                                      'templates/*.txt']},
       zip_safe=False)
