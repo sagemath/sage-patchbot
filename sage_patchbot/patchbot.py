@@ -336,8 +336,8 @@ class Patchbot(object):
 
     EXAMPLES::
 
-        >>> from patchbot import Patchbot
-        >>> P = Patchbot('/homes/leila/sage','http://patchbot.sagemath.org')
+        >>> from sage_patchbot.patchbot import Patchbot
+        >>> P = Patchbot('/homes/leila/sage','https://patchbot.sagemath.org')
         >>> P.test_a_ticket(12345)
 
     How to more or less ban an author: have
@@ -528,11 +528,11 @@ class Patchbot(object):
 
         For an example of the page it calls:
 
-        http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}
+        https://patchbot.sagemath.org/ticket/?raw&query={"id":11529}
 
         For humans:
 
-        http://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
+        https://patchbot.sagemath.org/ticket/?raw&query={"id":11529}&pretty
         """
         path = "ticket/?" + urlencode({'raw': True,
                                        'query': json.dumps({'id': t_id})})
@@ -1351,7 +1351,7 @@ def main(args):
                       default=os.environ.get('SAGE_ROOT'),
                       help="specify another sage root directory")
     parser.add_option("--server", dest="server",
-                      default="http://patchbot.sagemath.org/",
+                      default="https://patchbot.sagemath.org/",
                       help="specify another patchbot server adress")
     parser.add_option("--config", dest="config",
                       help="specify the json config file")

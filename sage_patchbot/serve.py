@@ -102,9 +102,9 @@ def trusted_authors():
 
     Either as json dict or in human-readable format.
 
-    See http://patchbot.sagemath.org/trusted/
+    See https://patchbot.sagemath.org/trusted/
 
-    and http://patchbot.sagemath.org/trusted/?pretty
+    and https://patchbot.sagemath.org/trusted/?pretty
 
     The dict of trusted authors is computed in ``compute_trusted_authors``.
     """
@@ -793,9 +793,9 @@ def status_image(status):
 
     This is for the 'png' icon set.
 
-    For example, see http://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
+    For example, see https://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
 
-    or http://patchbot.sagemath.org/blob/TestsPassed
+    or https://patchbot.sagemath.org/blob/TestsPassed
     """
     response = make_response(create_status_image(status))
     response.headers['Content-type'] = 'image/png'
@@ -810,9 +810,9 @@ def status_image_svg(status):
 
     This is for the 'svg' icon set.
 
-    For example, see http://patchbot.sagemath.org/blob/BuildFailed
+    For example, see https://patchbot.sagemath.org/blob/BuildFailed
 
-    or http://patchbot.sagemath.org/blob_svg/TestsPassed
+    or https://patchbot.sagemath.org/blob_svg/TestsPassed
     """
     liste = status.split(',')
     # Only one possible status displayed. Which one to choose ?
@@ -959,7 +959,7 @@ def robots():
     """
     Return a robot instruction web page
 
-    See http://patchbot.sagemath.org/robots.txt for the result.
+    See https://patchbot.sagemath.org/robots.txt for the result.
 
     EXAMPLES::
 
@@ -977,7 +977,7 @@ def favicon():
 
     This is currently a 16 x 16 png version of icon-TestsPassed.svg.
 
-    See http://patchbot.sagemath.org/favicon.ico for the result.
+    See https://patchbot.sagemath.org/favicon.ico for the result.
 
     EXAMPLES::
 
