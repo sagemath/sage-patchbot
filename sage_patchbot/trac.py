@@ -30,7 +30,7 @@ from .util import (do_or_die, now_str, describe_branch,
 from .trac_ticket import TracTicket
 
 
-TRAC_URL = "http://trac.sagemath.org/sage_trac"
+TRAC_URL = "https://trac.sagemath.org/sage_trac"
 TRAC_REPO = "git://trac.sagemath.org/sage.git"
 
 
@@ -346,7 +346,7 @@ class Config(object):
 
     @property
     def server_hostname(self):
-        return 'http://trac.sagemath.org'
+        return 'https://trac.sagemath.org'
 
     @property
     def server_anonymous_xmlrpc(self):
