@@ -364,7 +364,8 @@ def oldstyle_print(ticket, **kwds):
     """
     Check that print is using python 3 syntax.
     """
-    exclude_new(ticket, regex=r' print [ ]*[^\(]',
+    rex = r'^\s*(()\|(.*[:;]\s*))print(([ ]+[^\(])\|(\s*$))'
+    exclude_new(ticket, regex=rex,
                 msg="python2-only print syntax", **kwds)
 
 
