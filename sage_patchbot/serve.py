@@ -389,7 +389,7 @@ def render_ticket(ticket):
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors_fullnames':
-                link = u"<a href='http://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
+                link = u"<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
                 auths = u", ".join(link.format(a.replace(u" ", u"%20"), a)
                                    for a in value)
                 trust_check = u"(<a href='/trust_check?who="
@@ -400,7 +400,7 @@ def render_ticket(ticket):
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
                 new_info[key] = parts
             elif key == 'git_branch':
-                new_info[key] = '<a href="http://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
+                new_info[key] = '<a href="https://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
             elif key == 'spkgs':
                 new_info[key] = ', '.join("<a href='%s'>%s</a>" % (a, a) for a in value)
             elif isinstance(value, list):

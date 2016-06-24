@@ -18,7 +18,7 @@ argument.
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # -------------------------------------------------------------------
 
 
@@ -1156,7 +1156,7 @@ class Patchbot(object):
 
         EXAMPLES::
 
-            P.check_spkg('http://marcel.proust.fr/enfleurs-2.tar.bz2')
+            P.check_spkg('https://marcel.proust.fr/enfleurs-2.tar.bz2')
 
         PROBABLY VERY MUCH OBSOLETE, dating from old style spkg !
         """
@@ -1213,7 +1213,7 @@ class Patchbot(object):
                     elif index == 1:
                         listing = p.match.group(2)
                     elif index == 2:
-                        old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, p.match.group(1))
+                        old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, p.match.group(1))
                         break
                     else:
                         print("No previous match.")
@@ -1231,7 +1231,7 @@ class Patchbot(object):
                         listing = m.group(1)
                     m = re.match(r">>> Found (%s-\S+)" % base, line)
                     if m:
-                        old_url = "http://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
+                        old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
                         break
                 if not old_path and not old_url:
                     print("Unable to locate existing package %s." % base)

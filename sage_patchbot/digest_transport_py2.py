@@ -12,7 +12,7 @@ AUTHORS:
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
 import sys
@@ -22,7 +22,7 @@ import urllib2
 from .trac_error import TracInternalError, TracConnectionError
 from .cached_property import cached_property
 
-# Monkey patch http://bugs.python.org/issue8194
+# Monkey patch https://bugs.python.org/issue8194
 if (sys.version_info[0] == 2 and
         sys.version_info[1] == 7 and
         sys.version_info[2] <= 1):
