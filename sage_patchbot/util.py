@@ -246,9 +246,9 @@ def ensure_free_space(path, N=4):
     """
     stats = os.statvfs(path)
     free = stats.f_bfree * stats.f_frsize
-    if stats.f_bfree * stats.f_frsize < (N << 30):
-        msg = "Refusing to build with less than {}G free ({} bytes "
-        msg += "available on {})"
+    if stats.f_bfree * stats.f_frsize < (N * 2**30):
+        msg = ("Refusing to build with less than {:.2f}G free ({} bytes "
+               "available on {})")
         raise ConfigException(msg.format(N, free, path))
 
 
