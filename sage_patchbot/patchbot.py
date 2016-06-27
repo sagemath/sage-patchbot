@@ -1338,7 +1338,7 @@ class Patchbot(object):
         return git_commit(self.sage_root, branch)
 
 
-def main(args):
+def main(args=None):
     """
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
