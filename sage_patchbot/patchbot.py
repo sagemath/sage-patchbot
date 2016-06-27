@@ -1374,7 +1374,8 @@ def main(args):
                            " '12345,19876'")
     parser.add_option("--free_giga", dest="free_giga",
                       default=4,
-                      help="number of required free gigabytes"
+                      help="number of required free gigabytes (0 means "
+                           "no minimum space required)"
                       )
 
     # options that are passed to the patchbot via the class "options"
@@ -1419,7 +1420,10 @@ def main(args):
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print("WARNING: Do not use this copy of sage while the patchbot is running.")
-    ensure_free_space(options.sage_root, N=options.free_giga)
+
+
+    if options.free_giga > 0:
+        ensure_free_space(options.sage_root, N=options.free_giga)
 
     if conf['use_ccache']:
         do_or_die("'%s'/sage -i ccache" %
