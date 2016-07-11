@@ -271,7 +271,7 @@ def ticket_list():
                            versions=versions, status_order=status_order)
 
 
-class MachineStats:
+class MachineStats(object):
     def __init__(self, name):
         self.name = name
         self.fresh_tickets = set()
@@ -286,8 +286,8 @@ class MachineStats:
             self.fresh_tickets.add(ticket['id'])
         self.last_report = max(report['time'], self.last_report)
 
-    def __cmp__(self, other):
-        return cmp(self.last_report, other.last_report)
+    def __lt__(self, other):
+        return self.last_report < other.last_report
 
 
 @app.route("/machines")
@@ -351,8 +351,11 @@ def render_ticket(ticket):
     if 'kick' in request.args:
         info['retry'] = True
         db.save_ticket(info)
+
+    def sort_key(a):
+        return a['time']
     if 'reports' in info:
-        info['reports'].sort(lambda a, b: -cmp(a['time'], b['time']))
+        info['reports'].sort(key=sort_key, reverse=True)
     else:
         info['reports'] = []
 
@@ -475,10 +478,13 @@ def reports_by_machine_and_base(ticket):
     reports on the given ticket
     """
     all = {}
+
+    def sort_key(a):
+        return a['time']
+
     if 'reports' in ticket:
         # oldest to newest
-        for report in sorted(ticket['reports'],
-                             lambda a, b: cmp(a['time'], b['time'])):
+        for report in sorted(ticket['reports'], key=sort_key):
             all[report['base']] = report
             all[report['base'] + "/" + "/".join(report['machine'])] = report
     return all

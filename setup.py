@@ -20,7 +20,7 @@ def find_version(*file_paths):
 setup(name='sage-patchbot',
       version=find_version('sage_patchbot', 'version.py'),
       description='bot for automatic test of sagemath trac tickets',
-      url='https://github.com/robertwb/sage-patchbot',
+      url='https://github.com/sagemath/sage-patchbot',
       author='Robert Bradshaw',
       license='GPL',
       entry_points={

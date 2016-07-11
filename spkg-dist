@@ -9,7 +9,7 @@ fi
 if [ ! -e .git ]; then
     echo "Must be called from the git repository."
     echo
-    echo "git clone git://github.com/robertwb/sage-patchbot.git"
+    echo "git clone git://github.com/sagemath/sage-patchbot.git"
     exit 1
 fi
 
