@@ -292,8 +292,6 @@ def non_ascii(ticket, **kwds):
                              msg="Non-ascii characters", **kwds)
 
 
-
-
 def check_future_imports(file):
     """
     Check that the file contains a line

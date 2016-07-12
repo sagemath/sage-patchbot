@@ -84,13 +84,8 @@ def compute_trusted_authors():
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
         for author in ticket.get("authors_fullnames", []):
             a = author.strip()
-            if a:
+            if a and a != '<no author>':
                 authors[a] += 1
-        # code below is temporary and for backward compatibility only
-        # for author in ticket.get("authors", []):
-        #     a = author.strip()
-        #     if a:
-        #         authors[a] += 1
     return authors
 
 
@@ -230,6 +225,7 @@ def ticket_list():
     all = filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
+
         def filter_reports(all):
             for ticket in all:
                 current = sorted(current_reports(ticket),

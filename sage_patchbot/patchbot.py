@@ -801,7 +801,9 @@ class Patchbot(object):
 
             if not(ticket['status'] in ('needs_review', 'positive_review',
                                         'needs_info', 'needs_work')):
-                self.write_log('#{}: bad status (={})'.format(ticket['id'], ticket['status']), logfile)
+                msg = '#{}: bad status (={})'
+                self.write_log(msg.format(ticket['id'],
+                                          ticket['status']), logfile)
                 return
 
             self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
@@ -814,6 +816,11 @@ class Patchbot(object):
                 return
 
             bonus = self.config['bonus']  # load the dict of bonus
+
+            if ticket.get('git_commit', 'unknown') == 'unknown':
+                self.write_log(' do not test if git_commit is unknown',
+                               logfile, False)
+                return
 
             if not ticket.get('authors_fullnames', []):
                 self.write_log(' do not test if no author is given',
@@ -1420,7 +1427,6 @@ def main(args=None):
 
     if options.sage_root == os.environ.get('SAGE_ROOT'):
         print("WARNING: Do not use this copy of sage while the patchbot is running.")
-
 
     if options.free_giga > 0:
         ensure_free_space(options.sage_root, N=options.free_giga)
