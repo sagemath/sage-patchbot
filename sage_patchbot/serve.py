@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # global python imports
+from __future__ import absolute_import
 import os
 import sys
 import bz2
@@ -645,7 +646,7 @@ def shorten(lines):
     gcc = re.compile('(gcc)|(g\+\+)')
     prev = None
     in_plugin = False
-    from patchbot import boundary
+    from .patchbot import boundary
     plugin_start = re.compile(boundary('.*', 'plugin'))
     plugin_end = re.compile(boundary('.*', 'plugin_end'))
     for line in StringIO(lines):
@@ -689,7 +690,7 @@ def extract_plugin_log(data, plugin):
     """
     Extract from data the log of a given plugin.
     """
-    from patchbot import boundary
+    from .patchbot import boundary
     start = boundary(plugin, 'plugin') + "\n"
     end = boundary(plugin, 'plugin_end') + "\n"
     all = []
