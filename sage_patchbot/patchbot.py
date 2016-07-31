@@ -1349,7 +1349,6 @@ def main(args=None):
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
     """
-    global conf
     parser = OptionParser()
 
     # options that are passed as arguments to the class "Patchbot"
@@ -1409,7 +1408,6 @@ def main(args=None):
                         options.server,
                         conf_path,
                         options=options)
-    conf = patchbot.get_config()
 
     if options.ticket:
         # only test the given list of tickets
@@ -1430,23 +1428,23 @@ def main(args=None):
     if options.free_giga > 0:
         ensure_free_space(options.sage_root, N=options.free_giga)
 
-    if conf['use_ccache']:
+    if patchbot.config['use_ccache']:
         do_or_die("'%s'/sage -i ccache" %
                   options.sage_root, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
-    if not conf['skip_base']:
+    if not patchbot.config['skip_base']:
         patchbot.check_base()
 
         def good(report):
-            return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-        if conf['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
+            return report['machine'] == patchbot.config['machine'] and report['status'] == 'TestsPassed'
+        if patchbot.config['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
             if res not in ('TestsPassed', 'PluginOnly'):
                 print("\n\n")
-                print("Current base: {} {}".format(conf['base_repo'],
-                                                   conf['base_branch']))
+                print("Current base: {} {}".format(patchbot.config['base_repo'],
+                                                   patchbot.config['base_branch']))
                 print("Failing tests in your base install: exiting.")
                 sys.exit(1)
 
@@ -1462,17 +1460,17 @@ def main(args=None):
                 ticket = tickets.pop(0)
             else:
                 ticket = None
-            conf = patchbot.reload_config()
-            if check_time_of_day(conf['time_of_day']):
+            patchbot.reload_config()
+            if check_time_of_day(patchbot.config['time_of_day']):
                 if not patchbot.check_base():
                     patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
             else:
                 patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
-                time.sleep(conf['idle'])
+                time.sleep(patchbot.config['idle'])
         except Exception:
             traceback.print_exc()
-            time.sleep(conf['idle'])
+            time.sleep(patchbot.config['idle'])
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients
