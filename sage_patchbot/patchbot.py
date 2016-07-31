@@ -666,16 +666,6 @@ class Patchbot(object):
         conf["plugins"] = [(name, locate_plugin(name))
                            for name in conf["plugins"]]
 
-        # logs
-        self.delete_log(LOG_CONFIG)
-        self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
-        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
-
-        if self.to_skip:
-            s = ', '.join('#{} (until {})'.format(k, v)
-                          for k, v in self.to_skip.items())
-            self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
-
         return conf
 
     def reload_config(self):
@@ -683,6 +673,11 @@ class Patchbot(object):
         Reload the configuration.
         """
         self.config = self.get_config()
+        # logs
+        self.delete_log(LOG_CONFIG)
+        self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
+        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
+
         return self.config
 
     def check_base(self):
@@ -747,6 +742,10 @@ class Patchbot(object):
         query = "raw&status={}".format(status)
 
         self.write_log("Getting ticket list...", LOG_MAIN)
+        if self.to_skip:
+            s = ', '.join('#{} (until {})'.format(k, v)
+                          for k, v in self.to_skip.items())
+            self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
         all_tickets = self.load_json_from_server("ticket/?" + query, retry=10)
 
         # rating for all tickets
