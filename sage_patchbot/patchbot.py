@@ -605,7 +605,8 @@ class Patchbot(object):
                 "owner": "unknown owner",
                 "plugin_only": False,
                 "safe_only": True,
-                "skip_base": False}
+                "skip_base": False,
+                "cleanup": False}
 
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
@@ -631,8 +632,8 @@ class Patchbot(object):
         if "extra_trusted_authors" in conf:
             conf["trusted_authors"].update(conf["extra_trusted_authors"])
 
-        # now override with some values from options
-        # coming from sage -patchbot --xx
+        # now override with the values of the 7 options
+        # coming from the patchbot commandline
         if self.options.dry_run is not None:
             conf['dry_run'] = self.options.dry_run
         if self.options.no_banner is not None:
@@ -645,6 +646,8 @@ class Patchbot(object):
             conf['safe_only'] = self.options.safe_only
         if self.options.skip_base is not None:
             conf['skip_base'] = self.options.skip_base
+        if self.options.cleanup is not None:
+            conf['cleanup'] = self.options.cleanup
 
         # plugin setup
         if not conf['plugin_only']:
@@ -1362,9 +1365,6 @@ def main(args=None):
                       help="specify the json config file")
 
     # options that are only used directly here
-    parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=False,
-                      help="whether to cleanup the temporary files")
     parser.add_option("--count", dest="count",
                       default=1000000,
                       help="how many tickets to test")
@@ -1384,7 +1384,10 @@ def main(args=None):
                       )
 
     # options that are passed to the patchbot via the class "options"
-    # these 6 options will be stored in conf
+    # these 7 options will be stored in conf
+    parser.add_option("--cleanup", action="store_true", dest="cleanup",
+                      default=None,
+                      help="whether to cleanup the temporary files")
     parser.add_option("--dry-run", action="store_true", dest="dry_run",
                       default=False)
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
@@ -1449,7 +1452,7 @@ def main(args=None):
                 sys.exit(1)
 
     for k in range(count):
-        if options.cleanup:
+        if patchbot.config['cleanup']:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):
                 patchbot.write_log("Cleaning up {}".format(path),
