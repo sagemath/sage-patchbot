@@ -605,7 +605,8 @@ class Patchbot(object):
                 "owner": "unknown owner",
                 "plugin_only": False,
                 "safe_only": True,
-                "skip_base": False}
+                "skip_base": False,
+                "cleanup": False}
 
         default_bonus = {"needs_review": 1000,
                          "positive_review": 500,
@@ -631,8 +632,8 @@ class Patchbot(object):
         if "extra_trusted_authors" in conf:
             conf["trusted_authors"].update(conf["extra_trusted_authors"])
 
-        # now override with some values from options
-        # coming from sage -patchbot --xx
+        # now override with the values of the 7 options
+        # coming from the patchbot commandline
         if self.options.dry_run is not None:
             conf['dry_run'] = self.options.dry_run
         if self.options.no_banner is not None:
@@ -645,6 +646,8 @@ class Patchbot(object):
             conf['safe_only'] = self.options.safe_only
         if self.options.skip_base is not None:
             conf['skip_base'] = self.options.skip_base
+        if self.options.cleanup is not None:
+            conf['cleanup'] = self.options.cleanup
 
         # plugin setup
         if not conf['plugin_only']:
@@ -666,16 +669,6 @@ class Patchbot(object):
         conf["plugins"] = [(name, locate_plugin(name))
                            for name in conf["plugins"]]
 
-        # logs
-        self.delete_log(LOG_CONFIG)
-        self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
-        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
-
-        if self.to_skip:
-            s = ', '.join('#{} (until {})'.format(k, v)
-                          for k, v in self.to_skip.items())
-            self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
-
         return conf
 
     def reload_config(self):
@@ -683,6 +676,11 @@ class Patchbot(object):
         Reload the configuration.
         """
         self.config = self.get_config()
+        # logs
+        self.delete_log(LOG_CONFIG)
+        self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
+        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
+
         return self.config
 
     def check_base(self):
@@ -747,6 +745,10 @@ class Patchbot(object):
         query = "raw&status={}".format(status)
 
         self.write_log("Getting ticket list...", LOG_MAIN)
+        if self.to_skip:
+            s = ', '.join('#{} (until {})'.format(k, v)
+                          for k, v in self.to_skip.items())
+            self.write_log('The following tickets will be skipped: ' + s, LOG_MAIN)
         all_tickets = self.load_json_from_server("ticket/?" + query, retry=10)
 
         # rating for all tickets
@@ -1350,7 +1352,6 @@ def main(args=None):
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
     """
-    global conf
     parser = OptionParser()
 
     # options that are passed as arguments to the class "Patchbot"
@@ -1364,9 +1365,6 @@ def main(args=None):
                       help="specify the json config file")
 
     # options that are only used directly here
-    parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=False,
-                      help="whether to cleanup the temporary files")
     parser.add_option("--count", dest="count",
                       default=1000000,
                       help="how many tickets to test")
@@ -1386,7 +1384,10 @@ def main(args=None):
                       )
 
     # options that are passed to the patchbot via the class "options"
-    # these 6 options will be stored in conf
+    # these 7 options will be stored in conf
+    parser.add_option("--cleanup", action="store_true", dest="cleanup",
+                      default=None,
+                      help="whether to cleanup the temporary files")
     parser.add_option("--dry-run", action="store_true", dest="dry_run",
                       default=False)
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
@@ -1410,7 +1411,6 @@ def main(args=None):
                         options.server,
                         conf_path,
                         options=options)
-    conf = patchbot.get_config()
 
     if options.ticket:
         # only test the given list of tickets
@@ -1431,28 +1431,28 @@ def main(args=None):
     if options.free_giga > 0:
         ensure_free_space(options.sage_root, N=options.free_giga)
 
-    if conf['use_ccache']:
+    if patchbot.config['use_ccache']:
         do_or_die("'%s'/sage -i ccache" %
                   options.sage_root, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
-    if not conf['skip_base']:
+    if not patchbot.config['skip_base']:
         patchbot.check_base()
 
         def good(report):
-            return report['machine'] == conf['machine'] and report['status'] == 'TestsPassed'
-        if conf['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
+            return report['machine'] == patchbot.config['machine'] and report['status'] == 'TestsPassed'
+        if patchbot.config['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
             if res not in ('TestsPassed', 'PluginOnly'):
                 print("\n\n")
-                print("Current base: {} {}".format(conf['base_repo'],
-                                                   conf['base_branch']))
+                print("Current base: {} {}".format(patchbot.config['base_repo'],
+                                                   patchbot.config['base_branch']))
                 print("Failing tests in your base install: exiting.")
                 sys.exit(1)
 
     for k in range(count):
-        if options.cleanup:
+        if patchbot.config['cleanup']:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
                                                "*%s*" % temp_build_suffix)):
                 patchbot.write_log("Cleaning up {}".format(path),
@@ -1463,17 +1463,17 @@ def main(args=None):
                 ticket = tickets.pop(0)
             else:
                 ticket = None
-            conf = patchbot.reload_config()
-            if check_time_of_day(conf['time_of_day']):
+            patchbot.reload_config()
+            if check_time_of_day(patchbot.config['time_of_day']):
                 if not patchbot.check_base():
                     patchbot.test_a_ticket(0)
                 patchbot.test_a_ticket(ticket)
             else:
                 patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
-                time.sleep(conf['idle'])
+                time.sleep(patchbot.config['idle'])
         except Exception:
             traceback.print_exc()
-            time.sleep(conf['idle'])
+            time.sleep(patchbot.config['idle'])
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients
