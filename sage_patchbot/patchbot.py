@@ -679,7 +679,7 @@ class Patchbot(object):
         # logs
         self.delete_log(LOG_CONFIG)
         self.write_log("Configuration for the patchbot\n{}\n".format(now_str()), LOG_CONFIG, False)
-        self.write_log(pprint.pformat(conf), LOG_CONFIG, False)
+        self.write_log(pprint.pformat(self.config), LOG_CONFIG, False)
 
         return self.config
 
