@@ -341,7 +341,7 @@ class OptionDict(object):
     dry_run = False
     no_banner = False
     owner = None
-    plugin_only = True
+    plugin_only = False
     safe_only = True
     skip_base = True
     def __init__(self, d):
