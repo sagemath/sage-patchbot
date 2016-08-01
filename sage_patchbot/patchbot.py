@@ -669,7 +669,7 @@ class Patchbot(object):
         self.sage_root = self.config["sage_root"]
         self.sage_command = os.path.join(self.sage_root, 'sage')
         self.server = self.config["server"]
-        self.log_dir = os.path.join(self.sage_root, "logs")
+        self.log_dir = os.path.join(self.sage_root, "logs", "patchbot")
 
         # make sure that the log directory is writable and writhe the
         # configuration file there
