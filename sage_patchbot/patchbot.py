@@ -1180,7 +1180,7 @@ class Patchbot(object):
         """
         basename = os.path.basename(spkg)
         base = basename.split('-')[0]  # the rest is the version
-        regex = re.compile(r"(?:(.*?)(?:\.spkg|\.tar\.gz|\.tar\.bz2))")
+        regex = re.compile(r"(?:(.*?)(?:\.spkg|\.tar\.gz|\.tar\.bz2|\.tgz))")
 
         def cut_sfx(nm):
             # cutting the suffix away
