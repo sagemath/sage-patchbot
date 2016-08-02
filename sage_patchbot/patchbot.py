@@ -1045,7 +1045,7 @@ class Patchbot(object):
                                            log=log, pending_status=state)
 
                     # ------------- plugins -------------
-                    patch_dir = tempfile.mkdtemp()
+                    patch_dir = tempfile.mkdtemp()  # create temporary dir
                     if ticket['id'] != 0:
                         do_or_die("git format-patch -o '%s' patchbot/base..patchbot/ticket_merged" % patch_dir)
 
@@ -1092,6 +1092,10 @@ class Patchbot(object):
                             print(boundary(name, 'plugin_end'))
                     plugins_passed = all(passed for (name, passed, data)
                                          in plugins_results)
+
+                    if patch_dir and os.path.exists(patch_dir):
+                        shutil.rmtree(patch_dir)  # delete temporary dir
+
                     self.report_ticket(ticket, status='Pending', log=log,
                                        pending_status='plugins_passed'
                                        if plugins_passed else 'plugins_failed')
@@ -1190,7 +1194,7 @@ class Patchbot(object):
         print("> name and version = {}".format(name_and_version))
         temp_dir = None
         try:
-            temp_dir = tempfile.mkdtemp()
+            temp_dir = tempfile.mkdtemp()  # create temporary dir
             local_spkg = os.path.join(temp_dir, basename)
 
             # TODO: use here sage-upload-file instead of wget
@@ -1207,7 +1211,6 @@ class Patchbot(object):
             if computed_sha != given_sha:
                 raise SkipTicket("spkg has incorrect sha1")
             print("> Correct sha1")
-
             # ------------- CODE BELOW IS NOT CLEAR -------------
             print("Now comparing to previous spkg.")
             # Compare to the current version.
@@ -1274,7 +1277,7 @@ class Patchbot(object):
 
         finally:
             if temp_dir and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
+                shutil.rmtree(temp_dir)  # delete temporary dir
 
     def report_ticket(self, ticket, status, log, plugins=(),
                       dry_run=False, pending_status=None):

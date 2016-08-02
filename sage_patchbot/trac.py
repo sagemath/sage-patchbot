@@ -317,12 +317,13 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
         if not is_safe:
             if safe_only:
                 raise SkipTicket("unsafe")
-            tmp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
-            ensure_free_space(tmp_dir)
-            do_or_die("git clone . '{}'".format(tmp_dir))
-            os.chdir(tmp_dir)
+            # create temporary dir
+            temp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
+            ensure_free_space(temp_dir)
+            do_or_die("git clone . '{}'".format(temp_dir))
+            os.chdir(temp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
-            os.environ['SAGE_ROOT'] = tmp_dir
+            os.environ['SAGE_ROOT'] = temp_dir
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
             if use_ccache:
@@ -334,6 +335,9 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             raise
         else:
             raise ConfigException(exn.message)
+    finally:
+        if temp_dir and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)  # delete temporary dir
 
 # ===================
 
