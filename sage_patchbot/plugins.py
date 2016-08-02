@@ -400,9 +400,9 @@ def trailing_whitespace(ticket, **kwds):
 
 def triple_colon(ticket, **kwds):
     """
-    Look for the presence of triple colons `:::`.
+    Look for the presence of triple colons `:::` or `: ::`.
     """
-    exclude_new(ticket, regex=r'\:\:\:', msg="Triple colon (:::)", **kwds)
+    exclude_new(ticket, regex=r'\:\s*\:\:', msg="Triple colon (:::)", **kwds)
 
 
 # --- not pattern-related plugins ---
