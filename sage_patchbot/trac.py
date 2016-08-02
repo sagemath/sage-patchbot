@@ -291,6 +291,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
     """
     merge_failure = False
     is_safe = False
+    temp_dir = None
     try:
         os.chdir(sage_root)
         info = scrape(ticket_id)
@@ -336,8 +337,9 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
         else:
             raise ConfigException(exn.message)
     finally:
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)  # delete temporary dir
+        if not is_safe and not safe_only:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)  # delete temporary dir
 
 # ===================
 
