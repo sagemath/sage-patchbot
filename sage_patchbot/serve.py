@@ -551,15 +551,18 @@ def render_ticket_base_svg(ticket):
     if len(split_base) == 2:
         v_main = base
         v_sub = ''
+        baseline = 225
     elif len(split_base) == 3:
         x, y, z = split_base
         v_main = x + '.' + y
         v_sub = z
+        baseline = 150
     else:
         v_main = ''
         v_sub = ''
+        baseline = 150
     svg = render_template('icon-Version.svg', version_main=v_main,
-                          version_sub=v_sub)
+                          version_sub=v_sub, version_baseline=baseline)
     response = make_response(svg)
     response.content_type = 'image/svg+xml'
     return response
