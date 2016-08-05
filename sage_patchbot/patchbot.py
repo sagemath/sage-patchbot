@@ -657,19 +657,32 @@ class Patchbot(object):
         """
         Reload the configuration.
 
-        This method sets various attributes and upload the list of trusted
-        users.
+        This method has for main purpose to set properly the attribute
+        ``config`` (the configuration dictionary).
         """
         self.config = self.get_local_config()
 
         # Now we set sage_root and some other attributes that depend on
         # sage_root. (here might not be the right place to do it, but
         # default_trusted_authors() below invoke logging)
-        self.base = get_sage_version(self.config["sage_root"])
         self.sage_root = self.config["sage_root"]
-        self.sage_command = os.path.join(self.sage_root, 'sage')
-        self.server = self.config["server"]
+        if (self.sage_root is None or
+            not os.path.isdir(self.sage_root) or
+            not os.path.isabs(self.sage_root) or
+            not os.path.isfile(os.path.join(self.sage_root, "sage"))):
+            raise ValueError("the sage_root option should be specified "
+                "as an absolute path to a Sage installation (either from "
+                "the command line option --sage-root=/path/to/sage or inside "
+                "the configuration file provided with "
+                "--config=path/to/config.json)")
+
+        self.sage_command = os.path.join(self.sage_root, "sage")
+        self.base = get_sage_version(self.sage_root)
+
+        # TODO: this should be configurable
         self.log_dir = os.path.join(self.sage_root, "logs", "patchbot")
+
+        self.server = self.config["server"]
 
         # make sure that the log directory is writable and writhe the
         # configuration file there
@@ -684,7 +697,7 @@ class Patchbot(object):
         if "trusted_authors" not in self.config:
             self.config["trusted_authors"] = self.default_trusted_authors()
         if "extra_trusted_authors" in self.config:
-            self.config["trusted_authors"].update(self.config["extra_trusted_authors"])
+            self.config["trusted_authors"].update(self.config.pop("extra_trusted_authors"))
 
         # write the config in logfile
         self.delete_log(LOG_CONFIG)
@@ -1418,7 +1431,12 @@ def main(args=None):
     # the configuration file might be a relative path...
     if options.config is not None:
         options.config = os.path.abspath(options.config)
-    patchbot = Patchbot(options)
+
+    try:
+        patchbot = Patchbot(options)
+    except ValueError as msg:
+        print("Error: {}".format(msg))
+        sys.exit(1)
 
     if options.ticket:
         # only test the given list of tickets
