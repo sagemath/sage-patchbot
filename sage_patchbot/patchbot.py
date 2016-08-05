@@ -653,15 +653,19 @@ class Patchbot(object):
             if value is not None:
                 conf[opt] = value
 
+
         # plugin setup
+        global plugins_available
+        plugins = set(conf['plugins'])
+        plugins.update(conf.pop("plugins_enabled"))
+        plugins.difference_update(conf.pop("plugins_disabled"))
+        # for backward compatibility (allow both plugins.X and just X)
+        plugins = set(name.split('.')[-1] for name in plugins)
+
         if not conf['plugin_only']:
-            global plugins_available
-            plugins = set(conf['plugins'])
-            plugins.update(conf["plugins_enabled"])
-            plugins.difference_update(conf["plugins_disabled"])
             plugins.add("docbuild")   # docbuild is mandatory so that tests pass
 
-            conf["plugins"] = [p for p in plugins_available if p in plugins]
+        plugins = [p for p in plugins_available if p in plugins]
 
         def locate_plugin(name):
             plugin = getattr(__import__("sage_patchbot.plugins",
@@ -669,12 +673,7 @@ class Patchbot(object):
             assert callable(plugin)
             return plugin
 
-        # for backward compatibility (allow both plugins.X and just X)
-        conf["plugins"] = [name.split('.')[-1] for name in conf["plugins"]]
-
-        # activation of plugins
-        conf["plugins"] = [(name, locate_plugin(name))
-                           for name in conf["plugins"]]
+        conf["plugins"] = [(name, locate_plugin(name)) for name in plugins]
 
         return conf
 
