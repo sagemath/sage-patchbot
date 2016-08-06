@@ -348,6 +348,28 @@ class OptionDict(object):
         for key, value in d.items():
             setattr(self, key, value)
 
+
+# hardcoded list of plugins
+# (might better be moved to the plugin repository)
+plugins_available = [
+    "commit_messages",
+    "coverage",
+    "non_ascii",
+    "doctest_continuation",
+    "next_method",
+    "oldstyle_print",
+    "raise_statements",
+    "input_output_block",
+    "reference_block",
+    "triple_colon",
+    "trac_links",
+    "trailing_whitespace",
+    "startup_time",
+    "startup_modules",
+    "docbuild",
+    "docbuild_pdf",
+    "git_rev_list"]
+
 class Patchbot(object):
     """
     Main class of the patchbot.
@@ -388,12 +410,12 @@ class Patchbot(object):
                         "reference_block",
                         "triple_colon",
                         "trac_links",
-                        # "trailing_whitespace",
                         "startup_time",
                         "startup_modules",
-                        # "docbuild_pdf", # not yet tested
                         "docbuild",
                         "git_rev_list"],
+            "plugins_disabled": [],
+            "plugins_enabled": [],
             "bonus": {},
             "machine": machine_data(),
             "machine_match": 5,
@@ -631,12 +653,19 @@ class Patchbot(object):
             if value is not None:
                 conf[opt] = value
 
+
         # plugin setup
+        global plugins_available
+        plugins = set(conf['plugins'])
+        plugins.update(conf.pop("plugins_enabled"))
+        plugins.difference_update(conf.pop("plugins_disabled"))
+        # for backward compatibility (allow both plugins.X and just X)
+        plugins = set(name.split('.')[-1] for name in plugins)
+
         if not conf['plugin_only']:
-            active_plugins = conf['plugins']
-            if "docbuild" not in active_plugins:
-                # force building the doc, so that the tests can pass
-                conf['plugins'] = active_plugins + ["docbuild"]
+            plugins.add("docbuild")   # docbuild is mandatory so that tests pass
+
+        plugins = [p for p in plugins_available if p in plugins]
 
         def locate_plugin(name):
             plugin = getattr(__import__("sage_patchbot.plugins",
@@ -644,12 +673,7 @@ class Patchbot(object):
             assert callable(plugin)
             return plugin
 
-        # for backward compatibility (allow both plugins.X and just X)
-        conf["plugins"] = [name.split('.')[-1] for name in conf["plugins"]]
-
-        # activation of plugins
-        conf["plugins"] = [(name, locate_plugin(name))
-                           for name in conf["plugins"]]
+        conf["plugins"] = [(name, locate_plugin(name)) for name in plugins]
 
         return conf
 
@@ -1403,6 +1427,10 @@ def main(args=None):
                       help="only write informations about tickets "
                            "that would be tested in the form: "
                            "[ticket id] [rating] [ticket title]")
+    parser.add_option("--conf", action="store_true", dest="conf",
+                      default=False,
+                      help="write the configuration on standard "
+                          "output and quit")
     parser.add_option("--ticket", dest="ticket",
                       default=None,
                       help="test only a list of tickets, for example"
@@ -1427,6 +1455,11 @@ def main(args=None):
     else:
         tickets = None
         count = int(options.count)
+
+    if options.conf:
+        # the option "--conf" allows to see the configuration
+        print(pprint.pprint(patchbot.config))
+        sys.exit(0)
 
     if options.list:
         # the option "--list" allows to see tickets that will be tested
