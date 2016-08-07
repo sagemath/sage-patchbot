@@ -27,6 +27,28 @@ from .trac import do_or_die
 from .util import describe_branch
 
 
+# hardcoded list of plugins
+plugins_available = [
+    "commit_messages",
+    "coverage",
+    "non_ascii",
+    "doctest_continuation",
+    "foreign_latex",
+    "next_method",
+    "oldstyle_print",
+    "raise_statements",
+    "input_output_block",
+    "reference_block",
+    "triple_colon",
+    "trac_links",
+    "trailing_whitespace",
+    "startup_time",
+    "startup_modules",
+    "docbuild",
+    "docbuild_pdf",
+    "git_rev_list"]
+
+
 class PluginResult(object):
     """
     Container class for the results of plugins
@@ -158,14 +180,16 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.
 
-    The pattern in given by a regular expression `regex`. See the next
+    The pattern in given by a regular expression ``regex``. See the next
     functions `trailing_whitespace`, `non_ascii`, etc for several such
     patterns.
+
+    INPUT: ``regex`` is one regular expression
 
     Proceeding file by file, it will only look inside the files that
     pass the chosen file condition.
 
-    .. SEEALSO:: exclude_new
+    .. SEEALSO:: `exclude_new`
 
     This is used to check for unicode declaration.
     """
@@ -195,18 +219,26 @@ def exclude_new(ticket, regex, msg, **kwds):
 
     The pattern in given by a regular expression.
 
+    ``regex`` is either one regular expression or a list of regular exp.
+
     See the next functions `trailing_whitespace`, `non_ascii`, etc
     for several such patterns.
 
     Proceeding just once for all the changed files.
 
-    .. SEEALSO:: exclude_new_file_by_file
+    .. SEEALSO:: `exclude_new_file_by_file`
     """
+    if not isinstance(regex, (list, tuple)):
+        regex = [regex]
+
     gitdiff = subprocess.Popen(['git', 'diff',
                                 'patchbot/base..patchbot/ticket_merged'],
                                stdout=subprocess.PIPE,
                                universal_newlines=True).stdout
-    bad_lines = exclude_new_in_diff(gitdiff, regex)
+
+    bad_lines = 0
+    for r in regex:
+        bad_lines += exclude_new_in_diff(gitdiff, r)
     full_msg = "{} inserted on {} non-empty lines"
     full_msg = full_msg.format(msg, bad_lines)
     print(full_msg)
@@ -219,6 +251,10 @@ def exclude_new_in_diff(gitdiff, regex):
     Search in the given diff for patterns that should be avoided.
 
     The pattern in given by a regular expression, for example r'\:\:\:$'
+
+    INPUT: ``regex`` is one regular expression
+
+    OUTPUT: the number of lines matching the given regular exp.
 
     See the next functions `trailing_whitespace`, `non_ascii`, etc
     for several such patterns.
@@ -332,6 +368,18 @@ def future_imports(ticket, **kwds):
 
 
 # --- simple pattern-exclusion plugins ---
+
+def foreign_latex(ticket, **kwds):
+    r"""
+    Check that some bad latex code does not appear
+
+    including \over, \choose, etc
+    """
+    regexps = [r'\\\choose', r'\\\over', r'\\\atop', r'\\\above',
+               r'\\\overwithdelims', r'\\\atopwithdelims',
+               r'\\\abovewithdelims']
+    exclude_new(ticket, regex=regexps,
+                msg="Foreign commands in LaTeX", **kwds)
 
 
 def doctest_continuation(ticket, **kwds):

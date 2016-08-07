@@ -66,7 +66,7 @@ from .util import (now_str, prune_pending, do_or_die,
                    ensure_free_space,
                    ConfigException, SkipTicket)
 from .http_post_file import post_multipart
-from .plugins import PluginResult
+from .plugins import PluginResult, plugins_available
 from .version import __version__
 
 # name of the log files
@@ -349,27 +349,6 @@ class OptionDict(object):
             setattr(self, key, value)
 
 
-# hardcoded list of plugins
-# (might better be moved to the plugin repository)
-plugins_available = [
-    "commit_messages",
-    "coverage",
-    "non_ascii",
-    "doctest_continuation",
-    "next_method",
-    "oldstyle_print",
-    "raise_statements",
-    "input_output_block",
-    "reference_block",
-    "triple_colon",
-    "trac_links",
-    "trailing_whitespace",
-    "startup_time",
-    "startup_modules",
-    "docbuild",
-    "docbuild_pdf",
-    "git_rev_list"]
-
 class Patchbot(object):
     """
     Main class of the patchbot.
@@ -409,6 +388,7 @@ class Patchbot(object):
                         "input_output_block",
                         "reference_block",
                         "triple_colon",
+                        "foreign_latex",
                         "trac_links",
                         "startup_time",
                         "startup_modules",
