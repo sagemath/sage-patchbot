@@ -375,9 +375,9 @@ def foreign_latex(ticket, **kwds):
 
     including \over, \choose, etc
     """
-    regexps = [r'\\\choose', r'\\\over', r'\\\atop', r'\\\above',
-               r'\\\overwithdelims', r'\\\atopwithdelims',
-               r'\\\abovewithdelims']
+    regexps = ['\\choose', '\\over', '\\atop', '\\above',
+               '\\overwithdelims', '\\atopwithdelims',
+               '\\abovewithdelims']
     exclude_new(ticket, regex=regexps,
                 msg="Foreign commands in LaTeX", **kwds)
 
