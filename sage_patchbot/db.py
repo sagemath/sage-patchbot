@@ -3,9 +3,8 @@
 
 import gridfs
 from pymongo.mongo_client import MongoClient
-mongo_port = 21002
 
-mongodb = MongoClient(port=mongo_port).buildbot
+mongodb = MongoClient().buildbot
 tickets = mongodb.tickets
 tickets.ensure_index('id', unique=True)
 tickets.ensure_index('status')
