@@ -19,9 +19,3 @@ For more documentation on running a patchbot, see http://wiki.sagemath.org/build
 The server needs a Python with Flask and mongodb installed. Installing numpy
 and PIL (pillow) will allow multi-colored blurbs.
 
-Start a monitoring loop with
-
-    python run_server.py (THIS IS OBSOLETE, now using serve.wsgi)
-
-Currently, the server is set up to run on port 21100, communicating with
-a mongod instance running on 21002.
