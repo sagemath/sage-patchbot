@@ -12,6 +12,7 @@ import time
 import difflib
 from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
+from datetime import datetime
 
 # from six.moves import cStringIO
 try:
@@ -27,7 +28,7 @@ except ImportError:
 # imports from patchbot sources
 from .trac import scrape
 from .util import (now_str, current_reports, latest_version,
-                   comparable_version)
+                   comparable_version, date_parser)
 from .patchbot import filter_on_authors
 
 from . import db
