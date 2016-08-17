@@ -34,3 +34,12 @@ def save_ticket(ticket_data):
         old.update(ticket_data)
         ticket_data = old
     tickets.save(ticket_data)
+
+def remove_log(logname):
+    """
+    Remove the log with corresponding logname.
+    """
+    if logs.exists(logname):
+        logs.delete(logname)
+
+

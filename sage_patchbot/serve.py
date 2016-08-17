@@ -28,7 +28,7 @@ except ImportError:
 from .trac import scrape
 from .util import (now_str, current_reports, latest_version,
                    comparable_version)
-from .patchbot import filter_on_authors, prune_pending
+from .patchbot import filter_on_authors
 
 from . import db
 from .db import tickets
@@ -638,6 +638,39 @@ def log_name(ticket_id, report):
         ticket_id,
         '/'.join(report['machine']),
         report['time'])
+
+
+def prune_pending(ticket, machine=None, timeout=None):
+    """
+    Remove pending reports from ``ticket.reports``,
+    as well as the corresponding log.
+
+    A pending report is removed if ``machine`` is matched
+    or ``report.time`` is longer than ``timeout`` old.
+
+    The ``timeout`` is currently set to 6 hours by default
+
+    The difference with the prune_pending appearing in util.py
+    it that this one also removes the corresponding log in the
+    database (which does not exist on a patchbot client).
+    """
+    if timeout is None:
+        timeout = 6 * 60 * 60
+    if 'reports' in ticket:
+        reports = ticket['reports']
+    else:
+        return []
+    now = datetime.utcnow()  # in the utc timezone
+    for report in list(reports):
+        if report['status'] == 'Pending':
+            t = date_parser(report['time'])
+            if report['machine'] == machine:
+                reports.remove(report)
+                db.remove_log(log_name(ticket, report))
+            elif (now - t).total_seconds() > timeout:
+                reports.remove(report)
+                db.remove_log(log_name(ticket, report))
+    return reports
 
 
 def shorten(lines):
