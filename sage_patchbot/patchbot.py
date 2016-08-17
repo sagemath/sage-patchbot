@@ -389,6 +389,7 @@ class Patchbot(object):
                         "reference_block",
                         "triple_colon",
                         "foreign_latex",
+                        "python3",
                         "trac_links",
                         "startup_time",
                         "startup_modules",

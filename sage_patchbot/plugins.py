@@ -36,6 +36,7 @@ plugins_available = [
     "foreign_latex",
     "next_method",
     "oldstyle_print",
+    "python3",
     "raise_statements",
     "input_output_block",
     "reference_block",
@@ -380,6 +381,17 @@ def foreign_latex(ticket, **kwds):
                '\\abovewithdelims']
     exclude_new(ticket, regex=regexps,
                 msg="Foreign commands in LaTeX", **kwds)
+
+
+def python3(ticket, **kwds):
+    r"""
+    Check that some python3 incompatible code does not appear
+
+    including iterkeys, itervalues, iteritems
+    """
+    regexps = ['iterkeys\(', 'itervalues\(', 'iteritems\(']
+    exclude_new(ticket, regex=regexps,
+                msg="Python 3 incompatible code", **kwds)
 
 
 def doctest_continuation(ticket, **kwds):
