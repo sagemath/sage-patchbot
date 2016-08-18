@@ -131,7 +131,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
                                      format(docs, funcs)))
                     status = "Failed"
                 elif funcs - docs < old_funcs - old_docs:
-                    msg = "Increased doctests in{}: from {} to {}"
+                    msg = "Increased doctests in {}: from {} to {}"
                     print(msg.format(module, format(old_docs, old_funcs),
                                      format(docs, funcs)))
 
