@@ -651,7 +651,7 @@ def prune_pending(ticket, machine=None, timeout=None):
 
     The ``timeout`` is currently set to 6 hours by default
 
-    The difference with the prune_pending appearing in util.py
+    The difference with the ``prune_pending`` appearing in util.py
     it that this one also removes the corresponding log in the
     database (which does not exist on a patchbot client).
     """
