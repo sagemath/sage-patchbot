@@ -3,6 +3,7 @@ import re
 import hashlib
 import os
 import sys
+import shutil
 import tempfile
 import traceback
 import time

@@ -344,6 +344,7 @@ class OptionDict(object):
     plugin_only = False
     safe_only = True
     skip_base = True
+
     def __init__(self, d):
         for key, value in d.items():
             setattr(self, key, value)
@@ -373,48 +374,48 @@ class Patchbot(object):
     """
     # hardcoded default config and bonus
     default_config = {"sage_root": None,
-            "server": "https://patchbot.sagemath.org/",
-            "idle": 300,
-            "time_of_day": "0-0",  # midnight-midnight
-            "parallelism": 3,
-            "timeout": 3 * 60 * 60,
-            "plugins": ["commit_messages",
-                        "coverage",
-                        "non_ascii",
-                        "doctest_continuation",
-                        "next_method",
-                        "oldstyle_print",
-                        "raise_statements",
-                        "input_output_block",
-                        "reference_block",
-                        "triple_colon",
-                        "foreign_latex",
-                        "python3",
-                        "trac_links",
-                        "startup_time",
-                        "startup_modules",
-                        "docbuild",
-                        "git_rev_list"],
-            "plugins_disabled": [],
-            "plugins_enabled": [],
-            "bonus": {},
-            "machine": machine_data(),
-            "machine_match": 5,
-            "user": getpass.getuser(),
-            "keep_open_branches": True,
-            "base_repo": "git://github.com/sagemath/sage.git",
-            "base_branch": "develop",
-            "max_behind_commits": 0,
-            "max_behind_days": 1.0,
-            "use_ccache": True,
-            # 6 options that can also be changed using sage --xx
-            "dry_run": False,
-            "no_banner": False,
-            "owner": "unknown owner",
-            "plugin_only": False,
-            "safe_only": True,
-            "skip_base": False,
-            "cleanup": False}
+                      "server": "https://patchbot.sagemath.org/",
+                      "idle": 300,
+                      "time_of_day": "0-0",  # midnight-midnight
+                      "parallelism": 3,
+                      "timeout": 3 * 60 * 60,
+                      "plugins": ["commit_messages",
+                                  "coverage",
+                                  "non_ascii",
+                                  "doctest_continuation",
+                                  "next_method",
+                                  "oldstyle_print",
+                                  "raise_statements",
+                                  "input_output_block",
+                                  "reference_block",
+                                  "triple_colon",
+                                  "foreign_latex",
+                                  "python3",
+                                  "trac_links",
+                                  "startup_time",
+                                  "startup_modules",
+                                  "docbuild",
+                                  "git_rev_list"],
+                      "plugins_disabled": [],
+                      "plugins_enabled": [],
+                      "bonus": {},
+                      "machine": machine_data(),
+                      "machine_match": 5,
+                      "user": getpass.getuser(),
+                      "keep_open_branches": True,
+                      "base_repo": "git://github.com/sagemath/sage.git",
+                      "base_branch": "develop",
+                      "max_behind_commits": 0,
+                      "max_behind_days": 1.0,
+                      "use_ccache": True,
+                      # 6 options that can also be changed using sage --xx
+                      "dry_run": False,
+                      "no_banner": False,
+                      "owner": "unknown owner",
+                      "plugin_only": False,
+                      "safe_only": True,
+                      "skip_base": False,
+                      "cleanup": False}
 
     default_bonus = {"needs_review": 1000,
                      "positive_review": 500,
@@ -424,7 +425,6 @@ class Patchbot(object):
                      "unique": 40,
                      "applies": 20,
                      "behind": 1}
-
 
     def __init__(self, options=None):
         if isinstance(options, dict):
@@ -629,14 +629,12 @@ class Patchbot(object):
         # now override with the values of the 9 options (all except 'config')
         # coming from the patchbot commandline
         for opt in ('sage_root', 'server', 'cleanup', 'dry_run', 'no_banner',
-                'owner', 'plugin_only', 'safe_only', 'skip_base'):
+                    'owner', 'plugin_only', 'safe_only', 'skip_base'):
             value = getattr(self.options, opt)
             if value is not None:
                 conf[opt] = value
 
-
         # plugin setup
-        global plugins_available
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
         plugins.difference_update(conf.pop("plugins_disabled"))
@@ -672,14 +670,14 @@ class Patchbot(object):
         # default_trusted_authors() below invoke logging)
         self.sage_root = self.config["sage_root"]
         if (self.sage_root is None or
-            not os.path.isdir(self.sage_root) or
-            not os.path.isabs(self.sage_root) or
-            not os.path.isfile(os.path.join(self.sage_root, "sage"))):
+                not os.path.isdir(self.sage_root) or
+                not os.path.isabs(self.sage_root) or
+                not os.path.isfile(os.path.join(self.sage_root, "sage"))):
             raise ValueError("the sage_root option should be specified "
-                "as an absolute path to a Sage installation (either from "
-                "the command line option --sage-root=/path/to/sage or inside "
-                "the configuration file provided with "
-                "--config=path/to/config.json)")
+                             "as an absolute path to a Sage installation (either from "
+                             "the command line option --sage-root=/path/to/sage or inside "
+                             "the configuration file provided with "
+                             "--config=path/to/config.json)")
 
         self.sage_command = os.path.join(self.sage_root, "sage")
         self.base = get_sage_version(self.sage_root)
@@ -1424,7 +1422,7 @@ def main(args=None):
     parser.add_option("--conf", action="store_true", dest="conf",
                       default=False,
                       help="write the configuration on standard "
-                          "output and quit")
+                           "output and quit")
     parser.add_option("--ticket", dest="ticket",
                       default=None,
                       help="test only a list of tickets, for example"
@@ -1473,7 +1471,7 @@ def main(args=None):
 
     if patchbot.config['use_ccache']:
         do_or_die("%s -i ccache" %
-                patchbot.sage_command, exn_class=ConfigException)
+                  patchbot.sage_command, exn_class=ConfigException)
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
