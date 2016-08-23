@@ -251,7 +251,7 @@ def exclude_new_in_diff(gitdiff, regex):
     r"""
     Search in the given diff for patterns that should be avoided.
 
-    The pattern in given by a regular expression, for example r'\:\:\:$'
+    The pattern in given by a regular expression, for example r':::$'
 
     INPUT: ``regex`` is one regular expression
 
@@ -338,6 +338,8 @@ def check_future_imports(file):
     with the arguments in any order
 
     Return True if and only if such a line is found.
+
+    THIS IS NOT READY
     """
     regex = re.compile(r"from __future__ import")
     r1 = re.compile(r"absolute_import")
@@ -376,9 +378,9 @@ def foreign_latex(ticket, **kwds):
 
     including \over, \choose, etc
     """
-    regexps = ['\\choose', '\\over', '\\atop', '\\above',
-               '\\overwithdelims', '\\atopwithdelims',
-               '\\abovewithdelims']
+    regexps = [r'\\choose', r'\\over', r'\\atop', r'\\above',
+               r'\\overwithdelims', r'\\atopwithdelims',
+               r'\\abovewithdelims']
     exclude_new(ticket, regex=regexps,
                 msg="Foreign commands in LaTeX", **kwds)
 
@@ -406,7 +408,7 @@ def input_output_block(ticket, **kwds):
     """
     no :: after INPUT and OUTPUT blocks
     """
-    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT\:\:',
+    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT::',
                 msg="Bad Input/Output blocks", **kwds)
 
 
@@ -422,8 +424,12 @@ def oldstyle_print(ticket, **kwds):
     """
     Check that print is using python 3 syntax.
     """
-    rex = r'^\s*(()\|(.*[:;]\s*))print(([ ]+[^\(])\|(\s*$))'
-    exclude_new(ticket, regex=rex,
+    badprint = r'print((\s\s*[^\(])\|(\s*$))'
+    rex1 = r'^\s*(()\|(.*[:;]\s*))' + badprint  # in a code line
+    rex2 = r'^\s*sage:.*' + badprint            # in doc after sage:
+    rex3 = r'^\s*\.\.\.\.:.*' + badprint        # in doc after ....:
+    rex4 = r'^\s*\.\.\..*' + badprint           # in doc after ...
+    exclude_new(ticket, regex=[rex1, rex2, rex3, rex4],
                 msg="python2-only print syntax", **kwds)
 
 
@@ -431,7 +437,7 @@ def raise_statements(ticket, **kwds):
     """
     Check that raise statements use python3 syntax.
     """
-    exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error,',
+    exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error\s*,',
                 msg="Old-style raise statement", **kwds)
 
 
@@ -439,7 +445,7 @@ def reference_block(ticket, **kwds):
     """
     no :: after REFERENCE blocks
     """
-    exclude_new(ticket, regex=r'^\s*REFERENCES?\:\:',
+    exclude_new(ticket, regex=r'^\s*REFERENCES?::',
                 msg="Bad reference blocks", **kwds)
 
 
@@ -448,7 +454,7 @@ def trac_links(ticket, **kwds):
     Look for the presence of badly formatted trac roles ``:trac:``,
     missing the initial colon.
     """
-    exclude_new(ticket, regex=r'[^\:]trac\:`[0-9]', msg="Bad trac link", **kwds)
+    exclude_new(ticket, regex=r'[^:]trac:`[0-9]', msg="Bad trac link", **kwds)
 
 
 def trailing_whitespace(ticket, **kwds):
@@ -462,7 +468,7 @@ def triple_colon(ticket, **kwds):
     """
     Look for the presence of triple colons `:::` or `: ::`.
     """
-    exclude_new(ticket, regex=r'\:\s*\:\:', msg="Triple colon (:::)", **kwds)
+    exclude_new(ticket, regex=r':\s*::', msg="Triple colon (:::)", **kwds)
 
 
 # --- not pattern-related plugins ---
