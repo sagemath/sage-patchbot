@@ -387,9 +387,9 @@ def python3(ticket, **kwds):
     r"""
     Check that some python3 incompatible code does not appear
 
-    including iterkeys, itervalues, iteritems
+    including .iterkeys, .itervalues, .iteritems
     """
-    regexps = ['iterkeys\(', 'itervalues\(', 'iteritems\(']
+    regexps = ['\.iterkeys\(', '\.itervalues\(', '\.iteritems\(']
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
