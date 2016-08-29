@@ -390,8 +390,11 @@ def python3(ticket, **kwds):
     Check that some python3 incompatible code does not appear
 
     including .iterkeys, .itervalues, .iteritems
+
+    as well as ifilter, imap, izip
     """
-    regexps = ['\.iterkeys\(', '\.itervalues\(', '\.iteritems\(']
+    regexps = ['\.iterkeys\(', '\.itervalues\(', '\.iteritems\(',
+               'import.*ifilter', 'import.*imap', 'import.*izip']
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
