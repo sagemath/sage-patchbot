@@ -392,9 +392,12 @@ def python3(ticket, **kwds):
     including .iterkeys, .itervalues, .iteritems
 
     as well as ifilter, imap, izip
+
+    and xrange
     """
     regexps = ['\.iterkeys\(', '\.itervalues\(', '\.iteritems\(',
-               'import.*ifilter', 'import.*imap', 'import.*izip']
+               'import.*ifilter', 'import.*imap', 'import.*izip',
+               'xrange']
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
