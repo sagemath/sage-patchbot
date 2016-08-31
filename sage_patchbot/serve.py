@@ -76,14 +76,15 @@ def compute_trusted_authors():
     Define the trusted authors.
 
     Currently, somebody is trusted if he/she is the author of a closed patch
-    with 'fixed' status.
+    with 'fixed' status and milestone != sage-duplicate/invalid/wontfix.
 
     The result is a dict, its keys being the trusted authors.
 
     This needs work ! We cannot rely on the branch names!
     """
     authors = collections.defaultdict(int)
-    for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed'}):
+    for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed',
+                                'milestone': {$ne: 'sage-duplicate/invalid/wontfix'}}):
         for author in ticket.get("authors_fullnames", []):
             a = author.strip()
             if a and a != '<no author>':
