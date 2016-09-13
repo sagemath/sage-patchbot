@@ -84,7 +84,7 @@ def compute_trusted_authors():
     """
     authors = collections.defaultdict(int)
     for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed',
-                                'milestone': {$ne: 'sage-duplicate/invalid/wontfix'}}):
+                                'milestone': {'$ne': 'sage-duplicate/invalid/wontfix'}}):
         for author in ticket.get("authors_fullnames", []):
             a = author.strip()
             if a and a != '<no author>':
