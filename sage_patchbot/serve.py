@@ -492,7 +492,7 @@ def reports_by_machine_and_base(ticket):
 # know when a page gets updated.
 
 
-@app.route("/ticket/<int:ticket>/status.png")
+# @app.route("/ticket/<int:ticket>/status.png")  # desactivated, to be removed
 def render_ticket_status(ticket):
     """
     Return the status image for the given ticket.
@@ -826,7 +826,7 @@ def create_base_image_svg():
     return response
 
 
-@app.route("/blob/<status>")
+# @app.route("/blob/<status>") # desactivated, to be removed
 def status_image(status):
     """
     Return the blob image (as a web page) for a single status or a
@@ -882,34 +882,35 @@ def status_image_path(status, image_type='png'):
         return IMAGES_DIR + 'icon-{}.svg'.format(status)
 
 
-def create_base_image(base=None):
-    """
-    Return a png image containing only the sage version for the latest base
+# TO BE REMOVED
+# def create_base_image(base=None):
+#     """
+#     Return a png image containing only the sage version for the latest base
 
-    This is for the 'png' icon set.
+#     This is for the 'png' icon set.
 
-    INPUT:
+#     INPUT:
 
-    - base -- the base
+#     - base -- the base
 
-    EXAMPLES::
+#     EXAMPLES::
 
-        create_base_image('6.4')
-    """
-    path = IMAGES_DIR + 'icon-Empty.png'  # should be done in SVG instead
-    if base is None:
-        base = ''
-    base = base.replace("alpha", "a").replace("beta", "b")
-    try:
-        from PIL import Image, ImageDraw
-        im = Image.open(path)
-        wx, wy = ImageDraw.Draw(im).textsize(base)
-        ImageDraw.Draw(im).text(((48 - wx) // 2, 18), base, fill='#000000')
-        output = StringIO()
-        im.save(output, format='png')
-        return output.getvalue()
-    except ImportError:
-        return open(path).read()
+#         create_base_image('6.4')
+#     """
+#     path = IMAGES_DIR + 'icon-Empty.png'  # should be done in SVG instead
+#     if base is None:
+#         base = ''
+#     base = base.replace("alpha", "a").replace("beta", "b")
+#     try:
+#         from PIL import Image, ImageDraw
+#         im = Image.open(path)
+#         wx, wy = ImageDraw.Draw(im).textsize(base)
+#         ImageDraw.Draw(im).text(((48 - wx) // 2, 18), base, fill='#000000')
+#         output = StringIO()
+#         im.save(output, format='png')
+#         return output.getvalue()
+#     except ImportError:
+#         return open(path).read()
 
 
 def create_status_image(status, base=None):

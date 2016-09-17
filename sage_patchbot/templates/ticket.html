@@ -7,10 +7,8 @@
 
 {% block body %}
 <h2>
-<!--<img alt="{{status}}" src="/ticket/{{ticket}}/status.png{{"?base=" + base if base else ""}}">-->
 <div class="iconbox">
 <img class="bare" alt="{{status}}" src="/ticket/{{ticket}}/status.svg" height="48px">
-<!--<div class="icontext">{{short_base}}</div>-->
 </div>
 {{ticket}}
 <a href="http://trac.sagemath.org/sage_trac/ticket/{{ticket}}">
@@ -36,7 +34,6 @@
 <tr>
 <td colspan="2">
 <ul>
-<!--<li class="hori"><img alt="{{report.status}}" src="/blob/{{report.status}}"></li>-->
 <li class="hori"><img alt="{{report.status}}" width="48px" src="/svg/{{report.status}}"></li>
 <li class="hori">{{report.status}}</li>
 <li class="hori">{{report.base|safe}}</li>
@@ -64,7 +61,6 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
-<!--<img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/blob/{{['PluginFailed', 'TestsPassed'][status]}}">-->
 <img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/svg/{{['PluginOnlyFailed', 'PluginOnly'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
