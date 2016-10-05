@@ -39,7 +39,7 @@ IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
 OLDEST = comparable_version('7.3')
 
 # machines that are banned from posting their reports
-BLACKLIST = ['hera-OptiPlex-7010']
+BLACKLIST = []
 
 
 def timed_cached_function(refresh_rate=60):
