@@ -1122,7 +1122,8 @@ class Patchbot(object):
                         # ------------- run tests -------------
                         if self.config['dry_run']:
                             test_target = os.path.join(self.sage_root,
-                                                       "src/sage/misc/a*.py")
+                                                       "src", "sage", "misc",
+                                                       "a*.py")
                         else:
                             test_target = "--all --long"
                         if self.config['parallelism'] > 1:
@@ -1222,7 +1223,8 @@ class Patchbot(object):
 
             computed_sha = sha1file(local_spkg)
             print("Sha1 of {} is {}".format(basename, computed_sha))
-            path = 'build/pkgs/{}/checksums.ini'.format(base)
+            path = os.path.join(self.sage_root, 'build', 'pkgs',
+                                base, 'checksums.ini')
             given_sha = open(path).read().splitlines()[1].split('=')[1]
             if computed_sha != given_sha:
                 raise SkipTicket("spkg has incorrect sha1")
