@@ -1053,6 +1053,8 @@ class Patchbot(object):
                     do_or_die('./configure')
                     do_or_die('{} doc-clean'.format(botmake))
                     do_or_die("{} build".format(botmake))
+                    do_or_die(os.path.join(self.sage_root,
+                                           'local', 'bin', 'sage-starts')
                     # doc is made later in a plugin
                     t.finish("Build")
                     state = 'built'
