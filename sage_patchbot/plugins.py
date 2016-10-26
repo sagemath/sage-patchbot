@@ -237,6 +237,9 @@ def exclude_new(ticket, regex, msg, **kwds):
                                stdout=subprocess.PIPE,
                                universal_newlines=True).stdout
 
+    if len(regex) > 1:
+        gitdiff = list(gitdiff)
+
     bad_lines = 0
     for r in regex:
         bad_lines += exclude_new_in_diff(gitdiff, r)
@@ -397,9 +400,9 @@ def python3(ticket, **kwds):
 
     4) cmp
     """
-    regexps = ['\.iterkeys\(', '\.itervalues\(', '\.iteritems\(',
-               'import.*ifilter', 'import.*imap', 'import.*izip',
-               'xrange', '[\s,\(]cmp=', 'cmp\(']
+    regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
+               r'import.*ifilter', r'import.*imap', r'import.*izip',
+               r'xrange\(', r'[\s,\(]cmp\s*=', r'cmp\(')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
@@ -432,12 +435,12 @@ def oldstyle_print(ticket, **kwds):
     """
     Check that print is using python 3 syntax.
     """
-    badprint = r'print((\s\s*[^\(])\|(\s*$))'
-    rex1 = r'^\s*(()\|(.*[:;]\s*))' + badprint  # in a code line
+    badprint = r'print((\s\s*[^\(])|(\s*$))'
+    rex1 = r'^\s*(()|(.*[:;]\s*))' + badprint  # in a code line
     rex2 = r'^\s*sage:.*' + badprint            # in doc after sage:
     rex3 = r'^\s*\.\.\.\.:.*' + badprint        # in doc after ....:
     rex4 = r'^\s*\.\.\..*' + badprint           # in doc after ...
-    exclude_new(ticket, regex=[rex1, rex2, rex3, rex4],
+    exclude_new(ticket, regex=(rex1, rex2, rex3, rex4),
                 msg="python2-only print syntax", **kwds)
 
 
