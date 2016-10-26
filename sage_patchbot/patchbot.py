@@ -41,6 +41,7 @@ import bz2
 import json
 import socket
 import pprint
+import multiprocessing
 
 # from six.moves import cPickle as pickle
 try:
@@ -377,7 +378,7 @@ class Patchbot(object):
                       "server": "https://patchbot.sagemath.org/",
                       "idle": 300,
                       "time_of_day": "0-0",  # midnight-midnight
-                      "parallelism": 3,
+                      "parallelism": min(3, multiprocessing.cpu_count()),
                       "timeout": 3 * 60 * 60,
                       "plugins": ["commit_messages",
                                   "coverage",
