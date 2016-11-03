@@ -402,7 +402,7 @@ def python3(ticket, **kwds):
     """
     regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
                r'import.*ifilter', r'import.*imap', r'import.*izip',
-               r'xrange\(', r'[\s,\(]cmp\s*=', r'cmp\(')
+               r'xrange\(', r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
