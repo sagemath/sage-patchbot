@@ -86,8 +86,10 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     """
     Try to check that coverage did increase.
 
-    TODO: This does not check that tests were added to existing doctests for
-    new functionality.
+    .. TODO::
+
+        This does not check that tests were added to existing doctests for
+        new functionality.
     """
     all = subprocess.check_output([sage_binary, '-coverageall'],
                                   universal_newlines=True)
@@ -106,6 +108,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             else:
                 percent = ("%%0.%sf" % prec) % percent
             return "{} / {} = {}%".format(docs, funcs, percent)
+
     for line in all.split('\n'):
         m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)
         if m:
@@ -143,7 +146,11 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             msg = "Coverage went from {} to {}"
             print(msg.format(format(*baseline[None], prec=3),
                              format(*current[None], prec=3)))
-        data = sorted(set(current.items()) - set(baseline.items()))
+        current_set = set((key, current[key])
+                          for key in current if key is not None)
+        baseline_set = set((key, baseline[key])
+                           for key in baseline if key is not None)
+        data = sorted(current_set - baseline_set)
     else:
         data = None
 
@@ -516,9 +523,9 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     do_or_die(sage_binary + " -c ''")
     # Print out all the modules imported at startup.
     # old way:
-    # list_command = r"print '\n'.join(sorted([u for u in sys.modules.keys()]))"
+    # list_command = r"print '\n'.join(sorted(u for u in sys.modules.keys()))"
     # new way:
-    list_command = r"print '\n'.join(sorted([u for u, v in sys.modules.items() if v]))"
+    list_command = r"print('\n'.join(sorted(u for u, v in sys.modules.items() if v)))"
     modules = subprocess.check_output([sage_binary,
                                        "-c", list_command],
                                       universal_newlines=True)
