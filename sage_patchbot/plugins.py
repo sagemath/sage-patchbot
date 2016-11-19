@@ -410,11 +410,13 @@ def python3(ticket, **kwds):
     5) __nonzero__
 
     6) <>
+
+    7) <type 'list'>
     """
     regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
                r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'xrange\(', r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
-               r'__nonzero__\(', r'<>')
+               r'__nonzero__\(', r'<>', r"<type 'list'>")
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
