@@ -403,6 +403,8 @@ def render_ticket(ticket):
                 new_info[key] = parts
             elif key == 'git_branch':
                 new_info[key] = '<a href="https://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
+            elif key == 'component':
+                new_info[key] = '<a href="https://trac.sagemath.org/query?status=!closed&component=%s">%s</a>' % (value, value)
             elif key == 'spkgs':
                 new_info[key] = ', '.join("<a href='%s'>%s</a>" % (a, a) for a in value)
             elif isinstance(value, list):
