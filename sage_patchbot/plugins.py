@@ -449,7 +449,7 @@ def oldstyle_print(ticket, **kwds):
     """
     Check that print is using python 3 syntax.
     """
-    badprint = r'print((\s\s*[^\(])|(\s*$))'
+    badprint = r'[^a-z]print((\s\s*[^\(])|(\s*$))'
     rex1 = r'^\s*(()|(.*[:;]\s*))' + badprint  # in a code line
     rex2 = r'^\s*sage:.*' + badprint            # in doc after sage:
     rex3 = r'^\s*\.\.\.\.:.*' + badprint        # in doc after ....:
