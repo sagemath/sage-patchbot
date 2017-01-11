@@ -990,6 +990,13 @@ class Patchbot(object):
             time.sleep(self.config['idle'])
             return
 
+        # this should be a double check and never happen
+        if ticket.get('status') == 'closed':
+            self.write_log('tried to test a closed ticket! shame!',
+                           [LOG_MAIN, LOG_MAIN_SHORT])
+            self.to_skip[ticket['id']] = time.time() + 120 * 60 * 60
+            return
+
         if ticket['id'] == 0:
             self.write_log('testing the base', LOG_MAIN)
             rating = 100
