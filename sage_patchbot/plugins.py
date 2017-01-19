@@ -338,46 +338,17 @@ def non_ascii(ticket, **kwds):
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
 
-
-def check_future_imports(file):
+def xrange(ticket):
     """
-    Check that the file contains a line
+    Look for xrange in a python or rst file.
 
-    from __future__ import absolute_import, division, print_function
-
-    with the arguments in any order
-
-    Return True if and only if such a line is found.
-
-    THIS IS NOT READY
+    xrange is allowed in cython files.
     """
-    regex = re.compile(r"from __future__ import")
-    r1 = re.compile(r"absolute_import")
-    r2 = re.compile(r"division")
-    r3 = re.compile(r"print_function")
-    with open(file) as f:
-        for line in f:
-            if (regex.match(line) and r1.search(line) and
-                    r2.search(line) and r3.search(line)):
-                return True
-    return False
-
-
-def future_imports(ticket, **kwds):
-    """
-    every new .py or .pyx file must contain the exact line:
-
-    from __future__ import absolute_import, division, print_function
-
-    THIS IS NOT READY
-    """
-
-    def is_bad_file(a_file):
-        return (not(check_future_imports(a_file)) and
-                a_file.split('.')[-1] in ['py', 'pyx'])
-    exclude_new_file_by_file(ticket, regex=r'',
-                             file_condition=is_bad_file,
-                             msg="Missing 'from __future__ import'", **kwds)
+    def not_cython(a_file):
+        return not(a_file.split('.')[-1] in ['py', 'rst'])
+    exclude_new_file_by_file(ticket, regex=r'xrange\(',
+                             file_condition=not_cython,
+                             msg="Python3 incompatible xrange", **kwds)
 
 
 # --- simple pattern-exclusion plugins ---
@@ -395,6 +366,7 @@ def foreign_latex(ticket, **kwds):
                 msg="Foreign commands in LaTeX", **kwds)
 
 
+
 def python3(ticket, **kwds):
     r"""
     Check that some python3 incompatible code does not appear
@@ -403,7 +375,7 @@ def python3(ticket, **kwds):
 
     2) ifilter, imap, izip
 
-    3) xrange
+    3) raise statements
 
     4) cmp
 
@@ -412,13 +384,18 @@ def python3(ticket, **kwds):
     6) <>
 
     7) <type 'list'>, <type 'str'>, <type 'bool'>, <type 'tuple'>, <type 'int'>
+
+    8) next
     """
     regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
                r'import.*ifilter', r'import.*imap', r'import.*izip',
-               r'xrange\(', r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
-               r'__nonzero__\(', r'<>',
+               r'^\s*raise\s*[A-Za-z]*Error\s*,'
+               r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
+               r'__nonzero__\(',
+               r'<>',
                r"<type 'list'>", r"<type 'str'>",
-               r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>")
+               r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>",
+               r'\.next\(\)')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
@@ -439,14 +416,6 @@ def input_output_block(ticket, **kwds):
                 msg="Bad Input/Output blocks", **kwds)
 
 
-def next_method(ticket, **kwds):
-    """
-    Check that `next` builtin function is used instead of `.next()` method.
-    """
-    exclude_new(ticket, regex=r'\.next\(\)',
-                msg="python2-only .next() method", **kwds)
-
-
 def oldstyle_print(ticket, **kwds):
     """
     Check that print is using python 3 syntax.
@@ -458,14 +427,6 @@ def oldstyle_print(ticket, **kwds):
     rex4 = r'^\s*\.\.\..*' + badprint           # in doc after ...
     exclude_new(ticket, regex=(rex1, rex2, rex3, rex4),
                 msg="python2-only print syntax", **kwds)
-
-
-def raise_statements(ticket, **kwds):
-    """
-    Check that raise statements use python3 syntax.
-    """
-    exclude_new(ticket, regex=r'^\s*raise\s*[A-Za-z]*Error\s*,',
-                msg="Old-style raise statement", **kwds)
 
 
 def reference_block(ticket, **kwds):
