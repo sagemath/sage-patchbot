@@ -344,7 +344,7 @@ def xrange(ticket, **kwds):
     xrange is allowed in cython files.
     """
     def not_cython(a_file):
-        return not(a_file.split('.')[-1] in ['py', 'rst'])
+        return a_file.split('.')[-1] in ['py', 'rst']
     exclude_new_file_by_file(ticket, regex=r'xrange\(',
                              file_condition=not_cython,
                              msg="Python3 incompatible xrange", **kwds)
