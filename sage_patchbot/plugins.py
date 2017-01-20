@@ -337,7 +337,7 @@ def non_ascii(ticket, **kwds):
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
 
-def xrange(ticket):
+def xrange(ticket, **kwds):
     """
     Look for xrange in a python or rst file.
 
