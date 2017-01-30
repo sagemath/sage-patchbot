@@ -4,7 +4,7 @@ Update the version of sage_patchbot from git.
 The version is found using git tags, and then stored in the version.py
 file under the format
 
-__version__ = '2.5.6'
+__version__ = '2.6.7'
 """
 import os
 import subprocess
