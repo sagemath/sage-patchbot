@@ -960,6 +960,19 @@ class Patchbot(object):
             ticket = self.lookup_ticket(ticket)
         return current_reports(ticket, base=self.base, newer=newer)
 
+    def test_some_tickets(self, ticket_list):
+        """
+        Launch the tests of several tickets (in the given order).
+
+        Useful for manual trigger.
+
+        INPUT:
+
+        - ``ticket`` -- a list of integers
+        """
+        for t in ticket_list:
+            self.test_a_ticket(t)
+
     def test_a_ticket(self, ticket=None):
         """
         Launch the test of a ticket.
