@@ -358,7 +358,7 @@ def foreign_latex(ticket, **kwds):
 
     including \over, \choose, etc
     """
-    regexps = [r'\\choose', r'\\over', r'\\atop', r'\\above',
+    regexps = [r'\\choose', r'\\over[^l]', r'\\atop', r'\\above',
                r'\\overwithdelims', r'\\atopwithdelims',
                r'\\abovewithdelims']
     exclude_new(ticket, regex=regexps,
