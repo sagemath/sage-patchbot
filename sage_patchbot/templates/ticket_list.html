@@ -7,11 +7,11 @@
 
 {% block body %}
 
-<img alt="logo sagemath patchbot" src='/static/logo_sagemath_patchbot.svg' height=90>
+<object type="image/svg+xml" data="/static/logo_sagemath_patchbot.svg" height="100" />
 
 <!--<img alt="{{base_status[1]}}" src='/blob/{{base_status[1]}}' height=16>-->
 <img alt="{{base_status[1]}}" src='/svg/{{base_status[1]}}' height=16>
-Results against Sage {{base}}
+Results against SageMath {{base}}
 (<a href='/ticket/0'>{{base_status[0]}} reports</a>).<br/><br/>
 See results against
 {% for version, status in versions: %}
