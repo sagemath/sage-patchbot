@@ -385,6 +385,8 @@ def python3(ticket, **kwds):
     7) <type 'list'>, <type 'str'>, <type 'bool'>, <type 'tuple'>, <type 'int'>
 
     8) next
+
+    9) __metaclass__
     """
     regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
                r'import.*ifilter', r'import.*imap', r'import.*izip',
@@ -394,7 +396,8 @@ def python3(ticket, **kwds):
                r'<>',
                r"<type 'list'>", r"<type 'str'>",
                r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>",
-               r'\.next\(\)')
+               r'\.next\(\)',
+               r'__metaclass__')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
