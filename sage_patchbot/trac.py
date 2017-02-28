@@ -61,6 +61,8 @@ def is_closed_on_trac(ticket_id):
     """
     Make damn sure that the ticket is closed on trac.
     """
+    if not ticket_id:
+        return False
     trac_server = TracServer(Config())
     trac_info = trac_server.load(ticket_id)
     return trac_info.status == 'closed'
