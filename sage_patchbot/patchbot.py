@@ -60,7 +60,7 @@ except ImportError:
 from datetime import datetime
 
 # imports from patchbot sources
-from .trac import scrape, pull_from_trac, TracServer, Config
+from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, Config, is_closed_on_trac
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    describe_branch, comparable_version, temp_build_suffix,
@@ -531,7 +531,9 @@ class Patchbot(object):
 
     def load_json_from_server(self, path, retry=1):
         """
-        Load a json file from the server.
+        Load a json file from the patchbot server.
+
+        This is one connection between patchbot server and clients.
 
         INPUT:
 
@@ -576,7 +578,7 @@ class Patchbot(object):
         """
         Retrieve information about one ticket from the patchbot server.
 
-        (or from trac if patchbot does not answer)
+        (or from trac if the patchbot server does not answer)
 
         For an example of the page it calls:
 
@@ -591,13 +593,12 @@ class Patchbot(object):
         res = self.load_json_from_server(path, retry=3)
         if res:
             if verbose:
-                print('lookup using json')
+                print('data retrieved from patchbot server')
             return res[0]
         else:
-            # trying using trac server instead
             if verbose:
-                print('lookup using scrape')
-            return scrape(t_id)
+                print('data retrieved from trac server')
+            return get_ticket_info_from_trac_server(t_id)
 
     def get_local_config(self):
         """
@@ -758,9 +759,11 @@ class Patchbot(object):
         """
         Return one ticket with its rating.
 
+        If no ticket is found, return ``None``.
+
         INPUT:
 
-        - ``verbose`` - if set to 0 then nothing is print on stdout, if 1 then
+        - ``verbose`` -- if set to 0 then nothing is print on stdout, if 1 then
           only the summary is print on stdout and if 2 then also the details of
           the rating
 
@@ -799,7 +802,10 @@ class Patchbot(object):
                                                    ticket['title']),
                            logfile, date=False)
 
-        return all_tickets[-1]
+        if all_tickets:
+            return all_tickets[-1]
+        else:
+            return None
 
     def rate_ticket(self, ticket, verbose=False):
         """
@@ -988,8 +994,11 @@ class Patchbot(object):
         os.chdir(self.sage_root)
         # ------------- selection of ticket -------------
         if ticket is None:
-            rating, ticket = self.get_one_ticket()
-            self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
+            ask_for_one = self.get_one_ticket()
+            if ask_for_one:
+                rating, ticket = ask_for_one
+                self.write_log('testing found ticket #{}'.format(ticket['id']), LOG_MAIN)
+
         else:
             N = int(ticket)
             ticket = self.lookup_ticket(N)
@@ -1003,9 +1012,10 @@ class Patchbot(object):
             return
 
         # this should be a double check and never happen
-        if ticket.get('status') == 'closed':
+        if ticket.get('status') == 'closed' or is_closed_on_trac(ticket['id']):
             self.write_log('tried to test a closed ticket! shame!',
                            [LOG_MAIN, LOG_MAIN_SHORT])
+            # here call for refresh ?
             self.to_skip[ticket['id']] = time.time() + 120 * 60 * 60
             return
 
@@ -1070,7 +1080,6 @@ class Patchbot(object):
 
                 if not ticket['spkgs']:
                     # ------------- make -------------
-                    do_or_die('./configure')
                     do_or_die('{} doc-clean'.format(botmake))
                     do_or_die("{} build".format(botmake))
                     do_or_die(os.path.join(self.sage_root,

@@ -575,7 +575,7 @@ def post_report(ticket_id):
     try:
         ticket = tickets.find_one({'id': ticket_id})
         if ticket is None:
-            ticket = scrape(ticket_id)
+            ticket = scrape(ticket_id, db=db)
         if 'reports' not in ticket:
             ticket['reports'] = []
         report = json.loads(request.form.get('report'))

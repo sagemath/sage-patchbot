@@ -57,6 +57,77 @@ def get_url(url):
         raise
 
 
+def is_closed_on_trac(ticket_id):
+    """
+    Make damn sure that the ticket is closed on trac.
+    """
+    trac_server = TracServer(Config())
+    trac_info = trac_server.load(ticket_id)
+    return trac_info.status == 'closed'
+
+
+def get_ticket_info_from_trac_server(ticket_id):
+    """
+    Get the info on a ticket contained in its trac page.
+    """
+    ticket_id = int(ticket_id)
+
+    # special case for ticket 0
+    if ticket_id == 0:
+        return {
+            'id': ticket_id,
+            'title': 'base',
+            'page_hash': '0',
+            'status': 'base',
+            'priority': 'base',
+            'component': 'base',
+            'depends_on': [],
+            'spkgs': [],
+            'authors': [],
+            'participants': []}
+
+    # link to the trac server
+    trac_server = TracServer(Config())
+    trac_info = trac_server.load(ticket_id)
+
+    # this part is about finding the authors and it needs work !
+    authors = set()
+    git_commit_of_branch = git_commit(trac_info.branch)
+    if trac_info.branch:
+        branch = trac_info.branch
+        if branch.startswith('u/'):
+            authors.add((branch.split('/')[1]).strip())
+    authors = list(authors)
+
+    authors_fullnames = set()
+    for auth in trac_info.author.split(','):
+        author = auth.strip()
+        if author:
+            authors_fullnames.add(author)
+    authors_fullnames = list(authors_fullnames)
+
+    # needed to extract the participants
+    rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
+
+    return {'id': ticket_id,
+            'title': trac_info.title,
+            'status': trac_info.status,
+            'resolution': trac_info.resolution,
+            'milestone': trac_info.milestone,
+            'priority': trac_info.priority,
+            'component': trac_info.component,
+            'depends_on': extract_depends_on(trac_info.dependencies),
+            'spkgs': extract_spkgs(trac_info.description),
+            'authors': authors,
+            'authors_fullnames': authors_fullnames,
+            'participants': extract_participants(rss),
+            'git_branch': trac_info.branch,
+            'git_repo': TRAC_REPO if trac_info.branch.strip() else None,
+            'git_commit': git_commit_of_branch,
+            'last_activity': now_str(),
+            'last_trac_activity': trac_info.mtime_str}
+
+
 def scrape(ticket_id, force=False, db=None):
     """
     Return available information about given ticket
@@ -81,83 +152,36 @@ def scrape(ticket_id, force=False, db=None):
     """
     ticket_id = int(ticket_id)
 
+    if db is None:
+        return get_ticket_info_from_trac_server(ticket_id)
+
+    # special case for ticket 0
     if ticket_id == 0:
-        if db is not None:
-            db_info = db.lookup_ticket(ticket_id)
-            if db_info is not None:
-                return db_info
-        return {
-            'id': ticket_id,
-            'title': 'base',
-            'page_hash': '0',
-            'status': 'base',
-            'priority': 'base',
-            'component': 'base',
-            'depends_on': [],
-            'spkgs': [],
-            'authors': [],
-            'participants': []}
-
-    # hash is defined from the rss of trac page
-    rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
-    page_hash = digest(rss.encode('utf8'))
-
-    # First try to use the patchbot database
-    if db is not None:
-        # TODO: perhaps the db caching should be extracted outside of
-        # this function...
         db_info = db.lookup_ticket(ticket_id)
-        if (not force and db_info is not None and
-                db_info['page_hash'] == page_hash):
+        if db_info is not None:
             return db_info
 
-    # nothing in the database, now fetch the info from trac server
+    # try to get data from the patchbot database
+    db_info = db.lookup_ticket(ticket_id)
 
-    trac_server = TracServer(Config())
-    trac_info = trac_server.load(ticket_id)
+    # check if this data is fresh enough
+    if not force and db_info is not None:
+        # when did the trac page was last modified ?
+        trac_server = TracServer(Config())
+        trac_info = trac_server.load(ticket_id)
+        last_trac_activity = trac_info.mtime_str
 
-    # this part is about finding the authors and it needs work !
-    authors = set()
-    git_commit_of_branch = git_commit(trac_info.branch)
-    if trac_info.branch:
-        branch = trac_info.branch
-        if branch.startswith('u/'):
-            authors.add((branch.split('/')[1]).strip())
-    authors = list(authors)
+        known_trac_activity = db_info.get('last_trac_activity',
+                                          '1916-01-21 07:03:56')
 
-    authors_fullnames = set()
-    for auth in trac_info.author.split(','):
-        author = auth.strip()
-        if author:
-            authors_fullnames.add(author)
-    authors_fullnames = list(authors_fullnames)
+        if known_trac_activity == last_trac_activity:
+            return db_info
 
-    data = {
-        'id': ticket_id,
-        'title': trac_info.title,
-        'page_hash': page_hash,
-        'status': trac_info.status,
-        'resolution': trac_info.resolution,
-        'milestone': trac_info.milestone,
-        'priority': trac_info.priority,
-        'component': trac_info.component,
-        'depends_on': extract_depends_on(trac_info.dependencies),
-        'spkgs': extract_spkgs(trac_info.description),
-        'authors': authors,
-        'authors_fullnames': authors_fullnames,
-        'participants': extract_participants(rss),
-        'git_branch': trac_info.branch,
-        'git_repo': TRAC_REPO if trac_info.branch.strip() else None,
-        'git_commit': git_commit_of_branch,
-        'last_activity': now_str(),
-    }
-
-    if db is not None:
-        db.save_ticket(data)
-        db_info = db.lookup_ticket(ticket_id)
-        return db_info
-    else:
-        return data
+    # nothing in the database or need to refresh
+    # now fetch the info from trac server
+    data = get_ticket_info_from_trac_server(ticket_id)
+    db.save_ticket(data)
+    return db.lookup_ticket(ticket_id)
 
 
 def git_commit(branch):
@@ -412,7 +436,7 @@ if __name__ == '__main__':
         for ticket in tickets:
             try:
                 print(ticket)
-                pprint.pprint(scrape(ticket, force=force))
+                pprint.pprint(scrape(ticket))
                 if apply:
                     pull_from_trac(os.environ['SAGE_ROOT'], ticket, force=True)
                 time.sleep(1)
