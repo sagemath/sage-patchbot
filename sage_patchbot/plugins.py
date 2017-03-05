@@ -191,7 +191,9 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     functions `trailing_whitespace`, `non_ascii`, etc for several such
     patterns.
 
-    INPUT: ``regex`` is one regular expression
+    INPUT:
+
+    ``regex`` is either one regular expression or a list of regular exp.
 
     Proceeding file by file, it will only look inside the files that
     pass the chosen file condition.
@@ -200,6 +202,9 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
 
     This is used to check for unicode declaration.
     """
+    if not isinstance(regex, (list, tuple)):
+        regex = [regex]
+
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
 
@@ -209,7 +214,8 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
             if file_condition(a_file):
                 gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
                 gitdiff = [f.decode('utf8') for f in gitdiff]
-                bad_lines += exclude_new_in_diff(gitdiff, regex)
+                for r in regex:
+                    bad_lines += exclude_new_in_diff(gitdiff, r)
         except IOError:  # file has been deleted
             pass
 
