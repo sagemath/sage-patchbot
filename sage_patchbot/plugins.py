@@ -34,8 +34,8 @@ plugins_available = [
     "non_ascii",
     "doctest_continuation",
     "foreign_latex",
-    "xrange",
     "oldstyle_print",
+    "python3_py",
     "python3",
     "input_output_block",
     "reference_block",
@@ -343,40 +343,31 @@ def non_ascii(ticket, **kwds):
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
 
-def xrange(ticket, **kwds):
-    """
-    Look for xrange in a python or rst file.
 
-    xrange is allowed in cython files.
+def python3_py(ticket, **kwds):
+    """
+    Look for some patterns in a python or rst file.
+
+    0) xrange
+
+    1) .iterkeys, .itervalues, .iteritems
+
+    Both are allowed in cython files.
     """
     def not_cython(a_file):
         return a_file.split('.')[-1] in ['py', 'rst']
-    exclude_new_file_by_file(ticket, regex=r'xrange\(',
+    regexps = [r'xrange\(',
+               r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(']
+    exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=not_cython,
-                             msg="Python3 incompatible xrange", **kwds)
-
+                             msg="Python3 incompatible code", **kwds)
 
 # --- simple pattern-exclusion plugins ---
-
-def foreign_latex(ticket, **kwds):
-    r"""
-    Check that some bad latex code does not appear
-
-    including \over, \choose, etc
-    """
-    regexps = [r'\\choose', r'\\over[^l]', r'\\atop', r'\\above',
-               r'\\overwithdelims', r'\\atopwithdelims',
-               r'\\abovewithdelims']
-    exclude_new(ticket, regex=regexps,
-                msg="Foreign commands in LaTeX", **kwds)
-
 
 
 def python3(ticket, **kwds):
     r"""
     Check that some python3 incompatible code does not appear
-
-    1) .iterkeys, .itervalues, .iteritems
 
     2) ifilter, imap, izip
 
@@ -393,9 +384,10 @@ def python3(ticket, **kwds):
     8) next
 
     9) __metaclass__
+
+    10) except Exception, var
     """
-    regexps = (r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
-               r'import.*ifilter', r'import.*imap', r'import.*izip',
+    regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
                r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
                r'__nonzero__\(',
@@ -403,9 +395,23 @@ def python3(ticket, **kwds):
                r"<type 'list'>", r"<type 'str'>",
                r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>",
                r'\.next\(\)',
-               r'__metaclass__')
+               r'__metaclass__',
+               r'except\s*[A-Za-z]\s*,')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
+
+
+def foreign_latex(ticket, **kwds):
+    r"""
+    Check that some bad latex code does not appear
+
+    including \over, \choose, etc
+    """
+    regexps = [r'\\choose', r'\\over[^l]', r'\\atop', r'\\above',
+               r'\\overwithdelims', r'\\atopwithdelims',
+               r'\\abovewithdelims']
+    exclude_new(ticket, regex=regexps,
+                msg="Foreign commands in LaTeX", **kwds)
 
 
 def doctest_continuation(ticket, **kwds):

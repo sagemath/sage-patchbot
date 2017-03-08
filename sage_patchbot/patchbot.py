@@ -385,7 +385,7 @@ class Patchbot(object):
                                   "non_ascii",
                                   "doctest_continuation",
                                   "python3",
-                                  "xrange",
+                                  "python3_py",
                                   "oldstyle_print",
                                   "input_output_block",
                                   "reference_block",
