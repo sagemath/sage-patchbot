@@ -352,12 +352,15 @@ def python3_py(ticket, **kwds):
 
     1) .iterkeys, .itervalues, .iteritems
 
+    2) basestring
+
     Both are allowed in cython files.
     """
     def not_cython(a_file):
         return a_file.split('.')[-1] in ['py', 'rst']
     regexps = [r'xrange\(',
-               r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(']
+               r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
+               r'basestring']
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=not_cython,
                              msg="Python3 incompatible code", **kwds)
