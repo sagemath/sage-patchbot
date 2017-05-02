@@ -36,7 +36,7 @@ from .db import tickets
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
 # oldest version of sage about which we still care
-OLDEST = comparable_version('7.5')
+OLDEST = comparable_version('7.6')
 
 # machines that are banned from posting their reports
 BLACKLIST = []
