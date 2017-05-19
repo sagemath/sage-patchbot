@@ -37,8 +37,7 @@ plugins_available = [
     "oldstyle_print",
     "python3_py",
     "python3",
-    "input_output_block",
-    "reference_block",
+    "blocks",
     "triple_colon",
     "trac_links",
     "trailing_whitespace",
@@ -389,6 +388,8 @@ def python3(ticket, **kwds):
     9) __metaclass__
 
     10) except Exception, var
+
+    11) apply
     """
     regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
@@ -399,7 +400,8 @@ def python3(ticket, **kwds):
                r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>",
                r'\.next\(\)',
                r'__metaclass__',
-               r'except\s*[A-Za-z]\s*,')
+               r'except\s*[A-Za-z]\s*,',
+               r'[^_a-z]apply\(')
     exclude_new(ticket, regex=regexps,
                 msg="Python 3 incompatible code", **kwds)
 
@@ -425,12 +427,25 @@ def doctest_continuation(ticket, **kwds):
                 msg="Old-style doctest continuation", **kwds)
 
 
-def input_output_block(ticket, **kwds):
+def blocks(ticket, **kwds):
     """
-    no :: after INPUT and OUTPUT blocks
+    some check for the blocks
+
+    1) correct syntax is .. SEEALSO::
+
+    2) TESTS and EXAMPLES should be plural
+
+    3) no :: after INPUT and OUTPUT blocks
+
+    4) no :: after REFERENCE blocks
     """
-    exclude_new(ticket, regex=r'^\s*[A-Z]*PUT::',
-                msg="Bad Input/Output blocks", **kwds)
+    regexps = [r'..SEE', r'SEE ALSO', r'SEEALSO:[^:]',
+               r'^\s*TEST:', r'^\s*EXAMPLE:',
+               r'^\s*[A-Z]*PUT::',
+               r'^\s*REFERENCES?::']
+    exclude_new(ticket, regex=regexps,
+                msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, etc)",
+                **kwds)
 
 
 def oldstyle_print(ticket, **kwds):
@@ -446,12 +461,6 @@ def oldstyle_print(ticket, **kwds):
                 msg="python2-only print syntax", **kwds)
 
 
-def reference_block(ticket, **kwds):
-    """
-    no :: after REFERENCE blocks
-    """
-    exclude_new(ticket, regex=r'^\s*REFERENCES?::',
-                msg="Bad reference blocks", **kwds)
 
 
 def trac_links(ticket, **kwds):
