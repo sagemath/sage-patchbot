@@ -439,7 +439,7 @@ def blocks(ticket, **kwds):
 
     4) no :: after REFERENCE blocks
     """
-    regexps = [r'..SEE', r'SEE ALSO', r'SEEALSO:[^:]',
+    regexps = [r'..SEE', r'SEE ALSO', r'SEEALSO:\s+',
                r'^\s*TEST:', r'^\s*EXAMPLE:',
                r'^\s*[A-Z]*PUT::',
                r'^\s*REFERENCES?::']
