@@ -433,14 +433,14 @@ def blocks(ticket, **kwds):
 
     1) correct syntax is .. SEEALSO::
 
-    2) TESTS and EXAMPLES should be plural
+    2) TESTS and EXAMPLES should be plural, NOTE singular
 
     3) no :: after INPUT and OUTPUT blocks
 
     4) no :: after REFERENCE blocks
     """
     regexps = [r'..SEE', r'SEE ALSO', r'SEEALSO:($|[^:])',
-               r'^\s*TEST:', r'^\s*EXAMPLE:',
+               r'^\s*TEST:', r'^\s*EXAMPLE:', r'^\s*NOTES:',
                r'^\s*[A-Z]*PUT::',
                r'^\s*REFERENCES?::']
     exclude_new(ticket, regex=regexps,
