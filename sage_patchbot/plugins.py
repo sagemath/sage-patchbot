@@ -353,13 +353,16 @@ def python3_py(ticket, **kwds):
 
     2) basestring
 
-    Both are allowed in cython files.
+    3) __nonzero__
+
+    These are allowed in cython files.
     """
     def not_cython(a_file):
         return a_file.split('.')[-1] in ['py', 'rst']
     regexps = [r'xrange\(',
                r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
-               r'basestring']
+               r'basestring',
+               r'__nonzero__\(']
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=not_cython,
                              msg="Python3 incompatible code", **kwds)
@@ -377,11 +380,9 @@ def python3(ticket, **kwds):
 
     4) cmp
 
-    5) __nonzero__
-
     6) <>
 
-    7) <type 'list'>, <type 'str'>, <type 'bool'>, <type 'tuple'>, <type 'int'>
+    7) <type '[a-z]*'>
 
     8) next
 
@@ -394,10 +395,8 @@ def python3(ticket, **kwds):
     regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
                r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
-               r'__nonzero__\(',
                r'<>',
-               r"<type 'list'>", r"<type 'str'>",
-               r"<type 'bool'>", r"<type 'tuple'>", r"<type 'int'>",
+               r"<type '[a-z]*'>",
                r'\.next\(\)',
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
