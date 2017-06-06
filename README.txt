@@ -12,10 +12,9 @@ or alternatively with
 Type --help for a list of options, though most configuration is done via an
 optional JSON config file.
 
-For more documentation on running a patchbot, see http://wiki.sagemath.org/buildbot/details
+For more documentation on running a patchbot, see http://wiki.sagemath.org/buildbot
 
 **SERVER**
 
-The server needs a Python with Flask and mongodb installed. Installing numpy
-and PIL (pillow) will allow multi-colored blurbs.
+The server needs a Python with Flask and mongodb installed.
 
