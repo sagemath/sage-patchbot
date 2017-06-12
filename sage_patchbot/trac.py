@@ -363,10 +363,6 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             raise
         else:
             raise ConfigException(exn.message)
-    finally:
-        if not is_safe and not safe_only:
-            if temp_dir and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)  # delete temporary dir
 
 # ===================
 
