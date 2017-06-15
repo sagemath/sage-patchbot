@@ -3,7 +3,7 @@
 The patchbot only needs a Sage source install (clone of git repository)
 and is started with
 
-    `python -m sage_patchbot.patchbot --sage-root==XXX [other options]`
+    `python -m sage_patchbot.patchbot --sage-root=XXX [other options]`
 
 or alternatively with
 
