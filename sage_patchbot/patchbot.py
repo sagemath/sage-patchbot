@@ -841,9 +841,9 @@ class Patchbot(object):
 
             self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
 
+            # tickets with milestone sage-feature are main targets of featurebots
             if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
-                                       'sage-feature', 'sage-pending',
-                                       'sage-wishlist'):
+                                       'sage-pending', 'sage-wishlist'):
                 self.write_log(' do not test if the milestone is not good (got {})'.format(ticket['milestone']),
                                logfile, False)
                 return
