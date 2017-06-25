@@ -841,7 +841,7 @@ class Patchbot(object):
 
             self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
 
-            # tickets with milestone sage-feature are main targets of featurebots
+            # tickets with milestone sage-feature pass this
             if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                        'sage-pending', 'sage-wishlist'):
                 self.write_log(' do not test if the milestone is not good (got {})'.format(ticket['milestone']),
@@ -849,6 +849,10 @@ class Patchbot(object):
                 return
 
             bonus = self.config['bonus']  # load the dict of bonus
+
+            # tickets with milestone sage-feature get extra bonus
+            if ticket['milestone'] == 'sage-feature':
+                rating += bonus.get('sage-feature', 0)
 
             if ticket.get('git_commit', 'unknown') == 'unknown':
                 self.write_log(' do not test if git_commit is unknown',
