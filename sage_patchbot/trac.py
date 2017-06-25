@@ -297,15 +297,13 @@ def inplace_safe():
 
 
 def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
-                   use_ccache=False,
                    safe_only=False):
     """
     Create four branches from base and ticket.
 
-    If ticket deemed unsafe then clone git repo to temp directory. ?!
+    If ticket deemed unsafe then clone git repo to temp directory.
 
-    Additionally, if ``use_ccache`` then install ccache. Set some global
-    and environment variables.
+    Set some global and environment variables.
 
     There are four branches at play here:
 
@@ -354,19 +352,11 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             os.environ['SAGE_ROOT'] = temp_dir
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
-            if use_ccache:
-                if not os.path.exists('logs'):
-                    os.mkdir('logs')
-                do_or_die("./sage -i ccache")
     except Exception as exn:
         if merge_failure or (not is_safe):
             raise
         else:
             raise ConfigException(exn.message)
-    finally:
-        if not is_safe and not safe_only:
-            if temp_dir and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)  # delete temporary dir
 
 # ===================
 
