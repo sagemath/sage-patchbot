@@ -26,10 +26,10 @@ except ImportError:
     from urllib.parse import quote
 
 # imports from patchbot sources
-from .trac import scrape
-from .util import (now_str, current_reports, latest_version,
-                   comparable_version, date_parser)
-from .patchbot import filter_on_authors
+from ..trac import scrape
+from ..util import (now_str, current_reports, latest_version,
+                    comparable_version, date_parser)
+from ..patchbot import filter_on_authors
 
 from . import db
 from .db import tickets
@@ -1013,6 +1013,3 @@ def main(args):
     (options, args) = parser.parse_args(args)
 
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
-
-if __name__ == '__main__':
-    main(sys.argv)
