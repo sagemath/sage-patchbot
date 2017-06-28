@@ -34,8 +34,8 @@ from ..patchbot import filter_on_authors
 from . import db
 from .db import tickets
 
-IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
 
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), 'images')
 # oldest version of sage about which we still care
 # OLDEST = comparable_version('7.6')
 # see master_branch instead
@@ -851,9 +851,9 @@ def status_image_path(status, image_type='png'):
     images/icon-TestsPassed.png
     """
     if image_type == 'png':
-        return IMAGES_DIR + 'icon-{}.png'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
     else:
-        return IMAGES_DIR + 'icon-{}.svg'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
 
 
 def create_status_image(status, base=None):
@@ -893,9 +893,12 @@ def create_status_image(status, base=None):
             try:
                 from PIL import Image
                 import numpy
-                if not os.path.exists(IMAGES_DIR + '_cache'):
-                    os.mkdir(IMAGES_DIR + '_cache')
-                path = IMAGES_DIR + '_cache/' + ','.join(status_list) + '-blob.png'
+                cache_dir = os.path.join(IMAGES_DIR, '_cache')
+                if not os.path.exists(cache_dir):
+                    os.mkdir(cache_dir)
+
+                filename = ','.join(status_list) + 'blob.png'
+                path = os.path.join(cache_dir, filename)
                 if not os.path.exists(path):
                     composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
                     height, width, _ = composite.shape
@@ -969,7 +972,7 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    response = make_response(open(IMAGES_DIR + 'favicon.png').read())
+    response = make_response(open(os.path.join(IMAGES_DIR, 'favicon.png')).read())
     response.headers['Content-type'] = 'image/png'
     return response
 
