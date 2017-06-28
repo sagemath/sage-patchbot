@@ -259,13 +259,18 @@ def ticket_list():
             yield ticket
 
     ticket0 = tickets.find_one({'id': 0})
-    base_status = get_ticket_status(ticket0, base)
-    versions = list(set(report['base'] for report in ticket0['reports']))
-    versions.sort(key=comparable_version)
-    master_branch = comparable_version([v for v in versions
-                                        if len(v.split('.')) == 2][-1])
-    versions = [v for v in versions if comparable_version(v) >= master_branch]
-    versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    if ticket0 is not None:
+        base_status = get_ticket_status(ticket0, base)
+        versions = list(set(report['base'] for report in ticket0['reports']))
+        versions.sort(key=comparable_version)
+        master_branch = comparable_version([v for v in versions
+                                            if len(v.split('.')) == 2][-1])
+        versions = [v for v in versions
+                    if comparable_version(v) >= master_branch]
+        versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    else:
+        versions = []
+        base_status = (0, 'New', 'New')
 
     return render_template("ticket_list.html", tickets=preprocess(all),
                            summary=summary, base=base, base_status=base_status,
