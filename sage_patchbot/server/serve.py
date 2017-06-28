@@ -1009,7 +1009,7 @@ def get_ticket_status(ticket, base=None, machine=None):
 def main(args):
     parser = OptionParser()
     parser.add_option("-p", "--port", dest="port")
-    parser.add_option("--debug", dest="debug", default=False)
+    parser.add_option("--debug", dest="debug", action='store_true')
     (options, args) = parser.parse_args(args)
 
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
