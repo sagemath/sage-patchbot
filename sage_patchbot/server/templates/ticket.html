@@ -37,7 +37,7 @@
 <li class="hori"><img alt="{{report.status}}" width="48px" src="/svg/{{report.status}}"></li>
 <li class="hori">{{report.status}}</li>
 <li class="hori">{{report.base|safe}}</li>
-<li class="hori"><a href='/ticket/?machine={{':'.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></li>
+<li class="hori"><a href='/ticket/?machine={{'&machine='.join(report.machine)}}&amp;status=open'>{{'/'.join(report.machine)}}</a></li>
 <li class="hori">{{report.time}}</li>
 <li class="hori"><a href='{{report.log}}'>log</a></li>
 <li class="hori"><a href='{{report.log}}?short'>shortlog</a></li>

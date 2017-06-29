@@ -185,7 +185,13 @@ def get_query(args):
             query['participants'] = args.get('participant')
 
         if 'machine' in args:
-            query['reports.machine'] = args['machine'].split(':')
+            machine = args.getlist('machine')
+            if len(machine) == 1:
+                # Old URL format where 'machine' was given in a single query
+                # argument with the components separated by ':'
+                machine = machine.split(':')
+
+            query['reports.machine'] = machine
 
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
@@ -221,7 +227,11 @@ def ticket_list():
 
     query = get_query(request.args)
     if 'machine' in request.args:
-        machine = request.args.get('machine').split(':')
+        machine = request.args.getlist('machine')
+        if len(machine) == 1:
+            # Old URL format where 'machine' was given in a single query
+            # argument with the components separated by ':'
+            machine = machine.split(':')
     if 'authors' in request.args:
         authors = request.args.get('authors').split(':')
     limit = int(request.args.get('limit', 1000))
