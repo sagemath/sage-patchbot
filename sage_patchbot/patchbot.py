@@ -1417,25 +1417,24 @@ def main(args=None):
     parser = OptionParser()
 
     # 10 options that are passed to the patchbot via the class "options"
+    # don't provide defaults for this options (except for --sage-root) so
+    # that we can tell whether or not they were given explicitly (i.e. their
+    # value is not None) and should override settings from the config file.
     parser.add_option("--sage-root", dest="sage_root",
                       default=os.environ.get('SAGE_ROOT'),
                       help="specify another sage root directory")
     parser.add_option("--server", dest="server",
-                      default="https://patchbot.sagemath.org/",
                       help="specify another patchbot server adress")
     parser.add_option("--config", dest="config",
                       help="specify the json config file")
     parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=None,
                       help="whether to cleanup the temporary files")
-    parser.add_option("--dry-run", action="store_true", dest="dry_run",
-                      default=False)
+    parser.add_option("--dry-run", action="store_true", dest="dry_run")
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
                       help="whether to print the utf8 banner")
     parser.add_option("--owner", dest="owner",
                       help="name and email of the human behind the bot")
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
-                      default=False,
                       help="run the patchbot in plugin-only mode")
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
                       help="whether to run the patchbot in safe-only mode")
@@ -1447,16 +1446,13 @@ def main(args=None):
                       default=1000000,
                       help="how many tickets to test")
     parser.add_option("--list", action="store_true", dest="list",
-                      default=False,
                       help="only write informations about tickets "
                            "that would be tested in the form: "
                            "[ticket id] [rating] [ticket title]")
     parser.add_option("--conf", action="store_true", dest="conf",
-                      default=False,
                       help="write the configuration on standard "
                            "output and quit")
     parser.add_option("--ticket", dest="ticket",
-                      default=None,
                       help="test only a list of tickets, for example"
                            " '12345,19876'")
     parser.add_option("--free-giga", dest="free_giga",
