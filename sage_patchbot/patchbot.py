@@ -1417,7 +1417,7 @@ def main(args=None):
     parser = OptionParser()
 
     # 10 options that are passed to the patchbot via the class "options"
-    # don't provide defaults for this options (except for --sage-root) so
+    # Don't provide defaults for these options (except for --sage-root) so
     # that we can tell whether or not they were given explicitly (i.e. their
     # value is not None) and should override settings from the config file.
     parser.add_option("--sage-root", dest="sage_root",
