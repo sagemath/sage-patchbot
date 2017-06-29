@@ -263,7 +263,7 @@ def ticket_list():
             yield ticket
 
     ticket0 = tickets.find_one({'id': 0})
-    if ticket0 is not None:
+    if ticket0 is not None and 'reports' in ticket0:
         base_status = get_ticket_status(ticket0, base)
         versions = list(set(report['base'] for report in ticket0['reports']))
         versions.sort(key=comparable_version)
