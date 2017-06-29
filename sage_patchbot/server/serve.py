@@ -68,7 +68,11 @@ def latest_base(betas=True):
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
     versions.sort(key=comparable_version)
-    return versions[-1]
+
+    if versions:
+        return versions[-1]
+    else:
+        return None
 
 app = Flask(__name__)
 
