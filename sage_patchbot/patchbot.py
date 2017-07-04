@@ -65,7 +65,7 @@ from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space,
-                   ConfigException, SkipTicket)
+                   ConfigException, SkipTicket, TestsFailed)
 from .http_post_file import post_multipart
 from .plugins import PluginResult, plugins_available
 from .version import __version__
@@ -206,6 +206,7 @@ status = {'started': 'ApplyFailed',
           'applied': 'BuildFailed',
           'built': 'TestsFailed',
           'tested': 'TestsPassed',
+          'tests_passed_on_retry': 'TestsPassedOnRetry',
           'tests_passed_plugins_failed': 'PluginFailed',
           'plugins': 'PluginOnly',
           'plugins_failed': 'PluginOnlyFailed',
@@ -345,6 +346,7 @@ class OptionDict(object):
     plugin_only = False
     safe_only = True
     skip_base = True
+    retries = None
 
     def __init__(self, d):
         for key, value in d.items():
@@ -414,6 +416,7 @@ class Patchbot(object):
                       "plugin_only": False,
                       "safe_only": True,
                       "skip_base": False,
+                      "retries": 0,
                       "cleanup": False}
 
     default_bonus = {"needs_review": 1000,
@@ -629,7 +632,8 @@ class Patchbot(object):
         # now override with the values of the 9 options (all except 'config')
         # coming from the patchbot commandline
         for opt in ('sage_root', 'server', 'cleanup', 'dry_run', 'no_banner',
-                    'owner', 'plugin_only', 'safe_only', 'skip_base'):
+                    'owner', 'plugin_only', 'safe_only', 'skip_base',
+                    'retries'):
             value = getattr(self.options, opt)
             if value is not None:
                 conf[opt] = value
@@ -1160,11 +1164,31 @@ class Patchbot(object):
                             test_cmd = "p {}".format(self.config['parallelism'])
                         else:
                             test_cmd = ""
-                        do_or_die("{} -t{} {}".format(self.sage_command,
-                                                      test_cmd,
-                                                      test_target))
+
+                        test_cmd = "{} -t{} {}".format(self.sage_command,
+                                                       test_cmd, test_target)
+
+                        max_tries = self.config.get('retries', 0) + 1
+                        n_try = 1
+
+                        while n_try <= max_tries:
+                            try:
+                                do_or_die(test_cmd, exn_class=TestsFailed)
+                            except TestsFailed as exc:
+                                if n_try == max_tries:
+                                    raise exc
+                            else:
+                                if n_try == 1:
+                                    state = 'tested'
+                                else:
+                                    state = 'tests_passed_on_retry'
+
+                            if n_try == 1:
+                                test_cmd += ' --failed'
+
+                            n_try += 1
+
                         t.finish("Tests")
-                        state = 'tested'
 
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
@@ -1440,6 +1464,10 @@ def main(args=None):
                       help="whether to run the patchbot in safe-only mode")
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
                       help="whether to check that the base is errorless")
+    parser.add_option("--retries", type=int, default=0, metavar="N",
+                      help="retry failed tests up to N times; if previously "
+                           "failing tests pass on a retry the test run is "
+                           "considered passed")
 
     # and options that are only used in the main loop below
     parser.add_option("--count", dest="count",
@@ -1507,10 +1535,12 @@ def main(args=None):
         patchbot.check_base()
 
         def good(report):
-            return report['machine'] == patchbot.config['machine'] and report['status'] == 'TestsPassed'
+            return (report['machine'] == patchbot.config['machine'] and
+                    report['status'].startswith('TestsPassed'))
+
         if patchbot.config['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
-            if res not in ('TestsPassed', 'PluginOnly'):
+            if res not in ('TestsPassed', 'TestsPassedOnRetry', 'PluginOnly'):
                 print("\n\n")
                 print("Current base: {} {}".format(patchbot.config['base_repo'],
                                                    patchbot.config['base_branch']))

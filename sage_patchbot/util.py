@@ -256,7 +256,13 @@ class ConfigException(Exception):
     """
     An exception to raise to abort the patchbot without implicating a ticket.
     """
-    pass
+
+
+class TestsFailed(Exception):
+    """
+    Exception raised to indicate that the Sage tests failed or otherwise
+    exited with an error status.
+    """
 
 
 class SkipTicket(Exception):
