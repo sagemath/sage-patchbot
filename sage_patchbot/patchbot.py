@@ -442,9 +442,8 @@ class Patchbot(object):
         self.to_skip = {}
         self.idling = False
 
-        self.write_log('Patchbot {} initialized with SAGE_ROOT={}'.format(
-            self.__version__,
-            self.sage_root), LOG_MAIN)
+        self.write_log('Patchbot {} initialized with SAGE_ROOT={} (pid: {})'.format(
+            self.__version__, self.sage_root, os.getpid()), LOG_MAIN)
 
     def idle(self):
         """
@@ -1444,6 +1443,9 @@ class Patchbot(object):
         return git_commit(self.sage_root, branch)
 
 
+_received_sigusr1 = False
+
+
 def main(args=None):
     """
     Most configuration is done in the json config file, which is
@@ -1544,6 +1546,23 @@ def main(args=None):
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
+    # Install the SIGUSR1 handler; if SIGUSR1 is received then patchbot will
+    # exit before testing the next ticket.
+    def _handle_sigusr1(*args):
+        global _received_sigusr1
+        _received_sigusr1 = True
+        if patchbot.idling:
+            patchbot.write_log(
+                "Received SIGUSR1; the patchbot is not currently testing "
+                "any tickets, so exiting immediately.")
+            sys.exit(0)
+        else:
+            patchbot.write_log(
+                "Received SIGUSR1; the patchbot will exit after testing the "
+                "current ticket.")
+
+    signal.signal(signal.SIGUSR1, _handle_sigusr1)
+
     if not patchbot.config['skip_base']:
         patchbot.check_base()
 
@@ -1567,6 +1586,10 @@ def main(args=None):
                 patchbot.write_log("Cleaning up {}".format(path),
                                    [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
+
+        if _received_sigusr1:
+            break
+
         try:
             if tickets:
                 ticket = tickets.pop(0)
