@@ -440,10 +440,23 @@ class Patchbot(object):
         self.__version__ = __version__
         self.last_pull = 0
         self.to_skip = {}
+        self.idling = False
 
         self.write_log('Patchbot {} initialized with SAGE_ROOT={}'.format(
             self.__version__,
             self.sage_root), LOG_MAIN)
+
+    def idle(self):
+        """
+        Sleep for ``idle`` seconds, where ``idle`` is the option supplied by
+        the patchbot configuration.
+
+        While idling, the ``idling`` attribute is set to ``True``.
+        """
+
+        self.idling = True
+        time.sleep(self.config['idle'])
+        self.idling = False
 
     def write_log(self, msg, logfile=None, date=True):
         r"""
@@ -1011,7 +1024,7 @@ class Patchbot(object):
         if not ticket:
             self.write_log('no more tickets, take a nap',
                            [LOG_MAIN, LOG_MAIN_SHORT])
-            time.sleep(self.config['idle'])
+            self.idle()
             return
 
         # this should be a double check and never happen
@@ -1231,7 +1244,7 @@ class Patchbot(object):
                 break
             except IOError:
                 traceback.print_exc()
-                time.sleep(self.config['idle'])
+                self.idle()
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ.get('SAGE_ROOT')
@@ -1566,10 +1579,10 @@ def main(args=None):
                 patchbot.test_a_ticket(ticket)
             else:
                 patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
-                time.sleep(patchbot.config['idle'])
+                patchbot.idle()
         except Exception:
             traceback.print_exc()
-            time.sleep(patchbot.config['idle'])
+            patchbot.idle()
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients
