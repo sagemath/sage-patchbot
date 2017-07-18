@@ -774,7 +774,7 @@ class Patchbot(object):
 
         A pair (rating, ticket data). The rating is a tuple of integer values.
         """
-        query = "raw&status={}".format(status)
+        query = "raw&status={}&limit=10000".format(status)
 
         self.write_log("Getting ticket list...", LOG_MAIN)
         if self.to_skip:
