@@ -221,7 +221,7 @@ def ticket_list():
     limit = int(request.args.get('limit', 1000))
     print(query)
 
-    order = [('last_trac_activity', -1), ('last_activity', 1)]
+    order = ('last_trac_activity', -1)
     cursor = tickets.find(query).sort(order).limit(limit)
     all = filter_on_authors(cursor, authors)
     if 'raw' in request.args:
