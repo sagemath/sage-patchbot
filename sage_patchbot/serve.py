@@ -218,14 +218,11 @@ def ticket_list():
         machine = request.args.get('machine').split(':')
     if 'authors' in request.args:
         authors = request.args.get('authors').split(':')
-    if 'order' in request.args:
-        order = request.args.get('order')
-    else:
-        order = 'last_activity'  # {'last_activity': -1}
     limit = int(request.args.get('limit', 1000))
     print(query)
 
-    all = filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
+    cursor = tickets.find(query).sort('last_activity', -1).limit(limit)
+    all = filter_on_authors(cursor, authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
 
