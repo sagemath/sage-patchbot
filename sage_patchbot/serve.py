@@ -221,8 +221,8 @@ def ticket_list():
     if 'order' in request.args:
         order = request.args.get('order')
     else:
-        order = 'last_activity'
-    limit = int(request.args.get('limit', 1000))
+        order = {'last_activity': -1}
+    limit = int(request.args.get('limit', 1200))
     print(query)
 
     all = filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
