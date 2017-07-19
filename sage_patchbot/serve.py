@@ -222,7 +222,7 @@ def ticket_list():
     print(query)
 
     order = ('last_trac_activity', -1)
-    cursor = tickets.find(query).sort(order).limit(limit)
+    cursor = tickets.find(query).sort(*order).limit(limit)
     all = filter_on_authors(cursor, authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
