@@ -35,8 +35,10 @@ from . import db
 from .db import tickets
 
 IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
+
 # oldest version of sage about which we still care
-OLDEST = comparable_version('7.6')
+# OLDEST = comparable_version('7.6')
+# see master_branch instead
 
 # machines that are banned from posting their reports
 BLACKLIST = []
@@ -260,7 +262,9 @@ def ticket_list():
     base_status = get_ticket_status(ticket0, base)
     versions = list(set(report['base'] for report in ticket0['reports']))
     versions.sort(key=comparable_version)
-    versions = [v for v in versions if comparable_version(v) >= OLDEST]
+    master_branch = comparable_version([v for v in versions
+                                        if len(v.split('.')) == 2][-1])
+    versions = [v for v in versions if comparable_version(v) >= master_branch]
     versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
 
     return render_template("ticket_list.html", tickets=preprocess(all),
