@@ -797,6 +797,7 @@ class Patchbot(object):
 
         # rating for all tickets
         self.delete_log(LOG_RATING)
+        self.write_log("Rating tickets...", LOG_MAIN)
         all_tickets = [(self.rate_ticket(ti, verbose=(verbose == 2)), ti)
                        for ti in all_tickets]
 
