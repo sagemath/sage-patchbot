@@ -26,16 +26,16 @@ except ImportError:
     from urllib.parse import quote
 
 # imports from patchbot sources
-from .trac import scrape
-from .util import (now_str, current_reports, latest_version,
-                   comparable_version, date_parser)
-from .patchbot import filter_on_authors
+from ..trac import scrape
+from ..util import (now_str, current_reports, latest_version,
+                    comparable_version, date_parser)
+from ..patchbot import filter_on_authors
 
 from . import db
 from .db import tickets
 
-IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
 
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), 'images')
 # oldest version of sage about which we still care
 # OLDEST = comparable_version('7.6')
 # see master_branch instead
@@ -68,7 +68,11 @@ def latest_base(betas=True):
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
     versions.sort(key=comparable_version)
-    return versions[-1]
+
+    if versions:
+        return versions[-1]
+    else:
+        return None
 
 app = Flask(__name__)
 
@@ -259,13 +263,18 @@ def ticket_list():
             yield ticket
 
     ticket0 = tickets.find_one({'id': 0})
-    base_status = get_ticket_status(ticket0, base)
-    versions = list(set(report['base'] for report in ticket0['reports']))
-    versions.sort(key=comparable_version)
-    master_branch = comparable_version([v for v in versions
-                                        if len(v.split('.')) == 2][-1])
-    versions = [v for v in versions if comparable_version(v) >= master_branch]
-    versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    if ticket0 is not None and 'reports' in ticket0:
+        base_status = get_ticket_status(ticket0, base)
+        versions = list(set(report['base'] for report in ticket0['reports']))
+        versions.sort(key=comparable_version)
+        master_branch = comparable_version([v for v in versions
+                                            if len(v.split('.')) == 2][-1])
+        versions = [v for v in versions
+                    if comparable_version(v) >= master_branch]
+        versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    else:
+        versions = []
+        base_status = (0, 'New', 'New')
 
     return render_template("ticket_list.html", tickets=preprocess(all),
                            summary=summary, base=base, base_status=base_status,
@@ -846,9 +855,9 @@ def status_image_path(status, image_type='png'):
     images/icon-TestsPassed.png
     """
     if image_type == 'png':
-        return IMAGES_DIR + 'icon-{}.png'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
     else:
-        return IMAGES_DIR + 'icon-{}.svg'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
 
 
 def create_status_image(status, base=None):
@@ -888,9 +897,12 @@ def create_status_image(status, base=None):
             try:
                 from PIL import Image
                 import numpy
-                if not os.path.exists(IMAGES_DIR + '_cache'):
-                    os.mkdir(IMAGES_DIR + '_cache')
-                path = IMAGES_DIR + '_cache/' + ','.join(status_list) + '-blob.png'
+                cache_dir = os.path.join(IMAGES_DIR, '_cache')
+                if not os.path.exists(cache_dir):
+                    os.mkdir(cache_dir)
+
+                filename = ','.join(status_list) + 'blob.png'
+                path = os.path.join(cache_dir, filename)
                 if not os.path.exists(path):
                     composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
                     height, width, _ = composite.shape
@@ -964,7 +976,7 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    response = make_response(open(IMAGES_DIR + 'favicon.png').read())
+    response = make_response(open(os.path.join(IMAGES_DIR, 'favicon.png')).read())
     response.headers['Content-type'] = 'image/png'
     return response
 
@@ -1009,10 +1021,7 @@ def get_ticket_status(ticket, base=None, machine=None):
 def main(args):
     parser = OptionParser()
     parser.add_option("-p", "--port", dest="port")
-    parser.add_option("--debug", dest="debug", default=False)
+    parser.add_option("--debug", dest="debug", action='store_true')
     (options, args) = parser.parse_args(args)
 
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
-
-if __name__ == '__main__':
-    main(sys.argv)

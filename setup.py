@@ -25,11 +25,15 @@ setup(name='sage-patchbot',
       license='GPL',
       entry_points={
           'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
-      packages=['sage_patchbot'],
-      package_data={'sage_patchbot': ['static/*.css',
-                                      'images/*.png','images/*.svg',
-                                      'templates/*.html',
-                                      'templates/*.svg',
-                                      'templates/*.txt',
-                                      'sage_patchbot/serve.wsgi']},
+      packages=['sage_patchbot', 'sage_patchbot.server'],
+      package_data={
+          'sage_patchbot': [
+              'serve.wsgi'
+          ],
+          'sage_patchbot.server': [
+              'static/*.css',
+              'images/*.png', 'images/*.svg',
+              'templates/*.html', 'templates/*.svg', 'templates/*.txt'
+          ]
+      },
       zip_safe=False)
