@@ -26,9 +26,14 @@ setup(name='sage-patchbot',
       entry_points={
           'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
       packages=['sage_patchbot', 'sage_patchbot.server'],
-      package_data={'sage_patchbot.server': [
-          'static/*.css',
-          'images/*.png', 'images/*.svg',
-          'templates/*.html', 'templates/*.svg', 'templates/*.txt',
-          'serve.wsgi']},
+      package_data={
+          'sage_patchbot': [
+              'serve.wsgi'
+          ],
+          'sage_patchbot.server': [
+              'static/*.css',
+              'images/*.png', 'images/*.svg',
+              'templates/*.html', 'templates/*.svg', 'templates/*.txt'
+          ]
+      },
       zip_safe=False)
