@@ -1480,7 +1480,7 @@ def main(args=None):
                       help="whether to run the patchbot in safe-only mode")
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
                       help="whether to check that the base is errorless")
-    parser.add_option("--retries", type=int, default=0, metavar="N",
+    parser.add_option("--retries", type=int, metavar="N",
                       help="retry failed tests up to N times; if previously "
                            "failing tests pass on a retry the test run is "
                            "considered passed")
