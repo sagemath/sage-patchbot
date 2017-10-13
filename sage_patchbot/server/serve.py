@@ -786,7 +786,7 @@ def get_plugin_data(id, plugin_name, timestamp):
 
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
-                'PluginFailed', 'TestsPassed', 'Pending',
+                'PluginFailed', 'TestsPassed', 'TestsPassedOnRetry', 'Pending',
                 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
 
 
