@@ -1195,6 +1195,8 @@ class Patchbot(object):
                                     state = 'tested'
                                 else:
                                     state = 'tests_passed_on_retry'
+                                    
+                                break
 
                             if n_try == 1:
                                 test_cmd += ' --failed'
