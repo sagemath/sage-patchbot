@@ -1195,7 +1195,7 @@ class Patchbot(object):
                                     state = 'tested'
                                 else:
                                     state = 'tests_passed_on_retry'
-                                    
+
                                 break
 
                             if n_try == 1:
@@ -1250,7 +1250,8 @@ class Patchbot(object):
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ.get('SAGE_ROOT')
-        if maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])):
+        if (maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])) and
+                os.path.exists(maybe_temp_root)):
             shutil.rmtree(maybe_temp_root)
         return status[state]
 
