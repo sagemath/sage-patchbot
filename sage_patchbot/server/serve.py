@@ -77,73 +77,6 @@ def latest_base(betas=True):
 app = Flask(__name__)
 
 
-def compute_trusted_authors():
-    """
-    Define the trusted authors.
-
-    Currently, somebody is trusted if he/she is the author of a closed patch
-    with 'fixed' status and milestone != sage-duplicate/invalid/wontfix.
-
-    The result is a dict, its keys being the trusted authors.
-
-    This needs work ! We cannot rely on the branch names!
-    """
-    authors = collections.defaultdict(int)
-    for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed',
-                                'milestone': {'$ne': 'sage-duplicate/invalid/wontfix'}}):
-        for author in ticket.get("authors_fullnames", []):
-            a = author.strip()
-            if a and a != '<no author>':
-                authors[a] += 1
-    return authors
-
-
-@app.route("/trusted")
-@app.route("/trusted/")
-def trusted_authors():
-    """
-    Serve a web page with the set of trusted authors.
-
-    Either as json dict or in human-readable format.
-
-    See https://patchbot.sagemath.org/trusted/
-
-    and https://patchbot.sagemath.org/trusted/?pretty
-
-    The dict of trusted authors is computed in ``compute_trusted_authors``.
-    """
-    authors = compute_trusted_authors()
-    if 'pretty' in request.args:
-        indent = 4
-    else:
-        indent = None
-    response = make_response(json.dumps(authors, default=lambda x: None,
-                                        indent=indent))
-    response.headers['Content-type'] = 'text/plain; charset=utf-8'
-    return response
-
-
-@app.route("/trust_check")
-def trust_check():
-    """
-    Serve a web page that tells if some given authors are trusted.
-
-    This is at destination of human readers.
-
-    The question must be asked as follows:
-
-    trust_check?who=balzac,zola
-    """
-    authors = compute_trusted_authors()
-    given_list = request.args['who'].split(',')
-    trust_dict = {a: 'trusted' if a in authors else 'not trusted'
-                  for a in given_list}
-    response = make_response(json.dumps(trust_dict, default=lambda x: None,
-                                        indent=4))
-    response.headers['Content-type'] = 'text/plain; charset=utf-8'
-    return response
-
-
 def get_query(args):
     """
     Prepare the precise query for the database.
@@ -415,10 +348,7 @@ def render_ticket(ticket):
                 link = u"<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
                 auths = u", ".join(link.format(a.replace(u" ", u"%20"), a)
                                    for a in value)
-                trust_check = u"(<a href='/trust_check?who="
-                trust_check += u",".join(u"{}".format(a) for a in value)
-                trust_check += u"'>Check trust</a>) "
-                new_info[key] = trust_check + auths
+                new_info[key] = auths
             elif key == 'participants':
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
                 new_info[key] = parts
