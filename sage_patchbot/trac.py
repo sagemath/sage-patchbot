@@ -231,8 +231,6 @@ def extract_participants(rss):
 
     This is done using the rss feed.
 
-    This is used in the trust check code for the moment.
-
     This needs work ! In particular to remove people only in cc if possible!
     """
     all = set()

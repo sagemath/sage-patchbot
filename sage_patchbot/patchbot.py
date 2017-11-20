@@ -574,20 +574,6 @@ class Patchbot(object):
 
             time.sleep(30)
 
-    def default_trusted_authors(self):
-        """
-        Define the default trusted authors.
-
-        They are computed by ``trusted_authors`` in serve.py
-        """
-        try:
-            return self._default_trusted
-        except AttributeError:
-            self.write_log("Getting trusted author list...", LOG_MAIN)
-            trusted = list(self.load_json_from_server("trusted", retry=10))
-            self._default_trusted = set(trusted)
-            return self._default_trusted
-
     def lookup_ticket(self, t_id, verbose=False):
         """
         Retrieve information about one ticket from the patchbot server.
@@ -682,8 +668,7 @@ class Patchbot(object):
         self.config = self.get_local_config()
 
         # Now we set sage_root and some other attributes that depend on
-        # sage_root. (here might not be the right place to do it, but
-        # default_trusted_authors() below invoke logging)
+        # sage_root. (here might not be the right place to do it)
         self.sage_root = self.config["sage_root"]
         if (self.sage_root is None or
                 not os.path.isdir(self.sage_root) or
@@ -710,13 +695,6 @@ class Patchbot(object):
         handle = codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
                              encoding='utf8')
         handle.close()
-
-        # update the configuration with trusted authors (possibly contacting the
-        # patchbot server)
-        if "trusted_authors" not in self.config:
-            self.config["trusted_authors"] = self.default_trusted_authors()
-        if "extra_trusted_authors" in self.config:
-            self.config["trusted_authors"].update(self.config.pop("extra_trusted_authors"))
 
         # write the config in logfile
         self.delete_log(LOG_CONFIG)
@@ -878,13 +856,6 @@ class Patchbot(object):
                 return
 
             for author in ticket['authors_fullnames']:
-                if author not in self.config['trusted_authors']:
-                    msg = u' do not test if some author is not trusted (got {})'
-                    self.write_log(msg.format(author),
-                                   logfile, False)
-                    # self.write_log(msg.format(author).encode('utf-8'),
-                    # logfile, False) #py2
-                    return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
 
             for author in ticket['authors']:
