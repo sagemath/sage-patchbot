@@ -26,17 +26,19 @@ except ImportError:
     from urllib.parse import quote
 
 # imports from patchbot sources
-from .trac import scrape
-from .util import (now_str, current_reports, latest_version,
-                   comparable_version, date_parser)
-from .patchbot import filter_on_authors
+from ..trac import scrape
+from ..util import (now_str, current_reports, latest_version,
+                    comparable_version, date_parser)
+from ..patchbot import filter_on_authors
 
 from . import db
 from .db import tickets
 
-IMAGES_DIR = '/home/patchbot/sage-patchbot/sage_patchbot/images/'
+
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), 'images')
 # oldest version of sage about which we still care
-OLDEST = comparable_version('7.6')
+# OLDEST = comparable_version('7.6')
+# see master_branch instead
 
 # machines that are banned from posting their reports
 BLACKLIST = []
@@ -66,76 +68,13 @@ def latest_base(betas=True):
     if not betas:
         versions = list(filter(re.compile(r'[0-9.]+$').match, versions))
     versions.sort(key=comparable_version)
-    return versions[-1]
+
+    if versions:
+        return versions[-1]
+    else:
+        return None
 
 app = Flask(__name__)
-
-
-def compute_trusted_authors():
-    """
-    Define the trusted authors.
-
-    Currently, somebody is trusted if he/she is the author of a closed patch
-    with 'fixed' status and milestone != sage-duplicate/invalid/wontfix.
-
-    The result is a dict, its keys being the trusted authors.
-
-    This needs work ! We cannot rely on the branch names!
-    """
-    authors = collections.defaultdict(int)
-    for ticket in tickets.find({'status': 'closed', 'resolution': 'fixed',
-                                'milestone': {'$ne': 'sage-duplicate/invalid/wontfix'}}):
-        for author in ticket.get("authors_fullnames", []):
-            a = author.strip()
-            if a and a != '<no author>':
-                authors[a] += 1
-    return authors
-
-
-@app.route("/trusted")
-@app.route("/trusted/")
-def trusted_authors():
-    """
-    Serve a web page with the set of trusted authors.
-
-    Either as json dict or in human-readable format.
-
-    See https://patchbot.sagemath.org/trusted/
-
-    and https://patchbot.sagemath.org/trusted/?pretty
-
-    The dict of trusted authors is computed in ``compute_trusted_authors``.
-    """
-    authors = compute_trusted_authors()
-    if 'pretty' in request.args:
-        indent = 4
-    else:
-        indent = None
-    response = make_response(json.dumps(authors, default=lambda x: None,
-                                        indent=indent))
-    response.headers['Content-type'] = 'text/plain; charset=utf-8'
-    return response
-
-
-@app.route("/trust_check")
-def trust_check():
-    """
-    Serve a web page that tells if some given authors are trusted.
-
-    This is at destination of human readers.
-
-    The question must be asked as follows:
-
-    trust_check?who=balzac,zola
-    """
-    authors = compute_trusted_authors()
-    given_list = request.args['who'].split(',')
-    trust_dict = {a: 'trusted' if a in authors else 'not trusted'
-                  for a in given_list}
-    response = make_response(json.dumps(trust_dict, default=lambda x: None,
-                                        indent=4))
-    response.headers['Content-type'] = 'text/plain; charset=utf-8'
-    return response
 
 
 def get_query(args):
@@ -179,7 +118,13 @@ def get_query(args):
             query['participants'] = args.get('participant')
 
         if 'machine' in args:
-            query['reports.machine'] = args['machine'].split(':')
+            machine = args.getlist('machine')
+            if len(machine) == 1:
+                # Old URL format where 'machine' was given in a single query
+                # argument with the components separated by ':'
+                machine = machine.split(':')
+
+            query['reports.machine'] = machine
 
         if 'ticket' in args:
             query['id'] = int(args['ticket'])
@@ -215,17 +160,19 @@ def ticket_list():
 
     query = get_query(request.args)
     if 'machine' in request.args:
-        machine = request.args.get('machine').split(':')
+        machine = request.args.getlist('machine')
+        if len(machine) == 1:
+            # Old URL format where 'machine' was given in a single query
+            # argument with the components separated by ':'
+            machine = machine.split(':')
     if 'authors' in request.args:
         authors = request.args.get('authors').split(':')
-    if 'order' in request.args:
-        order = request.args.get('order')
-    else:
-        order = 'last_activity'
     limit = int(request.args.get('limit', 1000))
     print(query)
 
-    all = filter_on_authors(tickets.find(query).sort(order).limit(limit), authors)
+    order = ('last_trac_activity', -1)
+    cursor = tickets.find(query).sort(*order).limit(limit)
+    all = filter_on_authors(cursor, authors)
     if 'raw' in request.args:
         # raw json file for communication with patchbot clients
 
@@ -259,11 +206,18 @@ def ticket_list():
             yield ticket
 
     ticket0 = tickets.find_one({'id': 0})
-    base_status = get_ticket_status(ticket0, base)
-    versions = list(set(report['base'] for report in ticket0['reports']))
-    versions.sort(key=comparable_version)
-    versions = [v for v in versions if comparable_version(v) >= OLDEST]
-    versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    if ticket0 is not None and 'reports' in ticket0:
+        base_status = get_ticket_status(ticket0, base)
+        versions = list(set(report['base'] for report in ticket0['reports']))
+        versions.sort(key=comparable_version)
+        master_branch = comparable_version([v for v in versions
+                                            if len(v.split('.')) == 2][-1])
+        versions = [v for v in versions
+                    if comparable_version(v) >= master_branch]
+        versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
+    else:
+        versions = []
+        base_status = (0, 'New', 'New')
 
     return render_template("ticket_list.html", tickets=preprocess(all),
                            summary=summary, base=base, base_status=base_status,
@@ -394,10 +348,7 @@ def render_ticket(ticket):
                 link = u"<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
                 auths = u", ".join(link.format(a.replace(u" ", u"%20"), a)
                                    for a in value)
-                trust_check = u"(<a href='/trust_check?who="
-                trust_check += u",".join(u"{}".format(a) for a in value)
-                trust_check += u"'>Check trust</a>) "
-                new_info[key] = trust_check + auths
+                new_info[key] = auths
             elif key == 'participants':
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
                 new_info[key] = parts
@@ -651,7 +602,7 @@ def shorten(lines):
     gcc = re.compile('(gcc)|(g\+\+)')
     prev = None
     in_plugin = False
-    from .patchbot import boundary
+    from ..patchbot import boundary
     plugin_start = re.compile(boundary('.*', 'plugin'))
     plugin_end = re.compile(boundary('.*', 'plugin_end'))
     for line in StringIO(lines):
@@ -695,7 +646,7 @@ def extract_plugin_log(data, plugin):
     """
     Extract from data the log of a given plugin.
     """
-    from .patchbot import boundary
+    from ..patchbot import boundary
     start = boundary(plugin, 'plugin') + "\n"
     end = boundary(plugin, 'plugin_end') + "\n"
     all = []
@@ -765,7 +716,7 @@ def get_plugin_data(id, plugin_name, timestamp):
 
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
-                'PluginFailed', 'TestsPassed', 'Pending',
+                'PluginFailed', 'TestsPassed', 'TestsPassedOnRetry', 'Pending',
                 'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
 
 
@@ -844,9 +795,9 @@ def status_image_path(status, image_type='png'):
     images/icon-TestsPassed.png
     """
     if image_type == 'png':
-        return IMAGES_DIR + 'icon-{}.png'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
     else:
-        return IMAGES_DIR + 'icon-{}.svg'.format(status)
+        return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
 
 
 def create_status_image(status, base=None):
@@ -886,9 +837,12 @@ def create_status_image(status, base=None):
             try:
                 from PIL import Image
                 import numpy
-                if not os.path.exists(IMAGES_DIR + '_cache'):
-                    os.mkdir(IMAGES_DIR + '_cache')
-                path = IMAGES_DIR + '_cache/' + ','.join(status_list) + '-blob.png'
+                cache_dir = os.path.join(IMAGES_DIR, '_cache')
+                if not os.path.exists(cache_dir):
+                    os.mkdir(cache_dir)
+
+                filename = ','.join(status_list) + 'blob.png'
+                path = os.path.join(cache_dir, filename)
                 if not os.path.exists(path):
                     composite = numpy.asarray(Image.open(status_image_path(status_list[0]))).copy()
                     height, width, _ = composite.shape
@@ -962,7 +916,7 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    response = make_response(open(IMAGES_DIR + 'favicon.png').read())
+    response = make_response(open(os.path.join(IMAGES_DIR, 'favicon.png')).read())
     response.headers['Content-type'] = 'image/png'
     return response
 
@@ -1007,10 +961,7 @@ def get_ticket_status(ticket, base=None, machine=None):
 def main(args):
     parser = OptionParser()
     parser.add_option("-p", "--port", dest="port")
-    parser.add_option("--debug", dest="debug", default=False)
+    parser.add_option("--debug", dest="debug", action='store_true')
     (options, args) = parser.parse_args(args)
 
     app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
-
-if __name__ == '__main__':
-    main(sys.argv)

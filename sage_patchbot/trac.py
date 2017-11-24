@@ -231,8 +231,6 @@ def extract_participants(rss):
 
     This is done using the rss feed.
 
-    This is used in the trust check code for the moment.
-
     This needs work ! In particular to remove people only in cc if possible!
     """
     all = set()
@@ -352,6 +350,8 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             os.environ['SAGE_ROOT'] = temp_dir
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
+            do_or_die("make configure")
+            do_or_die("./configure")
     except Exception as exn:
         if merge_failure or (not is_safe):
             raise

@@ -65,7 +65,7 @@ from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space,
-                   ConfigException, SkipTicket)
+                   ConfigException, SkipTicket, TestsFailed)
 from .http_post_file import post_multipart
 from .plugins import PluginResult, plugins_available
 from .version import __version__
@@ -206,6 +206,7 @@ status = {'started': 'ApplyFailed',
           'applied': 'BuildFailed',
           'built': 'TestsFailed',
           'tested': 'TestsPassed',
+          'tests_passed_on_retry': 'TestsPassedOnRetry',
           'tests_passed_plugins_failed': 'PluginFailed',
           'plugins': 'PluginOnly',
           'plugins_failed': 'PluginOnlyFailed',
@@ -345,6 +346,7 @@ class OptionDict(object):
     plugin_only = False
     safe_only = True
     skip_base = True
+    retries = None
 
     def __init__(self, d):
         for key, value in d.items():
@@ -414,6 +416,7 @@ class Patchbot(object):
                       "plugin_only": False,
                       "safe_only": True,
                       "skip_base": False,
+                      "retries": 0,
                       "cleanup": False}
 
     default_bonus = {"needs_review": 1000,
@@ -437,10 +440,22 @@ class Patchbot(object):
         self.__version__ = __version__
         self.last_pull = 0
         self.to_skip = {}
+        self.idling = False
 
-        self.write_log('Patchbot {} initialized with SAGE_ROOT={}'.format(
-            self.__version__,
-            self.sage_root), LOG_MAIN)
+        self.write_log('Patchbot {} initialized with SAGE_ROOT={} (pid: {})'.format(
+            self.__version__, self.sage_root, os.getpid()), LOG_MAIN)
+
+    def idle(self):
+        """
+        Sleep for ``idle`` seconds, where ``idle`` is the option supplied by
+        the patchbot configuration.
+
+        While idling, the ``idling`` attribute is set to ``True``.
+        """
+
+        self.idling = True
+        time.sleep(self.config['idle'])
+        self.idling = False
 
     def write_log(self, msg, logfile=None, date=True):
         r"""
@@ -559,20 +574,6 @@ class Patchbot(object):
 
             time.sleep(30)
 
-    def default_trusted_authors(self):
-        """
-        Define the default trusted authors.
-
-        They are computed by ``trusted_authors`` in serve.py
-        """
-        try:
-            return self._default_trusted
-        except AttributeError:
-            self.write_log("Getting trusted author list...", LOG_MAIN)
-            trusted = list(self.load_json_from_server("trusted", retry=10))
-            self._default_trusted = set(trusted)
-            return self._default_trusted
-
     def lookup_ticket(self, t_id, verbose=False):
         """
         Retrieve information about one ticket from the patchbot server.
@@ -629,7 +630,8 @@ class Patchbot(object):
         # now override with the values of the 9 options (all except 'config')
         # coming from the patchbot commandline
         for opt in ('sage_root', 'server', 'cleanup', 'dry_run', 'no_banner',
-                    'owner', 'plugin_only', 'safe_only', 'skip_base'):
+                    'owner', 'plugin_only', 'safe_only', 'skip_base',
+                    'retries'):
             value = getattr(self.options, opt)
             if value is not None:
                 conf[opt] = value
@@ -666,8 +668,7 @@ class Patchbot(object):
         self.config = self.get_local_config()
 
         # Now we set sage_root and some other attributes that depend on
-        # sage_root. (here might not be the right place to do it, but
-        # default_trusted_authors() below invoke logging)
+        # sage_root. (here might not be the right place to do it)
         self.sage_root = self.config["sage_root"]
         if (self.sage_root is None or
                 not os.path.isdir(self.sage_root) or
@@ -694,13 +695,6 @@ class Patchbot(object):
         handle = codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
                              encoding='utf8')
         handle.close()
-
-        # update the configuration with trusted authors (possibly contacting the
-        # patchbot server)
-        if "trusted_authors" not in self.config:
-            self.config["trusted_authors"] = self.default_trusted_authors()
-        if "extra_trusted_authors" in self.config:
-            self.config["trusted_authors"].update(self.config.pop("extra_trusted_authors"))
 
         # write the config in logfile
         self.delete_log(LOG_CONFIG)
@@ -781,6 +775,7 @@ class Patchbot(object):
 
         # rating for all tickets
         self.delete_log(LOG_RATING)
+        self.write_log("Rating tickets...", LOG_MAIN)
         all_tickets = [(self.rate_ticket(ti, verbose=(verbose == 2)), ti)
                        for ti in all_tickets]
 
@@ -861,13 +856,6 @@ class Patchbot(object):
                 return
 
             for author in ticket['authors_fullnames']:
-                if author not in self.config['trusted_authors']:
-                    msg = u' do not test if some author is not trusted (got {})'
-                    self.write_log(msg.format(author),
-                                   logfile, False)
-                    # self.write_log(msg.format(author).encode('utf-8'),
-                    # logfile, False) #py2
-                    return
                 rating += 2 * bonus.get(author, 0)  # bonus for authors
 
             for author in ticket['authors']:
@@ -1007,7 +995,7 @@ class Patchbot(object):
         if not ticket:
             self.write_log('no more tickets, take a nap',
                            [LOG_MAIN, LOG_MAIN_SHORT])
-            time.sleep(self.config['idle'])
+            self.idle()
             return
 
         # this should be a double check and never happen
@@ -1159,11 +1147,33 @@ class Patchbot(object):
                             test_cmd = "p {}".format(self.config['parallelism'])
                         else:
                             test_cmd = ""
-                        do_or_die("{} -t{} {}".format(self.sage_command,
-                                                      test_cmd,
-                                                      test_target))
+
+                        test_cmd = "{} -t{} {}".format(self.sage_command,
+                                                       test_cmd, test_target)
+
+                        max_tries = self.config.get('retries', 0) + 1
+                        n_try = 1
+
+                        while n_try <= max_tries:
+                            try:
+                                do_or_die(test_cmd, exn_class=TestsFailed)
+                            except TestsFailed as exc:
+                                if n_try == max_tries:
+                                    raise exc
+                            else:
+                                if n_try == 1:
+                                    state = 'tested'
+                                else:
+                                    state = 'tests_passed_on_retry'
+
+                                break
+
+                            if n_try == 1:
+                                test_cmd += ' --failed'
+
+                            n_try += 1
+
                         t.finish("Tests")
-                        state = 'tested'
 
                         if not plugins_passed:
                             state = 'tests_passed_plugins_failed'
@@ -1206,11 +1216,12 @@ class Patchbot(object):
                 break
             except IOError:
                 traceback.print_exc()
-                time.sleep(self.config['idle'])
+                self.idle()
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ.get('SAGE_ROOT')
-        if maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])):
+        if (maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])) and
+                os.path.exists(maybe_temp_root)):
             shutil.rmtree(maybe_temp_root)
         return status[state]
 
@@ -1406,6 +1417,9 @@ class Patchbot(object):
         return git_commit(self.sage_root, branch)
 
 
+_received_sigusr1 = False
+
+
 def main(args=None):
     """
     Most configuration is done in the json config file, which is
@@ -1416,46 +1430,46 @@ def main(args=None):
     parser = OptionParser()
 
     # 10 options that are passed to the patchbot via the class "options"
+    # Don't provide defaults for these options (except for --sage-root) so
+    # that we can tell whether or not they were given explicitly (i.e. their
+    # value is not None) and should override settings from the config file.
     parser.add_option("--sage-root", dest="sage_root",
                       default=os.environ.get('SAGE_ROOT'),
                       help="specify another sage root directory")
     parser.add_option("--server", dest="server",
-                      default="https://patchbot.sagemath.org/",
                       help="specify another patchbot server adress")
     parser.add_option("--config", dest="config",
                       help="specify the json config file")
     parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      default=None,
                       help="whether to cleanup the temporary files")
-    parser.add_option("--dry-run", action="store_true", dest="dry_run",
-                      default=False)
+    parser.add_option("--dry-run", action="store_true", dest="dry_run")
     parser.add_option("--no-banner", action="store_true", dest="no_banner",
                       help="whether to print the utf8 banner")
     parser.add_option("--owner", dest="owner",
                       help="name and email of the human behind the bot")
     parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
-                      default=False,
                       help="run the patchbot in plugin-only mode")
     parser.add_option("--safe-only", action="store_true", dest="safe_only",
                       help="whether to run the patchbot in safe-only mode")
     parser.add_option("--skip-base", action="store_true", dest="skip_base",
                       help="whether to check that the base is errorless")
+    parser.add_option("--retries", type=int, metavar="N",
+                      help="retry failed tests up to N times; if previously "
+                           "failing tests pass on a retry the test run is "
+                           "considered passed")
 
     # and options that are only used in the main loop below
     parser.add_option("--count", dest="count",
                       default=1000000,
                       help="how many tickets to test")
     parser.add_option("--list", action="store_true", dest="list",
-                      default=False,
                       help="only write informations about tickets "
                            "that would be tested in the form: "
                            "[ticket id] [rating] [ticket title]")
     parser.add_option("--conf", action="store_true", dest="conf",
-                      default=False,
                       help="write the configuration on standard "
                            "output and quit")
     parser.add_option("--ticket", dest="ticket",
-                      default=None,
                       help="test only a list of tickets, for example"
                            " '12345,19876'")
     parser.add_option("--free-giga", dest="free_giga",
@@ -1506,14 +1520,33 @@ def main(args=None):
         # If we rebuild the (same) compiler we still want to share the cache.
         os.environ['CCACHE_COMPILERCHECK'] = '%compiler% --version'
 
+    # Install the SIGUSR1 handler; if SIGUSR1 is received then patchbot will
+    # exit before testing the next ticket.
+    def _handle_sigusr1(*args):
+        global _received_sigusr1
+        _received_sigusr1 = True
+        if patchbot.idling:
+            patchbot.write_log(
+                "Received SIGUSR1; the patchbot is not currently testing "
+                "any tickets, so exiting immediately.")
+            sys.exit(0)
+        else:
+            patchbot.write_log(
+                "Received SIGUSR1; the patchbot will exit after testing the "
+                "current ticket.")
+
+    signal.signal(signal.SIGUSR1, _handle_sigusr1)
+
     if not patchbot.config['skip_base']:
         patchbot.check_base()
 
         def good(report):
-            return report['machine'] == patchbot.config['machine'] and report['status'] == 'TestsPassed'
+            return (report['machine'] == patchbot.config['machine'] and
+                    report['status'].startswith('TestsPassed'))
+
         if patchbot.config['plugin_only'] or not any(good(report) for report in patchbot.current_reports(0)):
             res = patchbot.test_a_ticket(0)
-            if res not in ('TestsPassed', 'PluginOnly'):
+            if res not in ('TestsPassed', 'TestsPassedOnRetry', 'PluginOnly'):
                 print("\n\n")
                 print("Current base: {} {}".format(patchbot.config['base_repo'],
                                                    patchbot.config['base_branch']))
@@ -1527,6 +1560,10 @@ def main(args=None):
                 patchbot.write_log("Cleaning up {}".format(path),
                                    [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
+
+        if _received_sigusr1:
+            break
+
         try:
             if tickets:
                 ticket = tickets.pop(0)
@@ -1539,10 +1576,10 @@ def main(args=None):
                 patchbot.test_a_ticket(ticket)
             else:
                 patchbot.write_log("Idle.", [LOG_MAIN, LOG_MAIN_SHORT])
-                time.sleep(patchbot.config['idle'])
+                patchbot.idle()
         except Exception:
             traceback.print_exc()
-            time.sleep(patchbot.config['idle'])
+            patchbot.idle()
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients
