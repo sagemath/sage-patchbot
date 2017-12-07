@@ -347,6 +347,7 @@ class OptionDict(object):
     safe_only = True
     skip_base = True
     retries = None
+    skip_doc_clean = False
 
     def __init__(self, d):
         for key, value in d.items():
@@ -417,7 +418,8 @@ class Patchbot(object):
                       "safe_only": True,
                       "skip_base": False,
                       "retries": 0,
-                      "cleanup": False}
+                      "cleanup": False,
+                      "skip_doc_clean": False}
 
     default_bonus = {"needs_review": 1000,
                      "positive_review": 500,
@@ -631,7 +633,7 @@ class Patchbot(object):
         # coming from the patchbot commandline
         for opt in ('sage_root', 'server', 'cleanup', 'dry_run', 'no_banner',
                     'owner', 'plugin_only', 'safe_only', 'skip_base',
-                    'retries'):
+                    'retries', 'skip_doc_clean'):
             value = getattr(self.options, opt)
             if value is not None:
                 conf[opt] = value
@@ -1067,7 +1069,8 @@ class Patchbot(object):
 
                 if not ticket['spkgs']:
                     # ------------- make -------------
-                    do_or_die('{} doc-clean'.format(botmake))
+                    if not self.config['skip_doc_clean']:
+                        do_or_die('{} doc-clean'.format(botmake))
                     do_or_die("{} build".format(botmake))
                     do_or_die(os.path.join(self.sage_root,
                                            'local', 'bin', 'sage-starts'))
@@ -1458,6 +1461,8 @@ def main(args=None):
                       help="retry failed tests up to N times; if previously "
                            "failing tests pass on a retry the test run is "
                            "considered passed")
+    parser.add_option("--skip-doc-clean", action="store_true", dest="skip_doc_clean",
+                      help="whether to clean documentation during initialization")
 
     # and options that are only used in the main loop below
     parser.add_option("--count", dest="count",
