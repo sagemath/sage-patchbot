@@ -168,21 +168,30 @@ def ticket_list():
     if 'authors' in request.args:
         authors = request.args.get('authors').split(':')
     limit = int(request.args.get('limit', 1000))
-    print(query)
+    raw_mode = request.args.get('raw', False)
+
+    projection = {'_id': False}
+
+    if raw_mode is not False and raw_mode != 'full':
+        # In order to limit the size of the response, omit git_logs and plugin
+        # results from the data
+        projection.update({'reports.git_log': False,
+                           'reports.plugins': False})
+
+    print('ticket query + projection: ', query, projection)
 
     order = ('last_trac_activity', -1)
-    cursor = tickets.find(query).sort(*order).limit(limit)
+    cursor = tickets.find(query, projection).sort(*order).limit(limit)
     all = filter_on_authors(cursor, authors)
-    if 'raw' in request.args:
+    if raw_mode is not False:
         # raw json file for communication with patchbot clients
-
         def filter_reports(all):
             for ticket in all:
                 current = sorted(current_reports(ticket),
-                                 key=lambda report: report['time'])
-                ticket['reports'] = list(reversed(current))[:10]
-                for report in ticket['reports']:
-                    report['plugins'] = '...'
+                                 key=lambda report: report['time'],
+                                 reverse=True)
+                # Take only the 10 latest reports
+                ticket['reports'] = current[:10]
                 yield ticket
         all = filter_reports(all)
         if 'pretty' in request.args:
