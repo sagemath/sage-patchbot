@@ -2,3 +2,4 @@
 *.spkg
 *.pyc
 .hg
+*.egg-info
