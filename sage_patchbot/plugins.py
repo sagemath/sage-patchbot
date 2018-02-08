@@ -392,6 +392,9 @@ def python3(ticket, **kwds):
 
     11) apply
     """
+    def python_or_cython_or_rst(a_file):
+        return a_file.split('.')[-1] in ['py', 'pyx', 'rst']
+
     regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
                r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
@@ -401,8 +404,9 @@ def python3(ticket, **kwds):
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
                r'[^_a-z]apply\(')
-    exclude_new(ticket, regex=regexps,
-                msg="Python 3 incompatible code", **kwds)
+    exclude_new_file_by_file(ticket, regex=regexps,
+                             file_condition=python_or_cython_or_rst,
+                             msg="Python3 incompatible code", **kwds)
 
 
 def foreign_latex(ticket, **kwds):
