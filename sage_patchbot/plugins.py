@@ -382,7 +382,7 @@ def python3(ticket, **kwds):
 
     6) <>
 
-    7) <type '[a-z]*'>
+    7) <type '[a-z]*'> (no longer needed)
 
     8) next
 
@@ -399,7 +399,6 @@ def python3(ticket, **kwds):
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
                r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
                r'<>',
-               r"<type '[a-z]*'>",
                r'\.next\(\)',
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
@@ -447,7 +446,7 @@ def blocks(ticket, **kwds):
                r'^\s*[A-Z]*PUT::',
                r'^\s*REFERENCES?::']
     exclude_new(ticket, regex=regexps,
-                msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, etc)",
+                msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, NOTE, etc)",
                 **kwds)
 
 
@@ -462,8 +461,6 @@ def oldstyle_print(ticket, **kwds):
     rex4 = r'^\s*\.\.\..*' + badprint           # in doc after ...
     exclude_new(ticket, regex=(rex1, rex2, rex3, rex4),
                 msg="python2-only print syntax", **kwds)
-
-
 
 
 def trac_links(ticket, **kwds):
