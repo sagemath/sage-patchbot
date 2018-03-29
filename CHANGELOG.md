@@ -2,3 +2,5 @@
 ==================
 
 * First release covered by this changelog.
+* Fixed bug with premature cleanup of the temporary SAGE_ROOT created for
+  testing "unsafe" tickets.

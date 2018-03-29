@@ -359,14 +359,14 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
                     os.mkdir('logs')
                 do_or_die("./sage -i ccache")
     except Exception as exn:
+        if not is_safe and not safe_only:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)  # delete temporary dir
+
         if merge_failure or (not is_safe):
             raise
         else:
             raise ConfigException(exn.message)
-    finally:
-        if not is_safe and not safe_only:
-            if temp_dir and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)  # delete temporary dir
 
 # ===================
 
