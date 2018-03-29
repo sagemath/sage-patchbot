@@ -382,7 +382,7 @@ def python3(ticket, **kwds):
 
     6) <>
 
-    7) <type '[a-z]*'>
+    7) <type '[a-z]*'> (no longer needed)
 
     8) next
 
@@ -392,17 +392,20 @@ def python3(ticket, **kwds):
 
     11) apply
     """
+    def python_or_cython_or_rst(a_file):
+        return a_file.split('.')[-1] in ['py', 'pyx', 'rst']
+
     regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
                r'[\s,\(]cmp\s*=', r'[^_a-z]cmp\(',
                r'<>',
-               r"<type '[a-z]*'>",
                r'\.next\(\)',
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
                r'[^_a-z]apply\(')
-    exclude_new(ticket, regex=regexps,
-                msg="Python 3 incompatible code", **kwds)
+    exclude_new_file_by_file(ticket, regex=regexps,
+                             file_condition=python_or_cython_or_rst,
+                             msg="Python3 incompatible code", **kwds)
 
 
 def foreign_latex(ticket, **kwds):
@@ -443,7 +446,7 @@ def blocks(ticket, **kwds):
                r'^\s*[A-Z]*PUT::',
                r'^\s*REFERENCES?::']
     exclude_new(ticket, regex=regexps,
-                msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, etc)",
+                msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, NOTE, etc)",
                 **kwds)
 
 
@@ -458,8 +461,6 @@ def oldstyle_print(ticket, **kwds):
     rex4 = r'^\s*\.\.\..*' + badprint           # in doc after ...
     exclude_new(ticket, regex=(rex1, rex2, rex3, rex4),
                 msg="python2-only print syntax", **kwds)
-
-
 
 
 def trac_links(ticket, **kwds):
