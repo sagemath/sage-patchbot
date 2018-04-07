@@ -391,6 +391,8 @@ def python3(ticket, **kwds):
     10) except Exception, var
 
     11) apply
+
+    12) sagenb
     """
     def python_or_cython_or_rst(a_file):
         return a_file.split('.')[-1] in ['py', 'pyx', 'rst']
@@ -402,7 +404,8 @@ def python3(ticket, **kwds):
                r'\.next\(\)',
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
-               r'[^_a-z]apply\(')
+               r'[^_a-z]apply\(',
+               r'sagenb')
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=python_or_cython_or_rst,
                              msg="Python3 incompatible code", **kwds)
