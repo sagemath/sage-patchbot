@@ -57,6 +57,12 @@ except ImportError:
     from urllib.error import HTTPError
     from urllib.parse import urlencode
 
+try:
+    from pyflakes.api import checkPath
+    PYFLAKES_FOUND = True
+except ImportError:
+    PYFLAKES_FOUND = False
+
 from datetime import datetime
 
 # imports from patchbot sources
@@ -420,6 +426,9 @@ class Patchbot(object):
                       "retries": 0,
                       "cleanup": False,
                       "skip_doc_clean": False}
+
+    if PYFLAKES_FOUND:
+        default_config["plugins"].append("pyflakes")
 
     default_bonus = {"needs_review": 1000,
                      "positive_review": 500,

@@ -26,6 +26,11 @@ import time
 from .trac import do_or_die
 from .util import describe_branch
 
+try:
+    from pyflakes.api import checkPath
+except ImportError:
+    pass
+
 
 # hardcoded list of plugins
 plugins_available = [
@@ -37,6 +42,7 @@ plugins_available = [
     "oldstyle_print",
     "python3_py",
     "python3",
+    "pyflakes",
     "blocks",
     "triple_colon",
     "trac_links",
@@ -225,6 +231,35 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
         raise ValueError(full_msg)
 
 
+def pyflakes(ticket, **kwds):
+    """
+    run pyflakes on the modified .py files
+
+    we do not check the files names "all.py" that
+    usually just contain many unused import lines, always triggering pyflakes
+    warnings
+    """
+    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
+
+    errors = 0
+    msg_list = []
+    for a_file in changed_files:
+        filename = os.path.split(a_file)[1]
+        if filename.split(os.path.extsep)[-1] == 'py' and filename != "all.py":
+            errors_here = checkPath(a_file)  # run pyflakes
+            if errors_here:
+                errors += errors_here
+                msg_here = '{} pyflakes errors in file {}'
+                msg_list.append(msg_here.format(errors_here, a_file))
+
+    full_msg = "found {} pyflakes errors in the modified files"
+    full_msg = full_msg.format(errors)
+    print(full_msg)
+    if errors:
+        raise ValueError(full_msg)
+
+
 def exclude_new(ticket, regex, msg, **kwds):
     """
     Search in new code for patterns that should be avoided.
@@ -337,7 +372,7 @@ def non_ascii(ticket, **kwds):
 
     def not_declared(a_file):
         return (not(check_unicode_declaration(a_file)) and
-                a_file.split('.')[-1] == 'py')
+                a_file.split(os.path.extsep)[-1] == 'py')
     exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
                              file_condition=not_declared,
                              msg="Non-ascii characters", **kwds)
@@ -358,7 +393,7 @@ def python3_py(ticket, **kwds):
     These are allowed in cython files.
     """
     def not_cython(a_file):
-        return a_file.split('.')[-1] in ['py', 'rst']
+        return a_file.split(os.path.extsep)[-1] in ['py', 'rst']
     regexps = [r'xrange\(',
                r'\.iterkeys\(', r'\.itervalues\(', r'\.iteritems\(',
                r'basestring',
@@ -395,7 +430,7 @@ def python3(ticket, **kwds):
     12) sagenb
     """
     def python_or_cython_or_rst(a_file):
-        return a_file.split('.')[-1] in ['py', 'pyx', 'rst']
+        return a_file.split(os.path.extsep)[-1] in ['py', 'pyx', 'rst']
 
     regexps = (r'import.*ifilter', r'import.*imap', r'import.*izip',
                r'^\s*raise\s*[A-Za-z]*Error\s*,'
