@@ -427,9 +427,6 @@ class Patchbot(object):
                       "cleanup": False,
                       "skip_doc_clean": False}
 
-    if PYFLAKES_FOUND:
-        default_config["plugins"].append("pyflakes")
-
     default_bonus = {"needs_review": 1000,
                      "positive_review": 500,
                      "blocker": 100,
@@ -648,6 +645,9 @@ class Patchbot(object):
                 conf[opt] = value
 
         # plugin setup
+        # if available, use the pyflakes plugin
+        if PYFLAKES_FOUND:
+            conf["plugins"].append("pyflakes")
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
         plugins.difference_update(conf.pop("plugins_disabled"))
