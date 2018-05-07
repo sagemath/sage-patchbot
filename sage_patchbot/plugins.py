@@ -235,9 +235,9 @@ def pyflakes(ticket, **kwds):
     """
     run pyflakes on the modified .py files
 
-    we do not check the files names "all.py" that
-    usually just contain many unused import lines, always triggering pyflakes
-    warnings
+    we do not check the files names "all.py" and "__init__.py" that
+    usually just contain unused import lines, always triggering non-pertinent
+    pyflakes warnings
     """
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
@@ -246,7 +246,7 @@ def pyflakes(ticket, **kwds):
     msg_list = []
     for a_file in changed_files:
         filename = os.path.split(a_file)[1]
-        if filename.split(os.path.extsep)[-1] == 'py' and filename != "all.py":
+        if filename.split(os.path.extsep)[-1] == 'py' and filename != "all.py" and filename != "__init__.py":
             errors_here = checkPath(a_file)  # run pyflakes
             if errors_here:
                 errors += errors_here
