@@ -395,6 +395,7 @@ class Patchbot(object):
                                   "doctest_continuation",
                                   "python3",
                                   "python3_py",
+                                  "python3_pyx",
                                   "oldstyle_print",
                                   "blocks",
                                   "triple_colon",

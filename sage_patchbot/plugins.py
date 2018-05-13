@@ -41,6 +41,7 @@ plugins_available = [
     "foreign_latex",
     "oldstyle_print",
     "python3_py",
+    "python3_pyx",
     "python3",
     "pyflakes",
     "blocks",
@@ -400,6 +401,23 @@ def python3_py(ticket, **kwds):
                r'__nonzero__\(']
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=not_cython,
+                             msg="Python3 incompatible code", **kwds)
+
+
+def python3_pyx(ticket, **kwds):
+    """
+    Look for some patterns in a cython file
+
+    0) "import six" and "from six import"
+
+    These are allowed in python files.
+    """
+    def is_cython(a_file):
+        return a_file.split(os.path.extsep)[-1] == 'pyx'
+    regexps = [r'import six',
+               r'from six import']
+    exclude_new_file_by_file(ticket, regex=regexps,
+                             file_condition=is_cython,
                              msg="Python3 incompatible code", **kwds)
 
 # --- simple pattern-exclusion plugins ---
