@@ -248,6 +248,7 @@ def pyflakes(ticket, **kwds):
     for a_file in changed_files:
         filename = os.path.split(a_file)[1]
         if filename.split(os.path.extsep)[-1] == 'py' and filename != "all.py" and filename != "__init__.py":
+            # maybe do pre-processing here using pyflakes_filter ?
             errors_here = checkPath(a_file)  # run pyflakes
             if errors_here:
                 errors += errors_here
@@ -259,6 +260,27 @@ def pyflakes(ticket, **kwds):
     print(full_msg)
     if errors:
         raise ValueError(full_msg)
+
+
+def pyflakes_filter(file):
+    """
+    convert lazy_import to standard import for pyflakes sake
+
+    !! WORK IN PROGRESS !!
+    """
+    with open(file) as in_f:
+        for x in in_f:
+            if x.startswith("lazy_import("):
+                what = x.strip()[12:- 1].split(',')
+                what = [s.strip() for s in what]
+                # does not yet handle multiple imports
+                what = [s.strip("'").strip('"') for s in what]
+                if len(what) == 2:
+                    yield "from {} import {}".format(*what)
+                elif len(what) == 3:
+                    yield "from {} import {} as {}".format(*what)
+            else:
+                yield x
 
 
 def exclude_new(ticket, regex, msg, **kwds):
