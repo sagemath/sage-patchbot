@@ -27,7 +27,7 @@ from .trac import do_or_die
 from .util import describe_branch
 
 try:
-    from pyflakes.api import checkPath
+    from pyflakes.api import checkPath, isPythonFile
 except ImportError:
     pass
 
@@ -222,7 +222,7 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
                 gitdiff = [f.decode('utf8') for f in gitdiff]
                 for r in regex:
                     bad_lines += exclude_new_in_diff(gitdiff, r)
-        except IOError:  # file has been deleted
+        except IOError:  # file has been deleted or moved
             pass
 
     full_msg = "{} inserted on {} non-empty lines"
@@ -250,14 +250,15 @@ def pyflakes(ticket, **kwds):
     errors = 0
     msg_list = []
     for a_file in changed_files:
-        filename = os.path.split(a_file)[1]
-        if filename.split(os.path.extsep)[-1] == 'py' and filename != "all.py" and filename != "__init__.py" and filename[:7] != "catalog":
-            # maybe do pre-processing here using pyflakes_filter ?
-            errors_here = checkPath(a_file)  # run pyflakes
-            if errors_here:
-                errors += errors_here
-                msg_here = '{} pyflakes errors in file {}'
-                msg_list.append(msg_here.format(errors_here, a_file))
+        if os.path.exists(a_file) and isPythonFile(a_file):
+            filename = os.path.split(a_file)[1]
+            if filename != "all.py" and filename != "__init__.py" and filename[:7] != "catalog":
+                # maybe do pre-processing here using pyflakes_filter ?
+                errors_here = checkPath(a_file)  # run pyflakes
+                if errors_here:
+                    errors += errors_here
+                    msg_here = '{} pyflakes errors in file {}'
+                    msg_list.append(msg_here.format(errors_here, a_file))
 
     full_msg = "found {} pyflakes errors in the modified files"
     full_msg = full_msg.format(errors)
