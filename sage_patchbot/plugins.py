@@ -22,6 +22,7 @@ import os
 import sys
 import subprocess
 import time
+import json
 
 from .trac import do_or_die
 from .util import describe_branch
@@ -267,25 +268,33 @@ def pyflakes(ticket, **kwds):
         raise ValueError(full_msg)
 
 
-def pyflakes_filter(file):
+def pyflakes_filter(single_line):
     """
     convert lazy_import to standard import for pyflakes sake
 
     !! WORK IN PROGRESS !!
     """
-    with open(file) as in_f:
-        for x in in_f:
-            if x.startswith("lazy_import("):
-                what = x.strip()[12:- 1].split(',')
-                what = [s.strip() for s in what]
-                # does not yet handle multiple imports
-                what = [s.strip("'").strip('"') for s in what]
-                if len(what) == 2:
-                    yield "from {} import {}".format(*what)
-                elif len(what) == 3:
-                    yield "from {} import {} as {}".format(*what)
+    x = single_line
+    if x.startswith("lazy_import("):
+        what = u'[' + x.strip()[12:- 1] + u']'
+        what = json.loads(what.replace(u"'", u'"'))
+        if len(what) == 2:
+            module, names = what
+            if isinstance(names, list):
+                names = u",".join(y for y in names)
+            yield u"from {} import {}".format(module, names)
+        elif len(what) == 3:
+            module, names, alias = what
+            if isinstance(names, list):
+                for name, al in zip(names, alias):
+                    yield u"from {} import {} as {}".format(module,
+                                                            name,
+                                                            al)
             else:
-                yield x
+                yield u"from {} import {} as {}".format(module,
+                                                        names, alias)
+    else:
+        yield x
 
 
 def exclude_new(ticket, regex, msg, **kwds):
