@@ -58,7 +58,7 @@ except ImportError:
     from urllib.parse import urlencode
 
 try:
-    from pyflakes.api import checkPath
+    from pyflakes.api import checkPath, isPythonFile
     PYFLAKES_FOUND = True
 except ImportError:
     PYFLAKES_FOUND = False
