@@ -241,7 +241,7 @@ def pyflakes(ticket, **kwds):
     usually just contain unused import lines, always triggering non-pertinent
     pyflakes warnings
 
-    same thing for files named "catalog*.py"
+    same thing for files named "*catalog*.py"
 
     !! one should do something to replace lazy imports by usual imports !!
     """
@@ -253,7 +253,8 @@ def pyflakes(ticket, **kwds):
     for a_file in changed_files:
         if os.path.exists(a_file) and isPythonFile(a_file):
             filename = os.path.split(a_file)[1]
-            if filename != "all.py" and filename != "__init__.py" and filename[:7] != "catalog":
+            if not (filename == "all.py" or filename == "__init__.py" or
+                    "catalog" in filename):
                 # maybe do pre-processing here using pyflakes_filter ?
                 errors_here = checkPath(a_file)  # run pyflakes
                 if errors_here:
