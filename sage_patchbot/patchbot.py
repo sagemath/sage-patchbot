@@ -70,7 +70,7 @@ from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, 
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    describe_branch, comparable_version, temp_build_suffix,
-                   ensure_free_space,
+                   ensure_free_space, get_python_version,
                    ConfigException, SkipTicket, TestsFailed)
 from .http_post_file import post_multipart
 from .plugins import PluginResult, plugins_available
@@ -693,6 +693,9 @@ class Patchbot(object):
                              "--config=path/to/config.json)")
 
         self.sage_command = os.path.join(self.sage_root, "sage")
+
+        self.python_version = get_python_version(self.sage_command)
+
         self.base = get_sage_version(self.sage_root)
 
         # TODO: this should be configurable
@@ -1375,7 +1378,8 @@ class Patchbot(object):
                   'machine': self.config['machine'],
                   'time': now_str(),
                   'plugins': plugins,
-                  'patchbot_version': self.__version__}
+                  'patchbot_version': self.__version__,
+                  'python_version': self.python_version}
 
         if pending_status:
             report['pending_status'] = pending_status

@@ -221,6 +221,25 @@ def get_sage_version(sage_root):
     return sage_version.split()[2].strip(',')
 
 
+def get_python_version(sage_cmd):
+    """
+    get the python version run by sage
+
+    input: full path to the sage executable
+
+    output: an integer
+    """
+    # res = subprocess.check_output([sage_cmd, "--python-version"])
+    # return int(res[0])
+    # code above for future use
+
+    res = subprocess.check_output([sage_cmd, "--python", "--version"],
+                                  stderr=subprocess.STDOUT)
+    res = str(res).split(" ")[1]
+    res = res.split(".")[0]
+    return int(res)
+
+
 def describe_branch(branch, tag_only=False):
     """
     Return the latest tag of the branch or the full branch description.
