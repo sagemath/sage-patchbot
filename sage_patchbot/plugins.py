@@ -760,6 +760,7 @@ def mann_whitney_U(a, b, offset=0):
     sU = math.sqrt(n0 * n1 * (n0 + n1 + 1) / 12.0)
     return (U[1] - mU) / sU
 
+
 sqrt_pi_over_8 = math.sqrt(math.pi / 8)
 
 

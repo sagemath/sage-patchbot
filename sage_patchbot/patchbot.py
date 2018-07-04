@@ -208,6 +208,7 @@ class Timer(object):
         for label, elapsed in self._history:
             self.print_time(label, elapsed)
 
+
 status = {'started': 'ApplyFailed',
           'applied': 'BuildFailed',
           'built': 'TestsFailed',
@@ -574,7 +575,7 @@ class Patchbot(object):
                 self.write_log(" retry {}; {}".format(retry, str(err)), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
-            except socket.timeout as err:
+            except socket.timeout:
                 self.write_log(" retry {}; timeout while querying the patchbot server with '{}'".format(retry, path), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
@@ -1600,6 +1601,7 @@ def main(args=None):
         except Exception:
             traceback.print_exc()
             patchbot.idle()
+
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients

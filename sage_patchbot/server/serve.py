@@ -2,12 +2,10 @@
 # global python imports
 from __future__ import absolute_import
 import os
-import sys
 import bz2
 import json
 import traceback
 import re
-import collections
 import time
 import difflib
 from optparse import OptionParser
@@ -73,6 +71,7 @@ def latest_base(betas=True):
         return versions[-1]
     else:
         return None
+
 
 app = Flask(__name__)
 
@@ -608,7 +607,7 @@ def shorten(lines):
     """
     timing = re.compile(r'\s*\[(\d+ tests?, )?\d+\.\d* s\]\s*$')
     skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*)|(creating.*site-packages/sage.*)|(mkdir.*)|(creating build/.*)|(Deleting empty directory.*)|(;;;.*))$')
-    gcc = re.compile('(gcc)|(g\+\+)')
+    gcc = re.compile(r'(gcc)|(g\+\+)')
     prev = None
     in_plugin = False
     from ..patchbot import boundary
