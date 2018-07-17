@@ -719,6 +719,14 @@ class Patchbot(object):
 
         return self.config
 
+    def reset_root(self):
+        """
+        Ensure that we are in the correct SAGE_ROOT.
+        """
+
+        os.chdir(self.sage_root)
+        os.environ['SAGE_ROOT'] = self.sage_root
+
     def check_base(self):
         """
         Check that the patchbot/base is synchro with 'base_branch'.
@@ -1049,7 +1057,6 @@ class Patchbot(object):
         if not self.config['no_banner']:
             print(self.banner().encode('utf8'))
         botmake = os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
-        os.environ['SAGE_ROOT'] = self.sage_root
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
         os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
         os.environ['GIT_AUTHOR_DATE'] = os.environ['GIT_COMMITTER_DATE'] = '1970-01-01T00:00:01'
@@ -1238,9 +1245,11 @@ class Patchbot(object):
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ.get('SAGE_ROOT')
-        if (maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])) and
-                os.path.exists(maybe_temp_root)):
-            shutil.rmtree(maybe_temp_root)
+        if maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])):
+            # Make sure we switch back to the original sage_root
+            self.reset_root()
+            if os.path.exists(maybe_temp_root):
+                shutil.rmtree(maybe_temp_root)
         return status[state]
 
     def check_spkg(self, spkg):
@@ -1590,6 +1599,7 @@ def main(args=None):
                 ticket = tickets.pop(0)
             else:
                 ticket = None
+            patchbot.reset_root()
             patchbot.reload_config()
             if check_time_of_day(patchbot.config['time_of_day']):
                 if not patchbot.check_base():

@@ -362,6 +362,9 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
     except Exception as exn:
         if not is_safe and not safe_only:
             if temp_dir and os.path.exists(temp_dir):
+                # Reset to the original sage_root
+                os.chdir(sage_root)
+                os.environ['SAGE_ROOT'] = sage_root
                 shutil.rmtree(temp_dir)  # delete temporary dir
 
         if merge_failure or (not is_safe):
