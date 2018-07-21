@@ -316,7 +316,7 @@ def pycodestyle(ticket, **kwds):
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
 
-    style = pycodestyle.StyleGuide(select=['W605'])
+    style = StyleGuide(select=['W605'])
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
             filename = os.path.split(a_file)[1]
