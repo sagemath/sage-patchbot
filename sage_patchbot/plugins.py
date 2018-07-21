@@ -317,15 +317,16 @@ def pycodestyle(ticket, **kwds):
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
 
     style = StyleGuide(select=['W605'])
+    errors = 0
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
             filename = os.path.split(a_file)[1]
             if not (filename == "all.py" or filename == "__init__.py" or
                     "catalog" in filename):
                 rep = style.check_files([a_file])
+                errors = rep.file_errors
                 # this should print the errors out, with files and lines
 
-    errors = rep.file_errors
     full_msg = "found {} invalid escape sequences in the modified files"
     full_msg = full_msg.format(errors)
     print(full_msg)
