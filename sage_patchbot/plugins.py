@@ -32,6 +32,11 @@ try:
 except ImportError:
     pass
 
+try:
+    from pycodestyle import StyleGuide
+except ImportError:
+    pass
+
 
 # hardcoded list of plugins
 plugins_available = [
@@ -45,6 +50,7 @@ plugins_available = [
     "python3_pyx",
     "python3",
     "pyflakes",
+    "pycodestyle",
     "blocks",
     "triple_colon",
     "trac_links",
@@ -296,6 +302,35 @@ def pyflakes_filter(single_line):
                                                         names, alias)
     else:
         yield x
+
+
+def pycodestyle(ticket, **kwds):
+    """
+    run ``pycodestyle --select=W605`` on the modified .py files
+
+    we do not check the files names "all.py" and "__init__.py" that
+    usually just contain unused import lines
+
+    same thing for files named "*catalog*.py"
+    """
+    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
+
+    style = pycodestyle.StyleGuide(select=['W605'])
+    for a_file in changed_files:
+        if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
+            filename = os.path.split(a_file)[1]
+            if not (filename == "all.py" or filename == "__init__.py" or
+                    "catalog" in filename):
+                style.check_files([a_file])
+                # this should print the errors out, with files and lines
+
+    errors = style.file_errors
+    full_msg = "found {} invalid escape sequences in the modified files"
+    full_msg = full_msg.format(errors)
+    print(full_msg)
+    if errors:
+        raise ValueError(full_msg)
 
 
 def exclude_new(ticket, regex, msg, **kwds):

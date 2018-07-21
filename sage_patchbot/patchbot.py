@@ -59,9 +59,15 @@ except ImportError:
 
 try:
     from pyflakes.api import checkPath, isPythonFile
-    PYFLAKES_FOUND = True
+    _PYFLAKES_FOUND = True
 except ImportError:
-    PYFLAKES_FOUND = False
+    _PYFLAKES_FOUND = False
+
+try:
+    from pycodestyle import StyleGuide
+    _PYCODESTYLE_FOUND = True
+except ImportError:
+    _PYCODESTYLE_FOUND = False
 
 from datetime import datetime
 
@@ -647,9 +653,11 @@ class Patchbot(object):
                 conf[opt] = value
 
         # plugin setup
-        # if available, use the pyflakes plugin
-        if PYFLAKES_FOUND:
+        # if available, use the pyflakes and pycodestyle plugins
+        if _PYFLAKES_FOUND:
             conf["plugins"].append("pyflakes")
+        if _PYCODESTYLE_FOUND:
+            conf["plugins"].append("pycodestyle")
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
         plugins.difference_update(conf.pop("plugins_disabled"))
