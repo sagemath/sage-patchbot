@@ -1,4 +1,4 @@
-2.8.0 (unreleased)
+2.8.0 (2018-07-23)
 ==================
 
 * First release covered by this changelog.
