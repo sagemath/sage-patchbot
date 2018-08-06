@@ -1,7 +1,8 @@
 2.8.1 (unreleased)
 ==================
 
-* Nothing changed yet.
+* Fixed a regression from 2.8.0 that could occur when testing just
+  ticket 0 (#132).
 
 
 2.8.0 (2018-07-23)

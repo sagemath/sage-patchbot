@@ -732,8 +732,11 @@ class Patchbot(object):
         Ensure that we are in the correct SAGE_ROOT.
         """
 
-        os.chdir(self.sage_root)
-        os.environ['SAGE_ROOT'] = self.sage_root
+        # Don't do this is self.sage_root is None; we never want to set
+        # SAGE_ROOT to None
+        if self.sage_root is None:
+            os.chdir(self.sage_root)
+            os.environ['SAGE_ROOT'] = self.sage_root
 
     def check_base(self):
         """
@@ -1010,7 +1013,7 @@ class Patchbot(object):
 
           * if an integer or a string, use this ticket number
         """
-        os.chdir(self.sage_root)
+        self.reset_root()
         # ------------- selection of ticket -------------
         if ticket is None:
             ask_for_one = self.get_one_ticket()
@@ -1607,7 +1610,13 @@ def main(args=None):
                 ticket = tickets.pop(0)
             else:
                 ticket = None
+
+            # This reset_root call is probably not necessary, but it does
+            # ensure that, after a previous ticket was tested, we restore the
+            # correct SAGE_ROOT if for some reason patchbot.test_a_ticket did
+            # not reset it correctly
             patchbot.reset_root()
+
             patchbot.reload_config()
             if check_time_of_day(patchbot.config['time_of_day']):
                 if not patchbot.check_base():
