@@ -734,7 +734,7 @@ class Patchbot(object):
 
         # Don't do this is self.sage_root is None; we never want to set
         # SAGE_ROOT to None
-        if self.sage_root is None:
+        if self.sage_root is not None:
             os.chdir(self.sage_root)
             os.environ['SAGE_ROOT'] = self.sage_root
 
