@@ -1,4 +1,4 @@
-2.8.1 (unreleased)
+2.8.1 (2018-08-08)
 ==================
 
 * Fixed a regression from 2.8.0 that could occur when testing just
