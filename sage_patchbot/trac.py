@@ -241,7 +241,7 @@ def extract_participants(rss):
     return list(all)
 
 
-spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)|(?:ftp)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
+spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)|(?:ftp://)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/))(.*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 
