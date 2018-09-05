@@ -241,7 +241,7 @@ def extract_participants(rss):
     return list(all)
 
 
-spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
+spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)|(?:ftp)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/))(.*?\.(?:spkg|tar\.gz|tar\.bz2))")
 # spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
 
@@ -251,7 +251,7 @@ def extract_spkgs(description):
     Extracts any spkgs for a ticket from the description field of the
     trac-ticket-info.
 
-    Just searches for urls ending in .spkg, .tar.gz or .tar.bz2
+    Just searches for urls (http,https,ftp) ending in .spkg, .tar.gz or .tar.bz2
     """
     return list(set(spkg_url_regex.findall(description)))
 
