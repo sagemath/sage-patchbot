@@ -549,7 +549,8 @@ def post_report(ticket_id):
 
         prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
-        db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        if 'log' in request.files:
+            db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
         if 'retry' in ticket:
             ticket['retry'] = False
         ticket['last_activity'] = now_str()
