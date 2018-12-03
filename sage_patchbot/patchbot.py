@@ -656,8 +656,12 @@ class Patchbot(object):
         # if available, use the pyflakes and pycodestyle plugins
         if _PYFLAKES_FOUND:
             conf["plugins"].append("pyflakes")
+        elif "pyflakes" in conf["plugins"]:
+            conf["plugins"].remove("pyflakes")
         if _PYCODESTYLE_FOUND:
             conf["plugins"].append("pycodestyle")
+        elif "pycodestyle" in conf["plugins"]:
+            conf["plugins"].remove("pycodestyle")
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
         plugins.difference_update(conf.pop("plugins_disabled"))
