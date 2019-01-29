@@ -336,7 +336,8 @@ def sha1file(path, blocksize=None):
 
 
 class OptionDict(object):
-    r"""Fake option class built from a dictionary.
+    r"""
+    Fake option class built from a dictionary.
 
     This used to run the patchbot in a IPython console. It contains default
     values for the 10 options that can be provided from command line. These
@@ -424,6 +425,8 @@ class Patchbot(object):
                       "max_behind_commits": 0,
                       "max_behind_days": 1.0,
                       "use_ccache": True,
+                      "tested_files": "all",   # either 'all' or 'py3'
+                      "test_options": None,    # transmitted to --optional
                       # 6 options that can also be changed using sage --xx
                       "dry_run": False,
                       "no_banner": False,
@@ -1181,15 +1184,34 @@ class Patchbot(object):
                             test_target = os.path.join(self.sage_root,
                                                        "src", "sage", "misc",
                                                        "a*.py")
+                        elif self.config['tested_files'] == 'py3':
+                            path = os.path.join(self.sage_root, 'src', 'ext',
+                                                'doctest',
+                                                'python3-known-passing.txt')
+                            with open(path) as f:
+                                good_guys = ' '.join(f.read().splitlines())
+                            test_target = "--long " + good_guys
                         else:
                             test_target = "--all --long"
+
                         if self.config['parallelism'] > 1:
                             test_cmd = "p {}".format(self.config['parallelism'])
                         else:
                             test_cmd = ""
 
-                        test_cmd = "{} -t{} {}".format(self.sage_command,
-                                                       test_cmd, test_target)
+                        # Allow patchbot owners to activate tests
+                        # for internet or m*ple or whatever they want.
+                        # The value must be a valid string for --optional
+                        # such as "sage,external"
+                        if self.config['test_options'] is not None:
+                            test_options = "--optional=" + self.config['test_options']
+                        else:
+                            test_options = ""
+
+                        test_cmd = "{} -t{} {} {}".format(self.sage_command,
+                                                          test_cmd,
+                                                          test_options,
+                                                          test_target)
 
                         max_tries = self.config.get('retries', 0) + 1
                         n_try = 1
