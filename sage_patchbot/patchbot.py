@@ -656,23 +656,23 @@ class Patchbot(object):
                 conf[opt] = value
 
         # plugin setup
-        # if available, use the pyflakes and pycodestyle plugins
-        if _PYFLAKES_FOUND:
-            conf["plugins"].append("pyflakes")
-        elif "pyflakes" in conf["plugins"]:
-            conf["plugins"].remove("pyflakes")
-        if _PYCODESTYLE_FOUND:
-            conf["plugins"].append("pycodestyle")
-        elif "pycodestyle" in conf["plugins"]:
-            conf["plugins"].remove("pycodestyle")
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
+        # if available, use the pyflakes and pycodestyle plugins
+        if _PYFLAKES_FOUND:
+            plugins.add("pyflakes")
+        elif "pyflakes" in plugins:
+            plugins.remove("pyflakes")
+        if _PYCODESTYLE_FOUND:
+            plugins.add("pycodestyle")
+        elif "pycodestyle" in plugins:
+            plugins.remove("pycodestyle")
         plugins.difference_update(conf.pop("plugins_disabled"))
         # for backward compatibility (allow both plugins.X and just X)
         plugins = set(name.split('.')[-1] for name in plugins)
 
         if not conf['plugin_only']:
-            plugins.add("docbuild")   # docbuild is mandatory so that tests pass
+            plugins.add("docbuild")  # docbuild is mandatory so that tests pass
 
         plugins = [p for p in plugins_available if p in plugins]
 
