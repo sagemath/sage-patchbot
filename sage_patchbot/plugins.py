@@ -268,13 +268,13 @@ def pyflakes(ticket, **kwds):
                     "catalog" in filename):
                 errors_here = checkPath(a_file, report)  # run pyflakes
                 if errors_here:
-                    errors += errors_here
                     lazys = list(find_lazy_imports(a_file))
                     for err in error_stream:
                         if any(x in err for x in lazys):
                             errors_here -= 1
                         else:
                             print(err)
+                    errors += errors_here
                     msg_list.append(msg_here.format(errors_here, a_file))
 
     full_msg = "found {} pyflakes errors in the modified files"
@@ -307,7 +307,7 @@ def find_lazy_imports(a_file):
                 names = what[1]
             elif len(what) == 3:
                 names = what[2]
-                
+
             if isinstance(names, list):
                 yield from names
             else:
