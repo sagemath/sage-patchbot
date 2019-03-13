@@ -752,7 +752,7 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
         if increased:
             # swap
             n1, p1, s1, n2, p2, s2 = n2, p2, s2, n1, p1, s1
-        z = mann_whitney_U(main_timings, ticket_timings)
+        mann_whitney_U(main_timings, ticket_timings)
         confidence_intervals = []
         for lower_bound in (1, .5, .25, .1, .05, .025, .01, 0.005, .0025, .001):
             z = mann_whitney_U(main_timings, ticket_timings,

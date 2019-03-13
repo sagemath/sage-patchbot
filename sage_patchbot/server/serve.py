@@ -691,8 +691,8 @@ def get_log(log):
             base_data = bz2.decompress(db.logs.get(request.args.get('diff')).read())
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
-            data = data = '\n'.join(('' if item[0] == '@' else item)
-                                    for item in diff)
+            data = '\n'.join(('' if item[0] == '@' else item)
+                             for item in diff)
             if not data:
                 data = "No change."
             data = header + "\n\n" + data
