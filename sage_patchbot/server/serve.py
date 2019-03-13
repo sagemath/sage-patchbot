@@ -272,7 +272,6 @@ def machines():
             else:
                 stats = machines[machine] = MachineStats(machine)
             stats.add_report(report, ticket)
-    all = []
     return render_template("machines.html",
                            machines=reversed(sorted(machines.values())),
                            len=len,

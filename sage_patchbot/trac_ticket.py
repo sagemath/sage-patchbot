@@ -241,7 +241,10 @@ class TracTicket_class(object):
 
     def grouped_comment_iter(self):
         change_iter = iter(self._change_log)
-        change = next(change_iter)
+        try:
+            change = next(change_iter)
+        except StopIteration:
+            raise
 
         def sort_key(c):
             return (-int(c.change == 'comment'), c.change)

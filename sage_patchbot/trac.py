@@ -425,29 +425,29 @@ class TracServer(object):
 
 
 if __name__ == '__main__':
-    force = False
-    apply = False
+    force = apply = False
     for ticket in sys.argv[1:]:
         if ticket == '-f':
             force = True
             continue
-        if ticket == '-a':
+        elif ticket == '-a':
             apply = True
             continue
-        if '-' in ticket:
+        elif '-' in ticket:
             start, end = ticket.split('-')
             tickets = range(int(start), int(end) + 1)
         else:
             tickets = [int(ticket)]
-        for ticket in tickets:
+
+        for tick in tickets:
             try:
-                print(ticket)
-                pprint.pprint(scrape(ticket))
+                print(tick)
+                pprint.pprint(scrape(tick))
                 if apply:
-                    pull_from_trac(os.environ['SAGE_ROOT'], ticket, force=True)
+                    pull_from_trac(os.environ['SAGE_ROOT'], tick, force=True)
                 time.sleep(1)
             except Exception:
-                msg = "Error for {}".format(ticket)
+                msg = "Error for {}".format(tick)
                 print(msg)
                 traceback.print_exc()
         force = apply = False
