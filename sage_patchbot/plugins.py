@@ -250,8 +250,6 @@ def pyflakes(ticket, **kwds):
     pyflakes warnings
 
     same thing for files named "*catalog*.py"
-
-    !! one should do something to replace lazy imports by usual imports !!
     """
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
@@ -260,20 +258,26 @@ def pyflakes(ticket, **kwds):
     msg_list = []
     msg_here = '{} pyflakes errors in file {}'
     for a_file in changed_files:
-        error_stream = io.StringIO()
-        report = Reporter(error_stream, sys.stderr)
         if os.path.exists(a_file) and isPythonFile(a_file):
             filename = os.path.split(a_file)[1]
             if not (filename == "all.py" or filename == "__init__.py" or
                     "catalog" in filename):
+                error_stream = io.StringIO()
+                report = Reporter(error_stream, sys.stderr)
                 errors_here = checkPath(a_file, report)  # run pyflakes
                 if errors_here:
-                    lazys = list(find_lazy_imports(a_file))
-                    for err in error_stream:
-                        if any(x in err for x in lazys):
-                            errors_here -= 1
-                        else:
-                            print(err)
+                    # here we try to care for lazy imported names
+                    lazys = list(find_lazy_imports(a_file))  # ok
+                    if lazys:
+                        for err in error_stream.getvalue().splitlines():
+                            if any(x in err.split(' ')[-1] for x in lazys):
+                                errors_here -= 1
+                            else:
+                                print(err)
+                    else:
+                        print(error_stream.getvalue())
+                error_stream.close()
+                if errors_here:
                     errors += errors_here
                     msg_list.append(msg_here.format(errors_here, a_file))
 
@@ -286,10 +290,10 @@ def pyflakes(ticket, **kwds):
 
 def find_lazy_imports(a_file):
     """
-    Return an iterator over the name of functions or classes
-    that are lazily imported in the given file.
+    Return an iterator over the names of functions or classes
+    that are lazily imported inside the given file ``a_file``.
 
-    This works, but restricted to 'lazy_import' that fits on one line.
+    This works, but restricted to ``'lazy_import'`` that fits on one line.
     """
     lazys = list(subprocess.Popen(['git', 'grep', '-h', 'lazy_import', a_file],
                                   stdout=subprocess.PIPE).stdout)
