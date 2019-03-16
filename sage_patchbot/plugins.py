@@ -836,15 +836,6 @@ def CDF(x):
     return 0.5 + 0.5 * math.sqrt(1 - math.exp(-sqrt_pi_over_8 * x * x))
 
 
-def ICDF(p):
-    """
-    Inverse cumulative distribution function.
-    """
-    if p < 0.5:
-        return -ICDF(1 - p)
-    return math.sqrt(-math.log(1 - (2 * p - 1) ** 2) / sqrt_pi_over_8)
-
-
 if __name__ == '__main__':
     plugin = globals()[sys.argv[1]]
     kwds = {}

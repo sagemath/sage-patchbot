@@ -22,27 +22,6 @@ import urllib2
 from .trac_error import TracInternalError, TracConnectionError
 from .cached_property import cached_property
 
-# Monkey patch https://bugs.python.org/issue8194
-if (sys.version_info[0] == 2 and
-        sys.version_info[1] == 7 and
-        sys.version_info[2] <= 1):
-
-    import httplib
-
-    class patched_addinfourl(urllib2.addinfourl):
-
-        def getheader(self, name, default=None):
-            if self.headers is None:
-                raise httplib.ResponseNotReady()
-            return self.headers.getheader(name, default)
-
-        def getheaders(self):
-            if self.headers is None:
-                raise httplib.ResponseNotReady()
-            return self.headers.items()
-
-    urllib2.addinfourl = patched_addinfourl
-
 
 class DigestTransport(object, SafeTransport):
     """
