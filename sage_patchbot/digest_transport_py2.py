@@ -15,7 +15,6 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-import sys
 from xmlrpclib import SafeTransport, Fault
 import urllib2
 
