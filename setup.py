@@ -51,5 +51,5 @@ setup(name='sage-patchbot',
           "Operating System :: OS Independent",
           "Topic :: Scientific/Engineering :: Mathematics",
           "Topic :: Software Development :: Quality Assurance"
-      ]
+      ],
       zip_safe=False)
