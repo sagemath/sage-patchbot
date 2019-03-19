@@ -588,8 +588,6 @@ class Patchbot(object):
                 self.write_log(" retry {}; timeout while querying the patchbot server with '{}'".format(retry, path), [LOG_MAIN, LOG_MAIN_SHORT])
                 if retry == 0:
                     raise
-            else:
-                break
 
             time.sleep(30)
 
@@ -1301,7 +1299,7 @@ class Patchbot(object):
 
             P.check_spkg('https://marcel.proust.fr/enfleurs-2.tar.bz2')
 
-        PROBABLY VERY MUCH OBSOLETE, dating from old style spkg !
+        PROBABLY VERY MUCH *OBSOLETE*, dating from old style spkg !
         """
         basename = os.path.basename(spkg)
         base = basename.split('-')[0]  # the rest is the version
