@@ -1337,47 +1337,22 @@ class Patchbot(object):
             print("Now comparing to previous spkg.")
             # Compare to the current version.
             old_path = old_url = listing = None
-            if False:
-                # There seems to be a bug...
-                #  File "/data/sage/sage-5.5/local/lib/python2.7/site-packages/pexpect.py", line 1137, in which
-                #      if os.access (filename, os.X_OK) and not os.path.isdir(f):
-                import pexpect
-                p = pexpect.spawn("{}/sage".format(self.sage_root),
-                                  ['--info', base])
-                while True:
-                    index = p.expect([
-                        r"Found package %s in (\S+)" % base,
-                        r">>> Checking online list of (\S+) packages.",
-                        r">>> Found (%s-\S+)" % base,
-                        r"Error: could not find a package"])
-                    if index == 0:
-                        old_path = "$SAGE_ROOT/" + p.match.group(1)
-                        break
-                    elif index == 1:
-                        listing = p.match.group(2)
-                    elif index == 2:
-                        old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, p.match.group(1))
-                        break
-                    else:
-                        print("No previous match.")
-                        break
-            else:
-                p = subprocess.Popen(r"%s/sage --info %s" % (self.sage_root, base),
-                                     shell=True, stdout=subprocess.PIPE)
-                for line in p.communicate()[0].split('\n'):
-                    m = re.match(r"Found package %s in (\S+)" % base, line)
-                    if m:
-                        old_path = os.path.join(self.sage_root, m.group(1))
-                        break
-                    m = re.match(r">>> Checking online list of (\S+) packages.", line)
-                    if m:
-                        listing = m.group(1)
-                    m = re.match(r">>> Found (%s-\S+)" % base, line)
-                    if m:
-                        old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
-                        break
-                if not old_path and not old_url:
-                    print("Unable to locate existing package %s." % base)
+            p = subprocess.Popen(r"%s/sage --info %s" % (self.sage_root, base),
+                                 shell=True, stdout=subprocess.PIPE)
+            for line in p.communicate()[0].split('\n'):
+                m = re.match(r"Found package %s in (\S+)" % base, line)
+                if m:
+                    old_path = os.path.join(self.sage_root, m.group(1))
+                    break
+                m = re.match(r">>> Checking online list of (\S+) packages.", line)
+                if m:
+                    listing = m.group(1)
+                m = re.match(r">>> Found (%s-\S+)" % base, line)
+                if m:
+                    old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
+                    break
+            if not old_path and not old_url:
+                print("Unable to locate existing package %s." % base)
 
             if old_path is not None and old_path.startswith('/attachment/'):
                 old_url = 'git://trac.sagemath.org/sage_trac' + old_path
