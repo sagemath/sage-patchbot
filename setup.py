@@ -31,7 +31,6 @@ setup(name='sage-patchbot',
       license='GPL',
       long_description=long_description,
       long_description_content_type="text/markdown",
-      url='https://github.com/sagemath/sage-patchbot',
       entry_points={
           'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
       packages=['sage_patchbot', 'sage_patchbot.server'],
