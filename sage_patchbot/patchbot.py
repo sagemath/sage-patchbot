@@ -326,12 +326,11 @@ def sha1file(path, blocksize=None):
     if blocksize is None:
         blocksize = 2 ** 16
     h = hashlib.sha1()
-    handle = open(path, 'rb')
-    buf = handle.read(blocksize)
-    while len(buf):
-        h.update(buf)
+    with open(path, 'rb') as handle:
         buf = handle.read(blocksize)
-    handle.close()
+        while len(buf):
+            h.update(buf)
+            buf = handle.read(blocksize)
     return h.hexdigest()
 
 
@@ -721,9 +720,9 @@ class Patchbot(object):
         # configuration file there
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-        handle = codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
-                             encoding='utf8')
-        handle.close()
+        with codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
+                         encoding='utf8'):
+            pass
 
         # write the config in logfile
         self.delete_log(LOG_CONFIG)

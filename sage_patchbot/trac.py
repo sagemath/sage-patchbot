@@ -46,15 +46,10 @@ def get_url(url):
     """
     Return the contents of url as a string.
     """
-    try:
-        url = url.replace(' ', '%20')
-        handle = urlopen(url, timeout=15)
+    url = url.replace(' ', '%20')
+    with urlopen(url, timeout=15) as handle:
         data = handle.read()
-        handle.close()
-        return data.decode('utf8')
-    except:
-        print(url)
-        raise
+    return data.decode('utf8')
 
 
 def is_closed_on_trac(ticket_id):
