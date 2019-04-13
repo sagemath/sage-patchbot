@@ -51,4 +51,7 @@ setup(name='sage-patchbot',
           "Topic :: Scientific/Engineering :: Mathematics",
           "Topic :: Software Development :: Quality Assurance"
       ],
+      install_requires=[
+          'pyflakes', 'pycodestyle'
+      ],
       zip_safe=False)
