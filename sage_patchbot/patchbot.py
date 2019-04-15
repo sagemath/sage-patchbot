@@ -57,18 +57,6 @@ except ImportError:
     from urllib.error import HTTPError
     from urllib.parse import urlencode
 
-try:
-    from pyflakes.api import checkPath, isPythonFile
-    _PYFLAKES_FOUND = True
-except ImportError:
-    _PYFLAKES_FOUND = False
-
-try:
-    from pycodestyle import StyleGuide
-    _PYCODESTYLE_FOUND = True
-except ImportError:
-    _PYCODESTYLE_FOUND = False
-
 from datetime import datetime
 
 # imports from patchbot sources
@@ -655,15 +643,9 @@ class Patchbot(object):
         # plugin setup
         plugins = set(conf['plugins'])
         plugins.update(conf.pop("plugins_enabled"))
-        # if available, use the pyflakes and pycodestyle plugins
-        if _PYFLAKES_FOUND:
-            plugins.add("pyflakes")
-        elif "pyflakes" in plugins:
-            plugins.remove("pyflakes")
-        if _PYCODESTYLE_FOUND:
-            plugins.add("pycodestyle")
-        elif "pycodestyle" in plugins:
-            plugins.remove("pycodestyle")
+        # always use the pyflakes and pycodestyle plugins
+        plugins.add("pyflakes")
+        plugins.add("pycodestyle")
         plugins.difference_update(conf.pop("plugins_disabled"))
         # for backward compatibility (allow both plugins.X and just X)
         plugins = set(name.split('.')[-1] for name in plugins)

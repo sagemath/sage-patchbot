@@ -28,16 +28,9 @@ import json
 from .trac import do_or_die
 from .util import describe_branch
 
-try:
-    from pyflakes.api import checkPath, isPythonFile
-    from pyflakes.reporter import Reporter
-except ImportError:
-    pass
-
-try:
-    from pycodestyle import StyleGuide
-except ImportError:
-    pass
+from pyflakes.api import checkPath, isPythonFile
+from pyflakes.reporter import Reporter
+from pycodestyle import StyleGuide
 
 
 # hardcoded list of plugins
