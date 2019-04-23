@@ -412,7 +412,7 @@ class Patchbot(object):
                       "max_behind_commits": 0,
                       "max_behind_days": 1.0,
                       "use_ccache": True,
-                      "tested_files": "all",   # either 'all' or 'py3'
+                      "tested_files": "all",   # either 'all' or 'py3' or 'py3+changed'
                       "test_options": None,    # transmitted to --optional
                       # 6 options that can also be changed using sage --xx
                       "dry_run": False,
