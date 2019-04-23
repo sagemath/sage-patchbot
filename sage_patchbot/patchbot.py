@@ -412,7 +412,7 @@ class Patchbot(object):
                       "max_behind_commits": 0,
                       "max_behind_days": 1.0,
                       "use_ccache": True,
-                      "tested_files": "all",   # either 'all' or 'py3'
+                      "tested_files": "all",   # either 'all' or 'py3' or 'py3+changed'
                       "test_options": None,    # transmitted to --optional
                       # 6 options that can also be changed using sage --xx
                       "dry_run": False,
@@ -1163,13 +1163,20 @@ class Patchbot(object):
                             test_target = os.path.join(self.sage_root,
                                                        "src", "sage", "misc",
                                                        "a*.py")
-                        elif self.config['tested_files'] == 'py3':
+                        elif self.config['tested_files'] in ['py3', 'py3+changed']:
                             path = os.path.join(self.sage_root, 'src', 'ext',
                                                 'doctest',
                                                 'python3-known-passing.txt')
                             with open(path) as f:
                                 good_guys = ' '.join(f.read().splitlines())
-                            test_target = "--long " + good_guys
+                            if self.config['tested_files'] == 'py3+changed':
+                                changed_files = subprocess.check_output(
+                                    ["git", "diff", "--name-only", "patchbot/base..patchbot/ticket_merged"],
+                                    universal_newlines=True).strip().split('\n')
+                                changed_guys = ' ' + ' '.join(changed_files)
+                            else:
+                                changed_guys = ''
+                            test_target = "--long " + good_guys + changed_guys
                         else:
                             test_target = "--all --long"
 
