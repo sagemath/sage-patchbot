@@ -295,8 +295,7 @@ def find_lazy_imports(a_file):
         # will only work for single-line lazy imports
         if line.startswith('lazy_import') and line.endswith(')'):
             what = line[12:-1]
-            if 'deprecation' in what:
-                what = ','.join(what.split(',')[:-1])
+            what = ','.join(term for term in what.split(',') if '=' not in term)  # Filter out kwargs.
             what = u'[' + what + u']'
             what = json.loads(what.replace(u"'", u'"'))
 
