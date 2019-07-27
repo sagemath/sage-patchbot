@@ -1,36 +1,28 @@
-import codecs
-import os
-import re
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''The setup script.'''
 
 from setuptools import setup
 
-here = os.path.abspath(os.path.dirname(__file__))
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
-
-def read(*parts):
-    return codecs.open(os.path.join(here, *parts), 'r').read()
+def readme():
+    with open('README.md', 'r') as f:
+        return f.read()
 
 
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+requirements = ['pyflakes', 'pycodestyle']
 
 
-setup(name='sage-patchbot',
-      version=find_version('sage_patchbot', 'version.py'),
+setup(name='sage_patchbot',
+      version='2.8.3',
       description='bot for automatic test of sagemath trac tickets',
+      long_description=readme(),
+      long_description_content_type='text/markdown',
+      keywords='sagemath',
+      author='SageMath Developers',
       url='https://github.com/sagemath/sage-patchbot',
-      author='Robert Bradshaw',
       license='GPL',
-      long_description=long_description,
-      long_description_content_type="text/markdown",
       entry_points={
           'console_scripts': ['patchbot=sage_patchbot.patchbot:main']},
       packages=['sage_patchbot', 'sage_patchbot.server'],
@@ -45,13 +37,11 @@ setup(name='sage-patchbot',
           ]
       },
       classifiers=[
-          "Programming Language :: Python :: 3",
-          "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
-          "Operating System :: OS Independent",
-          "Topic :: Scientific/Engineering :: Mathematics",
-          "Topic :: Software Development :: Quality Assurance"
+          'Programming Language :: Python :: 3',
+          'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+          'Operating System :: OS Independent',
+          'Topic :: Scientific/Engineering :: Mathematics',
+          'Topic :: Software Development :: Quality Assurance'
       ],
-      install_requires=[
-          'pyflakes', 'pycodestyle'
-      ],
+      install_requires=requirements,
       zip_safe=False)

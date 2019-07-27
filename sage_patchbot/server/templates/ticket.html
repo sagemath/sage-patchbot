@@ -64,7 +64,7 @@ Merge: <span class='git_commit'>{{report.git_merge}}</span> ({{report.git_merge_
 {% for plugin_tuple in report.get('plugins', []) %}
 {% set plugin, status, data = normalize_plugin(plugin_tuple) %}
 <li>
-<img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/svg/{{['PluginOnlyFailed', 'PluginOnly'][status]}}">
+<img height="16" alt="{{['PluginFailed', 'PluginPassed'][status]}}" src="/svg/{{['SmallPluginFailed', 'SmallPluginPassed'][status]}}">
 <a href='{{report.log}}?plugin={{plugin}}'>{{plugin}}</a>
 {% if 'base_log' in report %}
 (<a href='{{report.log}}?plugin={{plugin}}&amp;diff={{report.base_log}}&amp;ticket={{ticket}}&amp;base={{report.raw_base}}'>diff</a>)

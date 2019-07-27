@@ -751,24 +751,6 @@ def create_base_image_svg():
     return response
 
 
-# @app.route("/blob/<status>") # desactivated, to be removed
-def status_image(status):
-    """
-    Return the blob image (as a web page) for a single status or a
-    concatenation of several ones
-
-    This is for the 'png' icon set.
-
-    For example, see https://patchbot.sagemath.org/blob/BuildFailed,ApplyFailed
-
-    or https://patchbot.sagemath.org/blob/TestsPassed
-    """
-    response = make_response(create_status_image(status))
-    response.headers['Content-type'] = 'image/png'
-    response.headers['Cache-Control'] = 'max-age=3600'
-    return response
-
-
 @app.route("/svg/<status>")
 def status_image_svg(status):
     """

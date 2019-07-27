@@ -21,7 +21,6 @@ argument.
 #                  https://www.gnu.org/licenses/
 # -------------------------------------------------------------------
 
-
 # global python imports
 import codecs
 import hashlib
@@ -60,6 +59,7 @@ except ImportError:
 from datetime import datetime
 
 # imports from patchbot sources
+import sage_patchbot
 from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, Config, is_closed_on_trac
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
@@ -68,7 +68,7 @@ from .util import (now_str, prune_pending, do_or_die,
                    ConfigException, SkipTicket, TestsFailed)
 from .http_post_file import post_multipart
 from .plugins import PluginResult, plugins_available
-from .version import __version__
+from sage_patchbot import __version__
 
 # name of the log files
 LOG_RATING = 'rating.log'
