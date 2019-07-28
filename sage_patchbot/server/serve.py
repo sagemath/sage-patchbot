@@ -674,8 +674,7 @@ def get_log(log):
     if not db.logs.exists(path):
         data = "No such log!"
     else:
-        with bz2.open(db.logs.get(path), ) as f:
-            data = TextIOWrapper(f).read()
+        data = bz2.decompress(db.logs.get(path)).decode()
     if 'plugin' in request.args:
         plugin = request.args.get('plugin')
         data = extract_plugin_log(data, plugin)
@@ -683,8 +682,8 @@ def get_log(log):
             header = data[:data.find('\n')]
             base = request.args.get('base')
             ticket_id = request.args.get('ticket')
-            with bz2.open(db.logs.get(request.args.get('diff')), 'r') as f:
-                base_data = TextIOWrapper(f).read()
+            base_data = bz2.decompress(db.logs.get(request.args.get('diff')))
+            base_data = base_data.decode()
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
             data = '\n'.join(('' if item[0] == '@' else item)
