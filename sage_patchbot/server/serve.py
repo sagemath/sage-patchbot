@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # global python imports
-from __future__ import absolute_import
 import os
 import bz2
 import json
@@ -12,11 +11,7 @@ from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
 from datetime import datetime
 
-# from six.moves import cStringIO
-try:
-    from cStringIO import StringIO  # python2
-except ImportError:
-    from io import StringIO  # python3
+from io import StringIO, TextIOWrapper
 
 try:
     from urllib import quote
@@ -679,8 +674,8 @@ def get_log(log):
     if not db.logs.exists(path):
         data = "No such log!"
     else:
-        with bz2.open(db.logs.get(path), 'r') as f:
-            data = f.read()
+        with bz2.open(db.logs.get(path), ) as f:
+            data = TextIOWrapper(f).read()
     if 'plugin' in request.args:
         plugin = request.args.get('plugin')
         data = extract_plugin_log(data, plugin)
@@ -689,7 +684,7 @@ def get_log(log):
             base = request.args.get('base')
             ticket_id = request.args.get('ticket')
             with bz2.open(db.logs.get(request.args.get('diff')), 'r') as f:
-                base_data = f.read()
+                base_data = TextIOWrapper(f).read()
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
             data = '\n'.join(('' if item[0] == '@' else item)
