@@ -693,7 +693,7 @@ def get_log(log):
             data = header + "\n\n" + data
 
     if 'short' in request.args:
-        response = Response(shorten(data), direct_passthrough=True)
+        response = Response(shorten(data))
     else:
         response = make_response(data)
     response.headers['Content-type'] = 'text/plain; charset=utf-8'
