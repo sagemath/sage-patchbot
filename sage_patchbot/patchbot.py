@@ -68,7 +68,6 @@ from .util import (now_str, prune_pending, do_or_die,
                    ConfigException, SkipTicket, TestsFailed)
 from .http_post_file import post_multipart
 from .plugins import PluginResult, plugins_available
-from sage_patchbot import __version__
 
 # name of the log files
 LOG_RATING = 'rating.log'
@@ -443,7 +442,7 @@ class Patchbot(object):
         self.reload_config()
 
         self.trac_server = TracServer(Config())
-        self.__version__ = __version__
+        self.__version__ = sage_patchbot.__version__
         self.last_pull = 0
         self.to_skip = {}
         self.idling = False

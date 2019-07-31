@@ -11,7 +11,7 @@ from optparse import OptionParser
 from flask import Flask, render_template, make_response, request, Response
 from datetime import datetime
 
-from io import StringIO, TextIOWrapper
+from io import StringIO
 
 try:
     from urllib import quote
@@ -244,6 +244,21 @@ class MachineStats(object):
 
     def __lt__(self, other):
         return self.last_report < other.last_report
+
+    def __gt__(self, other):
+        return self.last_report > other.last_report
+
+    def __le__(self, other):
+        return self.last_report <= other.last_report
+
+    def __ge__(self, other):
+        return self.last_report >= other.last_report
+
+    def __eq__(self, other):
+        return self.last_report == other.last_report
+
+    def __ne__(self, other):
+        return self.last_report != other.last_report
 
 
 @app.route("/machines")
