@@ -577,11 +577,13 @@ def blocks(ticket, **kwds):
     4) no :: after REFERENCE blocks
     
     5) no " :" at the end of lines
+    
+    6) no "Returns" at the start of lines
     """
     regexps = [r'\.\.SEE', r'SEE ALSO', r'SEEALSO:($|[^:])',
                r'^\s*TEST:', r'^\s*EXAMPLE:', r'^\s*NOTES:',
                r'^\s*[A-Z]*PUT::',
-               r'^\s*REFERENCES?::', r'\s:$']
+               r'^\s*REFERENCES?::', r'\s:$', r'^\s*Returns']
     exclude_new(ticket, regex=regexps,
                 msg="wrong syntax for blocks (INPUT, OUTPUT, EXAMPLES, NOTE, etc)",
                 **kwds)
