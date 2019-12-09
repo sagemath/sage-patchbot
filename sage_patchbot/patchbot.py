@@ -26,7 +26,6 @@ import codecs
 import hashlib
 import signal
 import getpass
-import platform
 import glob
 import re
 import os
@@ -241,7 +240,7 @@ def machine_data():
     """
     Return the machine data as a list of strings.
 
-    This uses ``uname`` to find the data.
+    This uses ``os.uname`` to find the data.
 
     EXAMPLES::
 
@@ -249,11 +248,8 @@ def machine_data():
         m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
     system, node, release, version, arch = os.uname()
-    if system.lower() == "linux":
-        dist_name, dist_version, dist_id = platform.linux_distribution()
-        if dist_name:
-            return [dist_name.strip(' '), dist_version, arch, release, node]
-    return [system.strip(' '), version, arch, release, node]
+    system = system.strip(' ')
+    return [system, version, arch, release, node]
 
 
 def parse_time_of_day(s):
