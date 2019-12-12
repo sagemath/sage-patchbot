@@ -1,3 +1,10 @@
+2.8.4
+=====
+
+* remove call to deprecated method of platform
+* more plugin checks: Returns, "space:"
+* now python3 only
+
 2.8.2 (unreleased)
 ==================
 
