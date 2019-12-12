@@ -15,7 +15,7 @@ requirements = ['pyflakes', 'pycodestyle']
 
 
 setup(name='sage_patchbot',
-      version='2.8.3',
+      version='2.8.4',
       description='bot for automatic test of sagemath trac tickets',
       long_description=readme(),
       long_description_content_type='text/markdown',
