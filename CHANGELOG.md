@@ -1,4 +1,4 @@
-3.0.0 (unreleased)
+3.0.0 (2019-12-13)
 ==================
 
 * Remove calls to deprecated method of platform.
