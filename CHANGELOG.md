@@ -1,4 +1,4 @@
-2.8.2 (unreleased)
+3.0.0 (unreleased)
 ==================
 
 * Remove calls to deprecated method of platform.
