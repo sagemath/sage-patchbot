@@ -1,14 +1,11 @@
-2.8.4
-=====
-
-* remove call to deprecated method of platform
-* more plugin checks: Returns, "space:"
-* now python3 only
-
 2.8.2 (unreleased)
 ==================
 
-* Nothing changed yet.
+* Remove calls to deprecated method of platform.
+* More plugin checks: Returns, "space:"
+* Now Python 3 only.
+* Fixed printing of return values from report posts to not print
+  bytes objects.
 
 
 2.8.1 (2018-08-08)
