@@ -247,8 +247,8 @@ def machine_data():
         m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
         m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
-    system, node, release, version, arch = os.uname()
-    system = system.strip(' ')
+    system, node, release, version, arch = (txt.replace(" ", "_")
+                                            for txt in os.uname())
     return [system, version, arch, release, node]
 
 
@@ -1424,7 +1424,8 @@ class Patchbot(object):
         if os.path.exists(log):
             # py3 : opens the file, get bytes
             # py2 : opens the file, get str=bytes
-            local_log = open(log, 'rb').read()
+            with open(log, 'rb') as f:
+                local_log = f.read()
             compressed = bz2.compress(local_log)
             files = [('log', 'log', compressed)]
         else:

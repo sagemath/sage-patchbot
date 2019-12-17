@@ -558,7 +558,10 @@ def post_report(ticket_id):
 
         prune_pending(ticket, report['machine'])
         ticket['reports'].append(report)
-        db.logs.put(request.files.get('log'), _id=log_name(ticket_id, report))
+        log_filename = log_name(ticket_id, report)
+        db.logs.put(request.files.get('log'),
+                    _id=log_filename,
+                    filename=log_filename)
         if 'retry' in ticket:
             ticket['retry'] = False
         ticket['last_activity'] = now_str()
@@ -687,7 +690,7 @@ def get_ticket_log(id, log):
 def get_log(log):
     path = "/log/" + log
     if not db.logs.exists(path):
-        data = "No such log!"
+        data = "No such log !\n{}".format(path)
     else:
         data = bz2.decompress(db.logs.get(path).read()).decode()
     if 'plugin' in request.args:
