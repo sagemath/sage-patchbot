@@ -247,8 +247,9 @@ def machine_data():
         m1 = ['Ubuntu', '14.04', 'i686', '3.13.0-40-generic', 'arando']
         m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
     """
-    system, node, release, version, arch = (txt.replace(" ", "_")
-                                            for txt in os.uname())
+    first_cleanup = [txt.replace(" ", "_") for txt in os.uname()]
+    system, node, release, version, arch = [txt.replace("#", "")
+                                            for txt in first_cleanup]
     return [system, version, arch, release, node]
 
 
