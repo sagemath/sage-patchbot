@@ -413,9 +413,9 @@ def render_ticket(ticket):
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
-            if '#' in item[machine]:
-                txt = item[machine].replace("#", "%23")
-                item[machine] = txt
+            #if '#' in item[machine]:
+            #    txt = item[machine].replace("#", "%23")
+            #    item[machine] = txt
             if chosen_base == 'all' or chosen_base == base_of_this_report:
                 yield item
 
