@@ -34,7 +34,7 @@ IMAGES_DIR = os.path.join(os.path.dirname(__file__), 'images')
 # see master_branch instead
 
 # machines that are banned from posting their reports
-BLACKLIST = []
+BLACKLIST = ['sage4', 'Gentoo Base System/2.2/x86_64/4.14.78-gentoo/sage4']
 
 
 def timed_cached_function(refresh_rate=60):
