@@ -577,10 +577,11 @@ def post_report(ticket_id):
 
 
 def log_name(ticket_id, report):
+    machine = [txt.replace('#', '%23') for txt in report['machine']]
     return "/log%s/%s/%s/%s" % (
         '/Pending' if report['status'] == 'Pending' else '',
         ticket_id,
-        '/'.join(report['machine']),
+        '/'.join(machine),
         report['time'])
 
 
