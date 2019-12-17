@@ -413,11 +413,12 @@ def render_ticket(ticket):
             for x in ('commit', 'base', 'merge'):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
-            #if '#' in item[machine]:
-            #    txt = item[machine].replace("#", "%23")
-            #    item[machine] = txt
+            item[machine] = band_aid_for_machine(item[machine])  # temporary
             if chosen_base == 'all' or chosen_base == base_of_this_report:
                 yield item
+
+    def band_aid_for_machine(mach):
+        return [txt.replace("#", "%23") for txt in mach]
 
     def normalize_plugin(plugin):
         while len(plugin) < 3:
