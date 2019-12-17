@@ -693,6 +693,7 @@ def get_ticket_log(id, log):
 @app.route("/log/<path:log>")
 def get_log(log):
     path = "/log/" + log
+    path = path.replace("#", "%23")  # temporary bandaid
     if not db.logs.exists(path):
         data = "No such log !\n{}".format(path)
     else:
