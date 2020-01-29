@@ -1257,6 +1257,7 @@ class Patchbot(object):
                                    plugins=plugins_results,
                                    dry_run=self.config['dry_run'])
                 self.write_log("Done reporting #{}".format(ticket['id']), LOG_MAIN)
+                print(ticket['title'].encode('utf8'))
                 break
             except IOError:
                 traceback.print_exc()
