@@ -1039,7 +1039,7 @@ class Patchbot(object):
         # ------------- initialisation -------------
         print("\n\n")
         print(boundary(ticket['id'], 'ticket'))
-        print(ticket['title'].encode('utf8'))
+        print(ticket['title'])
         print("score = {}".format(rating))
         print("\n\n")
         log = os.path.join(self.log_dir, '{}-log.txt'.format(ticket['id']))
@@ -1048,7 +1048,7 @@ class Patchbot(object):
             self.report_ticket(ticket, status='Pending', log=log)
         plugins_results = []
         if not self.config['no_banner']:
-            print(self.banner().encode('utf8'))
+            print(self.banner())
         botmake = os.getenv('MAKE', "make -j{}".format(self.config['parallelism']))
         os.environ['GIT_AUTHOR_NAME'] = os.environ['GIT_COMMITTER_NAME'] = 'patchbot'
         os.environ['GIT_AUTHOR_EMAIL'] = os.environ['GIT_COMMITTER_EMAIL'] = 'patchbot@localhost'
@@ -1257,7 +1257,7 @@ class Patchbot(object):
                                    plugins=plugins_results,
                                    dry_run=self.config['dry_run'])
                 self.write_log("Done reporting #{}".format(ticket['id']), LOG_MAIN)
-                print(ticket['title'].encode('utf8'))
+                print(ticket['title'])
                 break
             except IOError:
                 traceback.print_exc()
