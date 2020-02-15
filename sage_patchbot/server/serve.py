@@ -714,6 +714,8 @@ def get_log(log):
             if not data:
                 data = "No change."
             data = header + "\n\n" + data
+        return render_template("plugin_remplate.html",
+                               plugin_name=plugin, plugin_text=data)
 
     if 'short' in request.args:
         response = Response(shorten(data))
