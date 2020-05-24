@@ -1526,7 +1526,7 @@ def main(args=None):
 
     if options.conf:
         # the option "--conf" allows to see the configuration
-        print(pprint.pprint(patchbot.config))
+        pprint.pprint(patchbot.config)
         sys.exit(0)
 
     if options.list:
