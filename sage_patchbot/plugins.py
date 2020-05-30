@@ -529,6 +529,8 @@ def python3(ticket, **kwds):
     11) apply
 
     12) sagenb
+
+    13) six is no longer allowed
     """
     def python_or_cython_or_rst(a_file):
         return a_file.split(os.path.extsep)[-1] in ['py', 'pyx', 'rst']
@@ -541,7 +543,8 @@ def python3(ticket, **kwds):
                r'__metaclass__',
                r'except\s*[A-Za-z]\s*,',
                r'[^_a-z]apply\(',
-               r'sagenb')
+               r'sagenb',
+               r'import six', r'from six import')
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=python_or_cython_or_rst,
                              msg="Python3 incompatible code", **kwds)
