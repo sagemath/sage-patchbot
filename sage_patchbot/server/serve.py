@@ -213,8 +213,14 @@ def ticket_list():
         base_status = get_ticket_status(ticket0, base)
         versions = list(set(report['base'] for report in ticket0['reports']))
         versions.sort(key=comparable_version)
-        master_branch = comparable_version([v for v in versions
-                                            if len(v.split('.')) == 2][-1])
+        extract_masters = [v for v in versions if len(v.split('.')) == 2]
+        if not extract_masters:
+            v = versions[-1].split('.')
+            # we have no trace of reports on the previous master (sigh)
+            # this could happen after a zelous database cleaning
+            master_branch = comparable_version(f"{v[0]}.{int(v[1]) - 1}")
+        else:
+            master_branch = comparable_version(extract_masters[-1])
         versions = [v for v in versions
                     if comparable_version(v) >= master_branch]
         versions = [(v, get_ticket_status(ticket0, v)) for v in versions]
