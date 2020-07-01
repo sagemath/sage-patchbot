@@ -10,18 +10,11 @@ import time
 import subprocess
 import pprint
 
-try:
-    # Python 3.3+
-    from xmlrpc.client import ServerProxy
-    from .digest_transport import DigestTransport
-    from urllib import parse as url_parse
-    from urllib.request import urlopen
-except ImportError:
-    # Python 2.7
-    from xmlrpclib import ServerProxy
-    from .digest_transport_py2 import DigestTransport
-    from urllib2 import urlparse as url_parse
-    from urllib2 import urlopen
+# Python 3.3+
+from xmlrpc.client import ServerProxy
+from .digest_transport import DigestTransport
+from urllib import parse as url_parse
+from urllib.request import urlopen
 
 # imports from patchbot sources
 from .cached_property import cached_property
@@ -114,7 +107,7 @@ def get_ticket_info_from_trac_server(ticket_id):
             'priority': trac_info.priority,
             'component': trac_info.component,
             'depends_on': extract_depends_on(trac_info.dependencies),
-            'spkgs': extract_spkgs(trac_info.description),
+            'spkgs': bool('packages' in trac_info.component),
             'authors': authors,
             'authors_fullnames': authors_fullnames,
             'participants': extract_participants(rss),
@@ -236,21 +229,6 @@ def extract_participants(rss):
     return list(all)
 
 
-spkg_url_regex = re.compile(r"((?:(?:https?://)|(?:/attachment/)|(?:ftp://)).*?\.(?:spkg|tar\.gz|tar\.bz2))")
-# spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/))(.*?\.(?:spkg|tar\.gz|tar\.bz2))")
-# spkg_url_regex = re.compile(r"(?:(?:https?://)|(?:/attachment/)).*?\.spkg")
-
-
-def extract_spkgs(description):
-    """
-    Extracts any spkgs for a ticket from the description field of the
-    trac-ticket-info.
-
-    Just searches for urls (http,https,ftp) ending in .spkg, .tar.gz or .tar.bz2
-    """
-    return list(set(spkg_url_regex.findall(description)))
-
-
 def extract_depends_on(deps_field):
     deps = []
     for dep in re.finditer(r'#(\d+)', deps_field):
@@ -267,7 +245,6 @@ def inplace_safe():
 
     This must be called after the merge has succeeded.
     """
-    safe = True
     # TODO: Are removed files sufficiently cleaned up?
     cmd = ["git", "diff", "--name-only",
            "patchbot/base..patchbot/ticket_merged"]
@@ -286,8 +263,8 @@ def inplace_safe():
         else:
             msg = "Unsafe file: {}".format(file)
             print(msg)
-            safe = False
-    return safe
+            return False
+    return True
 
 
 def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
@@ -335,6 +312,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             do_or_die("git merge --abort")
             merge_failure = True
             raise
+
         is_safe = inplace_safe()
         if not is_safe:
             if safe_only:

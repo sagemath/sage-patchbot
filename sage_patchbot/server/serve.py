@@ -380,7 +380,7 @@ def render_ticket(ticket):
             elif key == 'component':
                 new_info[key] = '<a href="https://trac.sagemath.org/query?status=!closed&component=%s">%s</a>' % (value, value)
             elif key == 'spkgs':
-                new_info[key] = ', '.join("<a href='%s'>%s</a>" % (a, a) for a in value)
+                pass
             elif isinstance(value, list):
                 new_info[key] = ', '.join(value)
             elif key not in ('id', '_id'):

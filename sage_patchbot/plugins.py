@@ -582,9 +582,9 @@ def blocks(ticket, **kwds):
     3) no :: after INPUT and OUTPUT blocks
 
     4) no :: after REFERENCE blocks
-    
+
     5) no " :" at the end of lines
-    
+
     6) no "Returns" at the start of lines
     """
     regexps = [r'\.\.SEE', r'SEE ALSO', r'SEEALSO:($|[^:])',

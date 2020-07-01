@@ -169,6 +169,23 @@ def git_commit(repo, branch):
         return None
 
 
+def branch_updates_some_package():
+    """
+    Does the ticket branch contains the update of some package ?
+    """
+    cmd = ["git", "diff", "--name-only",
+           "patchbot/base..patchbot/ticket_merged"]
+    for file in subprocess.check_output(cmd,
+                                        universal_newlines=True).split('\n'):
+        if not file:
+            continue
+        if file.startswith("build/pkgs") and file.endswith("checksums.ini"):
+            msg = "Modified package: {}".format(file)
+            print(msg)
+            return True
+    return False
+
+
 def do_or_die(cmd, exn_class=Exception):
     """
     Run a shell command and raise an exception in case of eventual failure.

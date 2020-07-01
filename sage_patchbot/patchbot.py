@@ -41,19 +41,11 @@ import socket
 import pprint
 import multiprocessing
 
-# from six.moves import cPickle as pickle
-try:
-    import cPickle as pickle  # python2
-except ImportError:
-    import pickle  # python3
+import pickle
 
-try:
-    from urllib2 import urlopen, HTTPError  # python2
-    from urllib import urlencode
-except ImportError:
-    from urllib.request import urlopen  # python3
-    from urllib.error import HTTPError
-    from urllib.parse import urlencode
+from urllib.request import urlopen
+from urllib.error import HTTPError
+from urllib.parse import urlencode
 
 from datetime import datetime
 
@@ -62,6 +54,7 @@ import sage_patchbot
 from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, Config, is_closed_on_trac
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
+                   branch_updates_some_package,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space, get_python_version,
                    ConfigException, SkipTicket, TestsFailed)
@@ -1068,20 +1061,14 @@ class Patchbot(object):
                     self.report_ticket(ticket, status='Pending',
                                        log=log, pending_status=state)
 
-                if ticket['spkgs']:
+                is_spkg = branch_updates_some_package() or ticket['spkgs']
+                if is_spkg:
                     # ------------- treatment of spkgs -------------
                     state = 'spkg'
-                    print("\n".join(ticket['spkgs']))
-                    for spkg in ticket['spkgs']:
-                        print(boundary(spkg, 'spkg'))
-                        try:
-                            self.check_spkg(spkg)
-                        except Exception:
-                            traceback.print_exc()
-                        t.finish(spkg)
-                    self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
+                    print("Ticket updates some package, hence not tested.")
+                    self.to_skip[ticket['id']] = time.time() + 240 * 60 * 60
 
-                if not ticket['spkgs']:
+                if not is_spkg:
                     # ------------- make -------------
                     if not self.config['skip_doc_clean']:
                         do_or_die('{} doc-clean'.format(botmake))
@@ -1272,93 +1259,6 @@ class Patchbot(object):
                 shutil.rmtree(maybe_temp_root)
         return status[state]
 
-    def check_spkg(self, spkg):
-        """
-        This is doing a lot of things, but what precisely?
-
-        This is triggered if the ticket has a non-empty "spkgs" field
-
-        INPUT: the full url of the package to be checked.
-
-        EXAMPLES::
-
-            P.check_spkg('https://marcel.proust.fr/enfleurs-2.tar.bz2')
-
-        PROBABLY VERY MUCH *OBSOLETE*, dating from old style spkg !
-        """
-        basename = os.path.basename(spkg)
-        base = basename.split('-')[0]  # the rest is the version
-        regex = re.compile(r"(?:(.*?)(?:\.spkg|\.tar\.gz|\.tar\.bz2|\.tgz|\.zip))")
-
-        def cut_sfx(nm):
-            # cutting the suffix away
-            return regex.findall(nm)[0]
-
-        name_and_version = cut_sfx(basename)
-        print("> name and version = {}".format(name_and_version))
-        temp_dir = None
-        try:
-            temp_dir = tempfile.mkdtemp()  # create temporary dir
-            local_spkg = os.path.join(temp_dir, basename)
-
-            # TODO: use here sage-upload-file instead of wget
-            do_or_die("wget --progress=dot:mega -O %s %s" % (local_spkg, spkg))
-            print("> Successfully uploaded")
-
-            do_or_die("tar xf %s -C %s" % (local_spkg, temp_dir))
-            print("> Successfully unpacked")
-
-            computed_sha = sha1file(local_spkg)
-            print("Sha1 of {} is {}".format(basename, computed_sha))
-            path = os.path.join(self.sage_root, 'build', 'pkgs',
-                                base, 'checksums.ini')
-            given_sha = open(path).read().splitlines()[1].split('=')[1]
-            if computed_sha != given_sha:
-                raise SkipTicket("spkg has incorrect sha1")
-            print("> Correct sha1")
-            # ------------- CODE BELOW IS NOT CLEAR -------------
-            print("Now comparing to previous spkg.")
-            # Compare to the current version.
-            old_path = old_url = listing = None
-            p = subprocess.Popen(r"%s/sage --info %s" % (self.sage_root, base),
-                                 shell=True, stdout=subprocess.PIPE)
-            for line in p.communicate()[0].split('\n'):
-                m = re.match(r"Found package %s in (\S+)" % base, line)
-                if m:
-                    old_path = os.path.join(self.sage_root, m.group(1))
-                    break
-                m = re.match(r">>> Checking online list of (\S+) packages.", line)
-                if m:
-                    listing = m.group(1)
-                m = re.match(r">>> Found (%s-\S+)" % base, line)
-                if m:
-                    old_url = "https://www.sagemath.org/packages/%s/%s.spkg" % (listing, m.group(1))
-                    break
-            if not old_path and not old_url:
-                print("Unable to locate existing package %s." % base)
-
-            if old_path is not None and old_path.startswith('/attachment/'):
-                old_url = 'git://trac.sagemath.org/sage_trac' + old_path
-            if old_url is not None:
-                old_basename = os.path.basename(old_url)
-                old_path = os.path.join(temp_dir, old_basename)
-                if not os.path.exists(old_path):
-                    # TODO: use here instead sage-upload-file
-                    do_or_die("wget --progress=dot:mega %s -O %s" % (old_url,
-                                                                     old_path))
-            if old_path is not None:
-                old_basename = os.path.basename(old_path)
-                if old_basename == basename:
-                    print("PACKAGE NOT RENAMED")
-                else:
-                    do_or_die("tar xf %s -C %s" % (old_path, temp_dir))
-                    do_or_die("diff -N -u -r -x src -x .hg %s/%s %s/%s; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
-                    do_or_die("diff -q -r %s/%s/src %s/%s/src; echo $?" % (temp_dir, cut_sfx(old_basename), temp_dir, cut_sfx(basename)))
-
-        finally:
-            if temp_dir and os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)  # delete temporary dir
-
     def report_ticket(self, ticket, status, log, plugins=(),
                       dry_run=False, pending_status=None):
         """
@@ -1376,7 +1276,6 @@ class Patchbot(object):
         """
         report = {'status': status,
                   'deps': ticket['depends_on'],
-                  'spkgs': ticket['spkgs'],
                   'base': self.base,
                   'user': self.config['user'],
                   'owner': self.config['owner'],
