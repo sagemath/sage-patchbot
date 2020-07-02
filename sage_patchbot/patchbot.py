@@ -1276,6 +1276,7 @@ class Patchbot(object):
         """
         report = {'status': status,
                   'deps': ticket['depends_on'],
+                  'spkgs': ticket['spkgs'],
                   'base': self.base,
                   'user': self.config['user'],
                   'owner': self.config['owner'],
