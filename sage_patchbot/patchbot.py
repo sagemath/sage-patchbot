@@ -27,7 +27,6 @@ import hashlib
 import signal
 import getpass
 import glob
-import re
 import os
 import shutil
 import sys
