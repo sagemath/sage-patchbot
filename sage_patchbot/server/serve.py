@@ -237,7 +237,7 @@ class MachineStats(object):
         self.all_tickets = set()
         self.report_count = 0
         self.last_report = ''
-        self.quoted_name = quote(name)
+        self.quoted_name = [quote(piece) for piece in name]
 
     def add_report(self, report, ticket):
         self.report_count += 1
