@@ -13,10 +13,7 @@ from datetime import datetime
 
 from io import StringIO
 
-try:
-    from urllib import quote
-except ImportError:
-    from urllib.parse import quote
+from urllib.parse import quote
 
 # imports from patchbot sources
 from ..trac import scrape
@@ -240,6 +237,7 @@ class MachineStats(object):
         self.all_tickets = set()
         self.report_count = 0
         self.last_report = ''
+        self.quoted_name = quote(name)
 
     def add_report(self, report, ticket):
         self.report_count += 1
