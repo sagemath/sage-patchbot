@@ -256,7 +256,8 @@ def inplace_safe():
                 file.startswith("src/doc") or
                 file.startswith("build/pkgs") or
                 file in ("src/setup.py", "src/module_list.py",
-                         "README.txt", ".gitignore",
+                         ".lgtm.yml", "tox.ini", "condarc.yml",
+                         "README.md", ".gitignore",
                          "VERSION.txt", "src/bin/sage-banner",
                          "src/bin/sage-version.sh")):
             continue
