@@ -38,10 +38,9 @@ plugins_available = [
     "commit_messages",
     "coverage",
     "non_ascii",
+    "deprecation_number",
     "doctest_continuation",
     "foreign_latex",
-    "oldstyle_print",
-    "python3_py",
     "python3_pyx",
     "python3",
     "pyflakes",
@@ -552,7 +551,7 @@ def python3(ticket, **kwds):
 
 def foreign_latex(ticket, **kwds):
     r"""
-    Check that some bad latex code does not appear
+    Check that some bad latex code does not appear.
 
     including \over, \choose, etc
     """
@@ -561,6 +560,32 @@ def foreign_latex(ticket, **kwds):
                r'\\abovewithdelims']
     exclude_new(ticket, regex=regexps,
                 msg="Foreign commands in LaTeX", **kwds)
+
+
+def deprecation_number(ticket, **kwds):
+    """
+    in case of deprecation, check that the ticket number is correct
+    """
+    gitdiff = subprocess.Popen(['git', 'diff',
+                                'patchbot/base..patchbot/ticket_merged'],
+                               stdout=subprocess.PIPE,
+                               universal_newlines=True).stdout
+    rx = re.compile(r"\((?P<tn>[0-9]*),")
+    ticket_id = ticket['id']
+    bad_lines = 0
+    for line in gitdiff:
+        line = line.strip()
+        if "deprecation(" in line or "deprecated_function_alias(" in line:
+            if ticket_id != int(rx.search(line).group('tn')):
+                print(line)
+                bad_lines += 1
+
+    msg = "Wrong deprecation number"
+    full_msg = "{} inserted on {} non-empty lines"
+    full_msg = full_msg.format(msg, bad_lines)
+    print(full_msg)
+    if bad_lines:
+        raise ValueError(full_msg)
 
 
 def doctest_continuation(ticket, **kwds):
