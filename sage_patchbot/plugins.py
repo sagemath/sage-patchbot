@@ -575,6 +575,8 @@ def deprecation_number(ticket, **kwds):
     bad_lines = 0
     for line in gitdiff:
         line = line.strip()
+        if line.startswith('-'):
+            continue
         if "deprecation(" in line or "deprecated_function_alias(" in line:
             if ticket_id != int(rx.search(line).group('tn')):
                 print(line)
