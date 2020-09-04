@@ -466,6 +466,28 @@ def reports_by_machine_and_base(ticket):
             all[report['base'] + "/" + "/".join(report['machine'])] = report
     return all
 
+
+def is_good_machine(machine):
+    """
+    Check that this machine has a recent report on ticket 0 (base)
+    with result being ``TestsPassed`` or ``TestsFailed``.
+    """
+    t = tickets.find_one({'id': 0})
+
+    def sort_key(a):
+        return a['time']
+    if 'reports' not in ticket:
+        return True  # emergency case, when base reports were deleted
+    # oldest to newest
+    reports = sorted(ticket['reports'], key=sort_key)
+    # just use the short machine name
+    reports = [rep for rep in reports if report['machine'][-1] == machine]
+    if not reports:
+        return False
+    rep = reports[-1]
+    return rep['status'] in ['TestsPassed', 'TestsFailed']
+
+
 # The fact that this image is in the trac template lets the patchbot
 # know when a page gets updated.
 
@@ -547,6 +569,9 @@ def render_ticket_status_svg(ticket):
 def post_report(ticket_id):
     """
     Posting a report to the database of reports.
+
+    The machine need to have a correct report on ticket 0,
+    see :func:`is_good_machine`
     """
     try:
         ticket = tickets.find_one({'id': ticket_id})
@@ -559,9 +584,13 @@ def post_report(ticket_id):
         for fld in ['status', 'spkgs', 'base', 'machine', 'time']:
             assert (fld in report), "{} missing in report".format(fld)
 
+        # handling misbehaviour of patchbot clients
         machine_name = report['machine'][-1]
         if machine_name in BLACKLIST:
             msg = 'machine {} is blacklisted'.format(machine_name)
+            raise RuntimeError(msg)
+        if ticket_id != 0 and not is_good_machine(machine_name):
+            msg = 'machine {} fails on ticket 0'.format(machine_name)
             raise RuntimeError(msg)
 
         prune_pending(ticket, report['machine'])
