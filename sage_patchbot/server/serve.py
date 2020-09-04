@@ -481,7 +481,7 @@ def is_good_machine(machine):
     # oldest to newest
     reports = sorted(ticket['reports'], key=sort_key)
     # just use the short machine name
-    reports = [rep for rep in reports if report['machine'][-1] == machine]
+    reports = [rep for rep in reports if rep['machine'][-1] == machine]
     if not reports:
         return False
     rep = reports[-1]
