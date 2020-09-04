@@ -472,7 +472,7 @@ def is_good_machine(machine):
     Check that this machine has a recent report on ticket 0 (base)
     with result being ``TestsPassed`` or ``TestsFailed``.
     """
-    t = tickets.find_one({'id': 0})
+    tickt = tickets.find_one({'id': 0})
 
     def sort_key(a):
         return a['time']
