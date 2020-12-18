@@ -253,12 +253,18 @@ def inplace_safe():
         if not file:
             continue
         if (file.startswith("src/sage") or
+                file.startswith("src/sage_setup") or
                 file.startswith("src/doc") or
+                file.startswith("src/.tox") or
+                file.endswith('.yml') or
+                file.endswith('.txt') or
+                file.endswith('.json') or
+                file.endswith('.ini') or
+                file.endswith('.md') or
                 file.startswith("build/pkgs") or
-                file in ("src/setup.py", "src/module_list.py",
-                         ".lgtm.yml", "tox.ini", "condarc.yml",
-                         "README.md", ".gitignore",
-                         "VERSION.txt", "src/bin/sage-banner",
+                file in ("src/setup.py",
+                         ".gitignore",
+                         "src/bin/sage-banner",
                          "src/bin/sage-version.sh")):
             continue
         else:
