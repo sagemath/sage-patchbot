@@ -280,33 +280,49 @@ def pyflakes(ticket, **kwds):
         raise ValueError(full_msg)
 
 
+def process_one_lazy_import(txt):
+    what = txt[12:-1]
+    what = ','.join(term for term in what.split(',') if '=' not in term)
+    what = u'[' + what + u']'
+    what = json.loads(what.replace(u"'", u'"'))
+
+    if len(what) == 2:
+        names = what[1]
+    elif len(what) == 3:
+        names = what[2]
+
+    if isinstance(names, list):
+        yield from names
+    else:
+        yield names
+
+
 def find_lazy_imports(a_file):
     """
     Return an iterator over the names of functions or classes
     that are lazily imported inside the given file ``a_file``.
 
-    This works, but restricted to ``'lazy_import'`` that fits on one line.
+    This works, but restricted to ``'lazy_import'`` that fits
+    on at most 6 lines.
     """
-    lazys = list(subprocess.Popen(['git', 'grep', '-h', 'lazy_import', a_file],
+    lazys = list(subprocess.Popen(['git', 'grep', '-h', '-A6',
+                                   'lazy_import', a_file],
                                   stdout=subprocess.PIPE).stdout)
     lazys = [f.decode('utf8').strip("\n").strip() for f in lazys]
+    stored_lines = []
     for line in lazys:
-        # will only work for single-line lazy imports
-        if line.startswith('lazy_import') and line.endswith(')'):
-            what = line[12:-1]
-            what = ','.join(term for term in what.split(',') if '=' not in term)  # Filter out kwargs.
-            what = u'[' + what + u']'
-            what = json.loads(what.replace(u"'", u'"'))
-
-            if len(what) == 2:
-                names = what[1]
-            elif len(what) == 3:
-                names = what[2]
-
-            if isinstance(names, list):
-                yield from names
-            else:
-                yield names
+        # trying to handle multi-line lazy imports
+        if line.startswith('lazy_import'):
+            start_line = True
+            stored_lines = [line]
+        else:
+            start_line = False
+        if stored_lines:
+            if not start_line:
+                stored_lines.append(line)
+            if line.endswith(')'):
+                yield from process_one_lazy_import(''.join(stored_lines))
+                stored_lines = []
 
 
 def pycodestyle(ticket, **kwds):
