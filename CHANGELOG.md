@@ -1,3 +1,12 @@
+3.0.2
+=====
+
+* Handle gracefully lazy imports on several consecutive lines
+* In the webpages for plugin reports, links to wiki explanations.
+* Remove plugins about python3 check, add plugin about deprecation number
+* Larger set of files are declared "safe"
+* Ability to handle more machine names
+
 3.0.1 (unreleased)
 ==================
 
