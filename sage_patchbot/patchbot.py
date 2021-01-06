@@ -1359,7 +1359,7 @@ def main(args=None):
                       default=os.environ.get('SAGE_ROOT'),
                       help="specify another sage root directory")
     parser.add_option("--server", dest="server",
-                      help="specify another patchbot server adress")
+                      help="specify another patchbot server address")
     parser.add_option("--config", dest="config",
                       help="specify the json config file")
     parser.add_option("--cleanup", action="store_true", dest="cleanup",
@@ -1387,7 +1387,7 @@ def main(args=None):
                       default=1000000,
                       help="how many tickets to test")
     parser.add_option("--list", action="store_true", dest="list",
-                      help="only write informations about tickets "
+                      help="only write information about tickets "
                            "that would be tested in the form: "
                            "[ticket id] [rating] [ticket title]")
     parser.add_option("--conf", action="store_true", dest="conf",
