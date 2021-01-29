@@ -524,13 +524,13 @@ class Patchbot(object):
 
             In [7]: print(P.banner())
             ┌─┬──────┐
-            │░│ ⊙  ʘ │        SageMath patchbot
+            │░│  ••  │        SageMath patchbot
             │░│      │
-            │░│ ──── │        version 2.5.3
+            │░│ ──── │        version 3.0.2
             ╘═╧══════╛
         """
         s = u'┌─┬──────┐\n'
-        s += u'│░│ ⊙  ʘ │        SageMath patchbot\n'
+        s += u'│░│  ••  │        SageMath patchbot\n'
         s += u'│░│      │\n'
         s += u'│░│ ──── │        version {}\n'.format(self.version())
         s += u'╘═╧══════╛'
