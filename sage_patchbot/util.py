@@ -221,7 +221,7 @@ def comparable_version(version):
     return [maybe_int(s) for s in version.split('.')]
 
 
-def get_sage_version(sage_root):
+def get_sage_version(sage_root) -> str:
     """
     Get the sage version.
 
@@ -238,13 +238,13 @@ def get_sage_version(sage_root):
     return sage_version.split()[2].strip(',')
 
 
-def get_python_version(sage_cmd):
+def get_python_version(sage_cmd) -> str:
     """
     get the python version run by sage
 
     input: full path to the sage executable
 
-    output: an integer
+    output: a string of the shape '3.9.2'
     """
     # res = subprocess.check_output([sage_cmd, "--python-version"])
     # return int(res[0])
@@ -252,9 +252,7 @@ def get_python_version(sage_cmd):
 
     res = subprocess.check_output([sage_cmd, "--python", "--version"],
                                   stderr=subprocess.STDOUT)
-    res = str(res).split(" ")[1]
-    res = res.split(".")[0]
-    return int(res)
+    return str(res).split(" ")[1]
 
 
 def describe_branch(branch, tag_only=False):
