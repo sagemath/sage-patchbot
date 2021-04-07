@@ -250,9 +250,9 @@ def get_python_version(sage_cmd) -> str:
     # return int(res[0])
     # code above for future use
 
-    res = subprocess.check_output([sage_cmd, "--python", "--version"],
-                                  stderr=subprocess.STDOUT)
-    return str(res).split(" ")[1]
+    res = subprocess.run([sage_cmd, "--python", "--version"],
+                         capture_output=True, text=True).stdout
+    return res.strip().split(" ")[1]
 
 
 def describe_branch(branch, tag_only=False):
