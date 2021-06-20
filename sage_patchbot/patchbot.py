@@ -374,7 +374,6 @@ class Patchbot(object):
                       "timeout": 3 * 60 * 60,
                       "plugins": ["commit_messages",
                                   "coverage",
-                                  "non_ascii",
                                   "deprecation_number",
                                   "doctest_continuation",
                                   "python3",

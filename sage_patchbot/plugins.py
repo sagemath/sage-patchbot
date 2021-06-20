@@ -37,7 +37,6 @@ from pycodestyle import StyleGuide
 plugins_available = [
     "commit_messages",
     "coverage",
-    "non_ascii",
     "deprecation_number",
     "doctest_continuation",
     "foreign_latex",
@@ -195,7 +194,7 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     Search in new code for patterns that should be avoided.
 
     The pattern in given by a regular expression ``regex``. See the next
-    functions `trailing_whitespace`, `non_ascii`, etc for several such
+    functions `trailing_whitespace` etc for several such
     patterns.
 
     INPUT:
@@ -367,7 +366,7 @@ def exclude_new(ticket, regex, msg, **kwds):
 
     ``regex`` is either one regular expression or a list of regular exp.
 
-    See the next functions `trailing_whitespace`, `non_ascii`, etc
+    See the next functions `trailing_whitespace` etc
     for several such patterns.
 
     Proceeding just once for all the changed files.
@@ -405,7 +404,7 @@ def exclude_new_in_diff(gitdiff, regex):
 
     OUTPUT: the number of lines matching the given regular exp.
 
-    See the next functions `trailing_whitespace`, `non_ascii`, etc
+    See the next functions `trailing_whitespace` etc
     for several such patterns.
     """
     # looking for the regular expression 'regex' only in the added lines
@@ -438,43 +437,6 @@ def exclude_new_in_diff(gitdiff, regex):
 
 
 # --- plugins with file-by-file pattern exclusion ---
-
-
-def check_unicode_declaration(file):
-    """
-    Check if the encoding is declared as utf-8 as in PEP0263.
-
-    Return True if there is a correct utf-8 declaration.
-
-    This is one example of the file condition that can be used
-    in exclude_new_file_by_file.
-
-    This is useful in the `non_ascii` plugin.
-    """
-    regex = re.compile(r"coding[:=]\s*([-\w.]+)")
-    with open(file) as f:
-        L0 = regex.split(f.readline())
-        L1 = regex.split(f.readline())
-    if len(L0) >= 2 and L0[1] == 'utf-8':
-        return True
-    if len(L1) >= 2 and L1[1] == 'utf-8':
-        return True
-    return False
-
-
-def non_ascii(ticket, **kwds):
-    """
-    Look for the presence of non-ascii characters in python and cython files.
-
-    This should be done file by file to check for unicode declaration.
-    """
-
-    def not_declared(a_file):
-        return (not(check_unicode_declaration(a_file)) and
-                a_file.split(os.path.extsep)[-1] == 'py')
-    exclude_new_file_by_file(ticket, regex=r'[^\x00-\x7F]',
-                             file_condition=not_declared,
-                             msg="Non-ascii characters", **kwds)
 
 
 def python3_py(ticket, **kwds):
