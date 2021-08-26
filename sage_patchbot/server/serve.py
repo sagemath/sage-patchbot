@@ -656,13 +656,28 @@ def shorten(lines):
     Extract a shorter log from the full log by removing boring parts
     """
     timing = re.compile(r'\s*\[(\d+ tests?, )?\d+\.\d* s\]\s*$')
-    skip = re.compile(r'(sage -t.*\(skipping\))|(byte-compiling)|(copying)|(\S+: \d+% \(\d+ of \d+\)|(Build finished. The built documents can be found in.*)|(\[.........\] .*)|(cp.*/mac-app/.*)|(creating.*site-packages/sage.*)|(mkdir.*)|(creating build/.*)|(Deleting empty directory.*)|(;;;.*))$')
-    gcc = re.compile(r'(gcc)|(g\+\+)')
+    skip = re.compile(r'sage -t.*\(skipping\)|'
+                      r'changing mode|'
+                      r'[Ww]riting|'
+                      r'[Aa]dding|'
+                      r'[Bb]yte-compiling|'
+                      r'[Ee]nabling|'
+                      r'[Cc]opying|'
+                      r'\S+: \d+% \(\d+ of \d+\)|'
+                      r'Build finished|'
+                      r'\[dochtml\]|'
+                      r'\[sagelib-.*\]|'
+                      r'mkdir|'
+                      r'[Cc]reating|'
+                      r'Deleting empty directory|'
+                      r';;;.*$')
+    gcc = re.compile(r'gcc|g\+\+')
     prev = None
     in_plugin = False
     from ..patchbot import boundary
     plugin_start = re.compile(boundary('.*', 'plugin'))
     plugin_end = re.compile(boundary('.*', 'plugin_end'))
+
     for line in StringIO(lines):
         if line.startswith('='):
             if plugin_end.match(line):
@@ -680,7 +695,7 @@ def shorten(lines):
             prev = line
             continue
 
-        if skip.match(line):
+        if skip.search(line):
             pass
         elif prev is None:
             prev = line
