@@ -1343,7 +1343,7 @@ class Patchbot(object):
 _received_sigusr1 = False
 
 
-def main(args=None):
+def main():
     """
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
@@ -1401,7 +1401,7 @@ def main(args=None):
                         help="number of required free gigabytes (0 means "
                              "no minimum space required)")
 
-    args = parser.parse_args(args)
+    args = parser.parse_args()
 
     # the configuration file might be a relative path...
     if args.config is not None:
@@ -1514,5 +1514,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     # this script is the entry point for the bot clients
-    args = list(sys.argv)
-    main(args)
+    main()
