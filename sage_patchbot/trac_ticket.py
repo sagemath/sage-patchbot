@@ -37,12 +37,13 @@ EXAMPLES::
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
+from __future__ import annotations
 
 import textwrap
 from datetime import datetime
 
 
-def format_trac(text):
+def format_trac(text: str) -> str:
     text = text.strip()
     accumulator = []
     for line in text.splitlines():
@@ -79,7 +80,7 @@ class TicketChange_class(object):
         else:
             self._data = ('', '', 1)
 
-    def get_data(self):
+    def get_data(self) -> str:
         try:
             return ' [' + str(self._data) + ']'
         except AttributeError:
@@ -123,8 +124,8 @@ class TicketChange_class(object):
             txt = u'changed from {change.old} to {change.new}'
             return txt.format(change=self)
 
-    def __repr__(self):
-        txt = self.get_author() + u' changed ' + self.get_change()
+    def __repr__(self) -> str:
+        txt = self._author + u' changed ' + self._change
         txt += self.get_data()
         return txt
 
@@ -153,7 +154,7 @@ class TicketComment_class(TicketChange_class):
             self.comment + '" [' + self.number + ']'
 
 
-def TracTicket(ticket_number, server_proxy):
+def TracTicket(ticket_number, server_proxy) -> TracTicket_class:
     from xml.parsers.expat import ExpatError
     ticket_number = int(ticket_number)
     try:

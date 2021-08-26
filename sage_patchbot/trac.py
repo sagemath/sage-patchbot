@@ -1,4 +1,6 @@
 # global python imports
+from __future__ import annotations
+
 import re
 import hashlib
 import os
@@ -21,7 +23,7 @@ from .cached_property import cached_property
 from .util import (do_or_die, now_str, describe_branch,
                    temp_build_suffix, ensure_free_space,
                    ConfigException, SkipTicket)
-from .trac_ticket import TracTicket
+from .trac_ticket import TracTicket, TracTicket_class
 
 
 TRAC_URL = "https://trac.sagemath.org/sage_trac"
@@ -35,7 +37,7 @@ def digest(s):
     return hashlib.md5(s).hexdigest()
 
 
-def get_url(url):
+def get_url(url: str) -> str:
     """
     Return the contents of url as a string.
     """
@@ -45,7 +47,7 @@ def get_url(url):
     return data.decode('utf8')
 
 
-def is_closed_on_trac(ticket_id):
+def is_closed_on_trac(ticket_id: int) -> bool:
     """
     Make damn sure that the ticket is closed on trac.
     """
@@ -174,7 +176,7 @@ def scrape(ticket_id, force=False, db=None):
     return db.lookup_ticket(ticket_id)
 
 
-def git_commit(branch):
+def git_commit(branch) -> str:
     """
     Retrieve the hash of the commit.
 
@@ -190,6 +192,7 @@ def git_commit(branch):
                                            universal_newlines=True).split()[0]
         except Exception:
             return "unknown"
+    return "unknown"
 
 
 def extract_tag(sgml, tag):
@@ -380,19 +383,18 @@ class TracServer(object):
                                  self.config.server_anonymous_xmlrpc)
 
     @cached_property
-    def anonymous_proxy(self):
+    def anonymous_proxy(self) -> ServerProxy:
         transport = DigestTransport()
         return ServerProxy(self.url_anonymous, transport=transport)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Trac server at " + self.config.server_hostname
 
-    def load(self, ticket_number):
+    def load(self, ticket_number) -> TracTicket_class:
         ticket_number = int(ticket_number)
-        ticket = TracTicket(ticket_number, self.anonymous_proxy)
-        return ticket
+        return TracTicket(ticket_number, self.anonymous_proxy)
 
-    def remote_branch(self, ticket_number):
+    def remote_branch(self, ticket_number) -> str:
         ticket = self.load(ticket_number)
         branch = ticket.branch
         if branch == '':
@@ -417,7 +419,7 @@ if __name__ == '__main__':
             start, end = ticket.split('-')
             tickets = range(int(start), int(end) + 1)
         else:
-            tickets = [int(ticket)]
+            tickets = range(int(ticket), int(ticket) + 1)
 
         for tick in tickets:
             try:

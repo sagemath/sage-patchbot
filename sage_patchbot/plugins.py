@@ -16,6 +16,9 @@ The parameters are as follows:
 It is recommended that a plugin ignore extra keywords to be
 compatible with future options.
 """
+from __future__ import annotations
+from typing import Iterator
+
 import math
 import re
 import io
@@ -103,7 +106,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     total_docs = 0
     status = "Passed"
 
-    def format(docs, funcs, prec=None):
+    def format(docs, funcs, prec=None) -> str:
         if funcs == 0:
             return "N/A"
         else:
@@ -279,7 +282,7 @@ def pyflakes(ticket, **kwds):
         raise ValueError(full_msg)
 
 
-def process_one_lazy_import(txt):
+def process_one_lazy_import(txt) -> Iterator:
     what = txt[12:-1]
     what = ','.join(term for term in what.split(',') if '=' not in term)
     what = u'[' + what + u']'
@@ -296,7 +299,7 @@ def process_one_lazy_import(txt):
         yield names
 
 
-def find_lazy_imports(a_file):
+def find_lazy_imports(a_file: str) -> Iterator:
     """
     Return an iterator over the names of functions or classes
     that are lazily imported inside the given file ``a_file``.
@@ -304,10 +307,12 @@ def find_lazy_imports(a_file):
     This works, but restricted to ``'lazy_import'`` that fits
     on at most 6 lines.
     """
-    lazys = list(subprocess.Popen(['git', 'grep', '-h', '-A6',
-                                   'lazy_import', a_file],
-                                  stdout=subprocess.PIPE).stdout)
-    lazys = [f.decode('utf8').strip("\n").strip() for f in lazys]
+    git_lazys = subprocess.Popen(['git', 'grep', '-h', '-A6',
+                                  'lazy_import', a_file],
+                                 stdout=subprocess.PIPE).stdout
+    if git_lazys is None:
+        return
+    lazys = [f.decode('utf8').strip("\n").strip() for f in git_lazys]
     stored_lines = []
     for line in lazys:
         # trying to handle multi-line lazy imports
@@ -473,10 +478,9 @@ def python3_pyx(ticket, **kwds):
 
     These are allowed in python files.
     """
-    def is_cython(a_file):
+    def is_cython(a_file) -> bool:
         return a_file.split(os.path.extsep)[-1] == 'pyx'
-    regexps = [r'import six',
-               r'from six import']
+    regexps = [r'import six|from six import']
     exclude_new_file_by_file(ticket, regex=regexps,
                              file_condition=is_cython,
                              msg="Python3 incompatible code", **kwds)

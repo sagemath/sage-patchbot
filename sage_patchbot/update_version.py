@@ -16,8 +16,8 @@ assert os.path.exists(git_dir)
 ver = subprocess.check_output(['git', '--work-tree=' + top,
                                '--git-dir=' + git_dir,
                                'describe', '--tags', '--dirty'])
-ver = ver.strip().decode('utf8')
+ver_str = ver.strip().decode('utf8')
 
 version_file = os.path.join(src_dir, 'version.py')
 with open(version_file, 'wt') as f:
-    f.write("__version__ = '{}'\n".format(ver))
+    f.write("__version__ = '{}'\n".format(ver_str))

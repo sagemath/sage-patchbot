@@ -20,6 +20,8 @@ argument.
 #  the License, or (at your option) any later version.
 #                  https://www.gnu.org/licenses/
 # -------------------------------------------------------------------
+from __future__ import annotations
+from typing import Iterator, Dict, Any
 
 # global python imports
 import codecs
@@ -68,7 +70,7 @@ LOG_MAIN_SHORT = 'history.txt'
 LOG_CONFIG = 'config.txt'
 
 
-def filter_on_authors(tickets, authors):
+def filter_on_authors(tickets, authors) -> Iterator:
     """
     Keep only tickets with authors among the given ones.
 
@@ -366,7 +368,7 @@ class Patchbot(object):
     written inside the config.json file passed using --config=config.json
     """
     # hardcoded default config and bonus
-    default_config = {"sage_root": None,
+    default_config: Dict[str, Any] = {"sage_root": None,
                       "server": "https://patchbot.sagemath.org/",
                       "idle": 300,
                       "time_of_day": "0-0",  # midnight-midnight

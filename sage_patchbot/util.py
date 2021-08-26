@@ -8,7 +8,7 @@ temp_build_suffix = "-sage-git-temp-"
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-def date_parser(date_string):
+def date_parser(date_string: str):
     """
     Parse a datetime string into a datetime object.
 
@@ -20,7 +20,7 @@ def date_parser(date_string):
     return datetime.strptime(date_string[:19], DATE_FORMAT)
 
 
-def now_str():
+def now_str() -> str:
     """
     Return the current day and time as a string.
 
@@ -134,7 +134,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     return [rep for rep in reports if filtre_fun(rep)]
 
 
-def is_git(sage_root):
+def is_git(sage_root: str) -> bool:
     """
     Return ``True`` if sage_root has a .git directory.
 
@@ -148,7 +148,7 @@ def is_git(sage_root):
     return os.path.exists(sage_root + "/.git")
 
 
-def git_commit(repo, branch):
+def git_commit(repo: str, branch: str):
     """
     Note: see almost the same function in trac.py
 
@@ -169,7 +169,7 @@ def git_commit(repo, branch):
         return None
 
 
-def branch_updates_some_package():
+def branch_updates_some_package() -> bool:
     """
     Does the ticket branch contains the update of some package ?
     """
@@ -196,7 +196,7 @@ def do_or_die(cmd, exn_class=Exception):
         raise exn_class("{} {}".format(res, cmd))
 
 
-def comparable_version(version):
+def comparable_version(version: str) -> list:
     """
     Convert a version into something comparable.
 
@@ -213,7 +213,7 @@ def comparable_version(version):
     """
     version = re.sub(r'([^.0-9])(\d+)', r'\1.\2', version) + '.z'
 
-    def maybe_int(s):
+    def maybe_int(s) -> tuple:
         try:
             return 1, int(s)
         except ValueError:
