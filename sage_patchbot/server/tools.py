@@ -5,6 +5,7 @@ to be used in an ipython session for the user ``patchbot``
 
 .. WARNING:: Use with caution!
 """
+from __future__ import annotations
 from sage_patchbot.server.db import tickets, logs
 
 
@@ -71,7 +72,7 @@ def purge_pending_logs(year: int):
         logs.delete(ell._file['_id'])
 
 
-def purge_pending_in_tickets(liste: list):
+def purge_pending_in_tickets(liste: list[int]):
     """
     Delete all ``Pending`` logs for all given tickets.
 
@@ -103,7 +104,7 @@ def count_logs(year: int, month: int, day=0) -> int:
     return period_logs.count()
 
 
-def extraction_machine(list_of_logs: list) -> list:
+def extraction_machine(list_of_logs: list) -> list[str]:
     """
     Extract, from a list of database entries, the full names
     of the machines that sent these reports.
@@ -111,6 +112,10 @@ def extraction_machine(list_of_logs: list) -> list:
     INPUT: a list or iterator of some ``logs`` database entries
 
     OUTPUT: a sorted list of short machine names
+
+    In [11]: h = get_pending_logs(2021)
+    In [12]: extraction_machine(h)
+    Out[12]: ['panke', 'pc72-math', 'petitbonum']
     """
     file_names = [g._file['_id'].split('/') for g in list_of_logs]
     file_names = [[txt for txt in f if txt != 'Pending']
@@ -118,13 +123,25 @@ def extraction_machine(list_of_logs: list) -> list:
     return sorted(set(f[-2] for f in file_names))
 
 
-def machines_actives(year: int, month: int) -> list:
+def machines_actives(year: int, month: int) -> list[str]:
     """
     Return the list of machines that were active during the period.
 
     INPUT: integers for year and month
 
     OUTPUT: list of short machine names
+
+    In [13]: machines_actives(2021, 8)
+    Out[13]:
+    ['convex63',
+    'panke',
+    'pascaline',
+    'pc72-math',
+    'petitbonum',
+    'tmonteil-lxc1',
+    'tmonteil-lxc2',
+    'tmonteil-lxc3',
+    'tmonteil-lxc4']
     """
     bads = logs.find({'_id': {'$regex': f"/log/.*/{year}-{month:02d}.*"}})
     return extraction_machine(bads)

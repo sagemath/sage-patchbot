@@ -1,5 +1,7 @@
 # to launch a mongo console:
 # mongod --port=21002
+from __future__ import annotations
+from typing import Any
 
 import gridfs
 from pymongo.mongo_client import MongoClient
@@ -18,14 +20,14 @@ tickets.ensure_index('reports.time')
 logs = gridfs.GridFS(mongodb, 'logs')
 
 
-def lookup_ticket(ticket_id: int):
+def lookup_ticket(ticket_id: int) -> dict[str, Any] | None:
     """
     Look up for a ticket in the database
     """
     return tickets.find_one({'id': ticket_id})
 
 
-def save_ticket(ticket_data: dict):
+def save_ticket(ticket_data: dict[str, Any]):
     """
     Save ticket data in the database
     """
