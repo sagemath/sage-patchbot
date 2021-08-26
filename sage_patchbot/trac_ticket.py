@@ -38,6 +38,7 @@ EXAMPLES::
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 from __future__ import annotations
+from typing import Iterator
 
 import textwrap
 from datetime import datetime
@@ -52,7 +53,7 @@ def format_trac(text: str) -> str:
     return '\n'.join(accumulator)
 
 
-def make_time(time):
+def make_time(time) -> datetime:
     """
     Convert xmlrpc DateTime objects to datetime.datetime
     """
@@ -71,7 +72,7 @@ def TicketChange(changelog_entry):
 
 class TicketChange_class(object):
 
-    def __init__(self, time, author, change, data=None):
+    def __init__(self, time, author: str, change, data=None):
         self._time = make_time(time)
         self._author = author
         self._change = change
@@ -91,11 +92,11 @@ class TicketChange_class(object):
         return self._time
 
     @property
-    def ctime_str(self):
+    def ctime_str(self) -> str:
         return str(self.ctime)
 
     @property
-    def author(self):
+    def author(self) -> str:
         return self._author
 
     @property
@@ -115,7 +116,7 @@ class TicketChange_class(object):
         return self._data[1]
 
     @property
-    def change_action(self):
+    def change_action(self) -> str:
         if self.old == '':
             return u'set to {change.new}'.format(change=self)
         elif self.new == '':
@@ -132,7 +133,7 @@ class TicketChange_class(object):
 
 class TicketComment_class(TicketChange_class):
 
-    def __init__(self, time, author, change, data1, data2, data3):
+    def __init__(self, time, author: str, change, data1, data2, data3):
         TicketChange_class.__init__(self, time, author, change)
         self._number = data1
         self._comment = data2
@@ -146,15 +147,15 @@ class TicketComment_class(TicketChange_class):
         return self._comment
 
     @property
-    def comment_formatted(self):
+    def comment_formatted(self) -> str:
         return format_trac(self.comment)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.author + ' commented "' + \
             self.comment + '" [' + self.number + ']'
 
 
-def TracTicket(ticket_number, server_proxy) -> TracTicket_class:
+def TracTicket(ticket_number: int, server_proxy) -> TracTicket_class:
     from xml.parsers.expat import ExpatError
     ticket_number = int(ticket_number)
     try:
@@ -169,7 +170,7 @@ def TracTicket(ticket_number, server_proxy) -> TracTicket_class:
 
 class TracTicket_class(object):
 
-    def __init__(self, number, ctime, mtime, data, change_log=None):
+    def __init__(self, number: int, ctime, mtime, data, change_log=None):
         self._number = number
         self._ctime = make_time(ctime)
         self._mtime = make_time(mtime)
@@ -189,13 +190,13 @@ class TracTicket_class(object):
         return self._data['_ts']
 
     @property
-    def number(self):
+    def number(self) -> int:
         return self._number
 
     __int__ = number
 
     @property
-    def title(self):
+    def title(self) -> str:
         return self._data.get('summary', '<no summary>')
 
     @property
@@ -207,23 +208,23 @@ class TracTicket_class(object):
         return self._mtime
 
     @property
-    def ctime_str(self):
+    def ctime_str(self) -> str:
         return str(self.ctime)
 
     @property
-    def mtime_str(self):
+    def mtime_str(self) -> str:
         return str(self.mtime)
 
     @property
-    def branch(self):
+    def branch(self) -> str:
         return self._data.get('branch', '').strip()
 
     @property
-    def dependencies(self):
+    def dependencies(self) -> str:
         return self._data.get('dependencies', '')
 
     @property
-    def description(self):
+    def description(self) -> str:
         default = '+++ no description +++'
         return self._data.get('description', default)
 
@@ -231,11 +232,11 @@ class TracTicket_class(object):
     def description_formatted(self):
         return format_trac(self.description)
 
-    def change_iter(self):
+    def change_iter(self) -> Iterator:
         for change in self._change_log:
             yield change
 
-    def comment_iter(self):
+    def comment_iter(self) -> Iterator:
         for change in self._change_log:
             if isinstance(change, TicketComment_class):
                 yield change

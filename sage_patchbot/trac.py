@@ -1,5 +1,6 @@
 # global python imports
 from __future__ import annotations
+from typing import Any
 
 import re
 import hashlib
@@ -30,7 +31,7 @@ TRAC_URL = "https://trac.sagemath.org/sage_trac"
 TRAC_REPO = "git://trac.sagemath.org/sage.git"
 
 
-def digest(s):
+def digest(s: bytes) -> str:
     """
     Compute a cryptographic hash of the string s.
     """
@@ -58,7 +59,7 @@ def is_closed_on_trac(ticket_id: int) -> bool:
     return trac_info.status == 'closed'
 
 
-def get_ticket_info_from_trac_server(ticket_id):
+def get_ticket_info_from_trac_server(ticket_id: int) -> dict[str, Any]:
     """
     Get the info on a ticket contained in its trac page.
     """
@@ -83,20 +84,20 @@ def get_ticket_info_from_trac_server(ticket_id):
     trac_info = trac_server.load(ticket_id)
 
     # this part is about finding the authors and it needs work !
-    authors = set()
+    set_authors = set()
     git_commit_of_branch = git_commit(trac_info.branch)
     if trac_info.branch:
         branch = trac_info.branch
         if branch.startswith('u/'):
-            authors.add((branch.split('/')[1]).strip())
-    authors = list(authors)
+            set_authors.add((branch.split('/')[1]).strip())
+    authors = list(set_authors)
 
-    authors_fullnames = set()
+    set_authors_fullnames = set()
     for auth in trac_info.author.split(','):
         author = auth.strip()
         if author:
-            authors_fullnames.add(author)
-    authors_fullnames = list(authors_fullnames)
+            set_authors_fullnames.add(author)
+    authors_fullnames = list(set_authors_fullnames)
 
     # needed to extract the participants
     rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
@@ -120,7 +121,7 @@ def get_ticket_info_from_trac_server(ticket_id):
             'last_trac_activity': trac_info.mtime_str}
 
 
-def scrape(ticket_id, force=False, db=None):
+def scrape(ticket_id: int, force=False, db=None) -> dict[str, Any]:
     """
     Return available information about given ticket
     from the patchbot database, and update this information if necessary.
@@ -176,7 +177,7 @@ def scrape(ticket_id, force=False, db=None):
     return db.lookup_ticket(ticket_id)
 
 
-def git_commit(branch) -> str:
+def git_commit(branch: str) -> str:
     """
     Retrieve the hash of the commit.
 
@@ -195,7 +196,7 @@ def git_commit(branch) -> str:
     return "unknown"
 
 
-def extract_tag(sgml, tag):
+def extract_tag(sgml, tag: str):
     """
     Find the first occurrence of the tag start (including attributes) and
     return the contents of that tag (really, up until the next end tag
@@ -216,7 +217,7 @@ def extract_tag(sgml, tag):
     return sgml[start_ix + len(tag): end_ix].strip()
 
 
-def extract_participants(rss):
+def extract_participants(rss) -> list[str]:
     """
     Extracts any participants for a ticket from the html page.
 
@@ -378,7 +379,7 @@ class TracServer(object):
         self.config = config
 
     @cached_property
-    def url_anonymous(self):
+    def url_anonymous(self) -> str:
         return url_parse.urljoin(self.config.server_hostname,
                                  self.config.server_anonymous_xmlrpc)
 
@@ -390,11 +391,11 @@ class TracServer(object):
     def __repr__(self) -> str:
         return "Trac server at " + self.config.server_hostname
 
-    def load(self, ticket_number) -> TracTicket_class:
+    def load(self, ticket_number: int) -> TracTicket_class:
         ticket_number = int(ticket_number)
         return TracTicket(ticket_number, self.anonymous_proxy)
 
-    def remote_branch(self, ticket_number) -> str:
+    def remote_branch(self, ticket_number: int) -> str:
         ticket = self.load(ticket_number)
         branch = ticket.branch
         if branch == '':
