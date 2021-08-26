@@ -1348,96 +1348,94 @@ def main(args=None):
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
     """
-    # NOTE: From Python 2.7 optparse is deprecated in favor of argparse
-    from optparse import OptionParser
-    parser = OptionParser()
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
 
     # 10 options that are passed to the patchbot via the class "options"
     # Don't provide defaults for these options (except for --sage-root) so
     # that we can tell whether or not they were given explicitly (i.e. their
     # value is not None) and should override settings from the config file.
-    parser.add_option("--sage-root", dest="sage_root",
-                      default=os.environ.get('SAGE_ROOT'),
-                      help="specify another sage root directory")
-    parser.add_option("--server", dest="server",
-                      help="specify another patchbot server address")
-    parser.add_option("--config", dest="config",
-                      help="specify the json config file")
-    parser.add_option("--cleanup", action="store_true", dest="cleanup",
-                      help="whether to cleanup the temporary files")
-    parser.add_option("--dry-run", action="store_true", dest="dry_run")
-    parser.add_option("--no-banner", action="store_true", dest="no_banner",
-                      help="whether to print the utf8 banner")
-    parser.add_option("--owner", dest="owner",
-                      help="name and email of the human behind the bot")
-    parser.add_option("--plugin-only", action="store_true", dest="plugin_only",
-                      help="run the patchbot in plugin-only mode")
-    parser.add_option("--safe-only", action="store_true", dest="safe_only",
-                      help="whether to run the patchbot in safe-only mode")
-    parser.add_option("--skip-base", action="store_true", dest="skip_base",
-                      help="whether to check that the base is errorless")
-    parser.add_option("--retries", type=int, metavar="N",
-                      help="retry failed tests up to N times; if previously "
-                           "failing tests pass on a retry the test run is "
-                           "considered passed")
-    parser.add_option("--skip-doc-clean", action="store_true", dest="skip_doc_clean",
-                      help="whether to clean documentation during initialization")
+    parser.add_argument("--sage-root", dest="sage_root",
+                        default=os.environ.get('SAGE_ROOT'),
+                        help="specify another sage root directory")
+    parser.add_argument("--server", dest="server",
+                        help="specify another patchbot server address")
+    parser.add_argument("--config", dest="config",
+                        help="specify the json config file")
+    parser.add_argument("--cleanup", action="store_true", dest="cleanup",
+                        help="whether to cleanup the temporary files")
+    parser.add_argument("--dry-run", action="store_true", dest="dry_run")
+    parser.add_argument("--no-banner", action="store_true", dest="no_banner",
+                        help="whether to print the utf8 banner")
+    parser.add_argument("--owner", dest="owner",
+                        help="name and email of the human behind the bot")
+    parser.add_argument("--plugin-only", action="store_true", dest="plugin_only",
+                        help="run the patchbot in plugin-only mode")
+    parser.add_argument("--safe-only", action="store_true", dest="safe_only",
+                        help="whether to run the patchbot in safe-only mode")
+    parser.add_argument("--skip-base", action="store_true", dest="skip_base",
+                        help="whether to check that the base is errorless")
+    parser.add_argument("--retries", type=int, metavar="N",
+                        help="retry failed tests up to N times; if previously "
+                             "failing tests pass on a retry the test run is "
+                             "considered passed")
+    parser.add_argument("--skip-doc-clean", action="store_true", dest="skip_doc_clean",
+                        help="whether to clean documentation during initialization")
 
     # and options that are only used in the main loop below
-    parser.add_option("--count", dest="count",
-                      default=1000000,
-                      help="how many tickets to test")
-    parser.add_option("--list", action="store_true", dest="list",
-                      help="only write information about tickets "
-                           "that would be tested in the form: "
-                           "[ticket id] [rating] [ticket title]")
-    parser.add_option("--conf", action="store_true", dest="conf",
-                      help="write the configuration on standard "
-                           "output and quit")
-    parser.add_option("--ticket", dest="ticket",
-                      help="test only a list of tickets, for example"
-                           " '12345,19876'")
-    parser.add_option("--free-giga", dest="free_giga",
-                      type="float", default=4,
-                      help="number of required free gigabytes (0 means "
-                           "no minimum space required)"
-                      )
+    parser.add_argument("--count", dest="count",
+                        default=1000000,
+                        help="how many tickets to test")
+    parser.add_argument("--list", action="store_true", dest="list",
+                        help="only write information about tickets "
+                             "that would be tested in the form: "
+                             "[ticket id] [rating] [ticket title]")
+    parser.add_argument("--conf", action="store_true", dest="conf",
+                        help="write the configuration on standard "
+                             "output and quit")
+    parser.add_argument("--ticket", dest="ticket",
+                        help="test only a list of tickets, for example"
+                             " '12345,19876'")
+    parser.add_argument("--free-giga", dest="free_giga",
+                        type="float", default=4,
+                        help="number of required free gigabytes (0 means "
+                             "no minimum space required)")
 
-    (options, args) = parser.parse_args(args)
+    args = parser.parse_args(args)
 
     # the configuration file might be a relative path...
-    if options.config is not None:
-        options.config = os.path.abspath(options.config)
+    if args.config is not None:
+        args.config = os.path.abspath(args.config)
 
     try:
-        patchbot = Patchbot(options)
+        patchbot = Patchbot(args)
     except ValueError as msg:
         print("Error: {}".format(msg))
         sys.exit(1)
 
-    if options.ticket:
+    if args.ticket:
         # only test the given list of tickets
-        tickets = [int(t) for t in options.ticket.split(',')]
+        tickets = [int(t) for t in args.ticket.split(',')]
         count = len(tickets)
     else:
         tickets = None
-        count = int(options.count)
+        count = int(args.count)
 
-    if options.conf:
+    if args.conf:
         # the option "--conf" allows to see the configuration
         pprint.pprint(patchbot.config)
         sys.exit(0)
 
-    if options.list:
+    if args.list:
         # the option "--list" allows to see tickets that will be tested
         patchbot.get_one_ticket(verbose=1)
         sys.exit(0)
 
-    if options.sage_root == os.environ.get('SAGE_ROOT'):
+    if args.sage_root == os.environ.get('SAGE_ROOT'):
         print("WARNING: Do not use this copy of sage while the patchbot is running.")
 
-    if options.free_giga > 0:
-        ensure_free_space(patchbot.sage_root, N=options.free_giga)
+    if args.free_giga > 0:
+        ensure_free_space(patchbot.sage_root, N=args.free_giga)
 
     if patchbot.config['use_ccache']:
         do_or_die("%s -i ccache" %
