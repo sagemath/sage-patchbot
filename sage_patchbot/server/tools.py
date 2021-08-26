@@ -8,7 +8,7 @@ to be used in an ipython session for the user ``patchbot``
 from sage_patchbot.server.db import tickets, logs
 
 
-def get_tickets_with_many_reports(N):
+def get_tickets_with_many_reports(N: int) -> list[int]:
     """
     Retrieve the tickets with more than N reports.
 
@@ -20,7 +20,7 @@ def get_tickets_with_many_reports(N):
             if 'reports' in t and len(t['reports']) > N]
 
 
-def purge_tickets_with_many_reports(N, n):
+def purge_tickets_with_many_reports(N: int, n: int):
     """
     For all tickets with more than N reports, keep only the latest n reports.
 
@@ -35,7 +35,7 @@ def purge_tickets_with_many_reports(N, n):
         tickets.update_one({'id': fi}, {'$set': {"reports": old[-n:]}})
 
 
-def get_pending_logs(year):
+def get_pending_logs(year: int):
     """
     Retrieve an iterator over ``Pending`` logs for the given ``year``.
 
@@ -46,7 +46,7 @@ def get_pending_logs(year):
     return logs.find({'_id': {'$regex': f"/log/Pending/.*/{year}"}})
 
 
-def count_pending_logs(year):
+def count_pending_logs(year: int) -> int:
     """
     Count the number of ``Pending`` logs for the given ``year``.
 
@@ -58,7 +58,7 @@ def count_pending_logs(year):
     return logs_year.count()
 
 
-def purge_pending_logs(year):
+def purge_pending_logs(year: int):
     """
     Delete all ``Pending`` logs for the given ``year``.
 
@@ -71,7 +71,7 @@ def purge_pending_logs(year):
         logs.delete(ell._file['_id'])
 
 
-def purge_pending_in_tickets(liste):
+def purge_pending_in_tickets(liste: list):
     """
     Delete all ``Pending`` logs for all given tickets.
 
@@ -85,7 +85,7 @@ def purge_pending_in_tickets(liste):
             logs.delete(ell._file['_id'])
 
 
-def count_logs(year, month, day=None):
+def count_logs(year: int, month: int, day=0) -> int:
     """
     Return the numbers of logs for a given period.
 
@@ -95,7 +95,7 @@ def count_logs(year, month, day=None):
 
     OUTPUT: integer
     """
-    if day is None:
+    if not day:
         reg = f"/log/.*/{year}-{month:02d}.*"
     else:
         reg = f"/log/.*/{year}-{month:02d}-{day:02d}.*"
@@ -103,7 +103,7 @@ def count_logs(year, month, day=None):
     return period_logs.count()
 
 
-def extraction_machine(list_of_logs):
+def extraction_machine(list_of_logs: list) -> list:
     """
     Extract, from a list of database entries, the full names
     of the machines that sent these reports.
@@ -118,7 +118,7 @@ def extraction_machine(list_of_logs):
     return sorted(set(f[-2] for f in file_names))
 
 
-def machines_actives(year, month):
+def machines_actives(year: int, month: int) -> list:
     """
     Return the list of machines that were active during the period.
 

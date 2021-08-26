@@ -21,7 +21,7 @@ argument.
 #                  https://www.gnu.org/licenses/
 # -------------------------------------------------------------------
 from __future__ import annotations
-from typing import Iterator, Dict, Any
+from typing import Iterator, Any
 
 # global python imports
 import codecs
@@ -70,7 +70,7 @@ LOG_MAIN_SHORT = 'history.txt'
 LOG_CONFIG = 'config.txt'
 
 
-def filter_on_authors(tickets, authors) -> Iterator:
+def filter_on_authors(tickets: list, authors) -> Iterator:
     """
     Keep only tickets with authors among the given ones.
 
@@ -91,7 +91,7 @@ def filter_on_authors(tickets, authors) -> Iterator:
             yield ticket
 
 
-def compare_machines(a, b, machine_match=None):
+def compare_machines(a: list[str], b: list[str], machine_match=0) -> list[bool]:
     """
     Compare two machines a and b.
 
@@ -105,12 +105,12 @@ def compare_machines(a, b, machine_match=None):
         >>> m2 = ['Fedora', '19', 'x86_64', '3.10.4-300.fc19.x86_64', 'desktop']
         >>> compare_machines(m1, m2)
     """
-    if machine_match is not None:
+    if machine_match:
         a = a[:machine_match]
         b = b[:machine_match]
     diff = [x != y for x, y in zip(a, b)]
     if len(a) != len(b):
-        diff.append(1)
+        diff.append(True)
     return diff
 
 
@@ -208,7 +208,7 @@ status = {'started': 'ApplyFailed',
           'skipped': 'Pending'}
 
 
-def boundary(name, text_type):
+def boundary(name: str, text_type: str) -> str:
     """
     Return text that bound parts of the reports.
 
@@ -230,7 +230,7 @@ def boundary(name, text_type):
     return ' '.join((letter * length, str(name), letter * length))
 
 
-def machine_data():
+def machine_data() -> list[str]:
     """
     Return the machine data as a list of strings.
 
@@ -247,7 +247,7 @@ def machine_data():
     return [system, version, arch, release, node]
 
 
-def parse_time_of_day(s):
+def parse_time_of_day(s) -> list[tuple]:
     """
     Parse the 'time_of_day' config.
 
@@ -261,7 +261,7 @@ def parse_time_of_day(s):
 
     "17" for just one hour starting at given time
     """
-    def parse_interval(ss):
+    def parse_interval(ss: str) -> tuple:
         ss = ss.strip()
         if '-' in ss:
             start, end = ss.split('-')
@@ -368,7 +368,7 @@ class Patchbot(object):
     written inside the config.json file passed using --config=config.json
     """
     # hardcoded default config and bonus
-    default_config: Dict[str, Any] = {"sage_root": None,
+    default_config: dict[str, Any] = {"sage_root": None,
                       "server": "https://patchbot.sagemath.org/",
                       "idle": 300,
                       "time_of_day": "0-0",  # midnight-midnight
@@ -1465,7 +1465,7 @@ def main(args=None):
     if not patchbot.config['skip_base']:
         patchbot.check_base()
 
-        def good(report):
+        def good(report) -> bool:
             return (report['machine'] == patchbot.config['machine'] and
                     report['status'].startswith('TestsPassed'))
 

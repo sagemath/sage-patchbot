@@ -10,7 +10,7 @@ import string
 import random
 
 
-def id_generator(size=26, chars=string.ascii_uppercase + string.digits):
+def id_generator(size=26, chars=string.ascii_uppercase + string.digits) -> str:
     """
     substitute for mimetools.choose_boundary()
     """
@@ -33,7 +33,7 @@ def post_multipart(url, fields, files):
     return urlopen(r).read().decode('utf-8')
 
 
-def by(utf_string):
+def by(utf_string: str) -> bytes:
     """
     py2: takes a unicode object and return a str object
     py3: takes a str object and return a bytes object
@@ -83,5 +83,5 @@ def encode_multipart_formdata(fields, files):
     return content_type, body
 
 
-def get_content_type(filename):
+def get_content_type(filename: str) -> str:
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'

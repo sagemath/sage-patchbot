@@ -18,14 +18,14 @@ tickets.ensure_index('reports.time')
 logs = gridfs.GridFS(mongodb, 'logs')
 
 
-def lookup_ticket(ticket_id):
+def lookup_ticket(ticket_id: int):
     """
     Look up for a ticket in the database
     """
     return tickets.find_one({'id': ticket_id})
 
 
-def save_ticket(ticket_data):
+def save_ticket(ticket_data: dict):
     """
     Save ticket data in the database
     """
@@ -36,7 +36,7 @@ def save_ticket(ticket_data):
     tickets.save(ticket_data)
 
 
-def remove_log(logname):
+def remove_log(logname: str):
     """
     Remove the log with corresponding logname.
     """

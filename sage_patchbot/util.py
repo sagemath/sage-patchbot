@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 import subprocess
@@ -34,7 +36,7 @@ def now_str() -> str:
     return datetime.utcnow().strftime(DATE_FORMAT)
 
 
-def prune_pending(ticket, machine=None, timeout=None):
+def prune_pending(ticket, machine=None, timeout=None) -> list[dict]:
     """
     Remove pending reports from ``ticket.reports``.
 
@@ -50,7 +52,7 @@ def prune_pending(ticket, machine=None, timeout=None):
     else:
         return []
     now = datetime.utcnow()  # in the utc timezone
-    for report in list(reports):
+    for report in reports:
         if report['status'] == 'Pending':
             t = date_parser(report['time'])
             if report['machine'] == machine:
@@ -60,7 +62,7 @@ def prune_pending(ticket, machine=None, timeout=None):
     return reports
 
 
-def latest_version(reports):
+def latest_version(reports: list):
     """
     Return the newest ``report.base`` in the given list of reports.
     """
@@ -98,7 +100,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     if unique:
         seen = set()
 
-        def first(x):
+        def first(x) -> bool:
             if x in seen:
                 return False
             else:
@@ -106,7 +108,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
                 return True
     else:
 
-        def first(x):
+        def first(x) -> bool:
             return True
 
     reports = list(ticket['reports'])
@@ -115,7 +117,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     if base == 'latest':
         base = latest_version(reports)
 
-    def base_ok(report_base):
+    def base_ok(report_base: str) -> bool:
         return (not base or base == report_base or
                 (newer and comparable_version(base) <=
                  comparable_version(report_base)))
@@ -124,7 +126,7 @@ def current_reports(ticket, base=None, unique=False, newer=False):
         return [rep for rep in reports if base_ok(rep['base'])]
 
     # git_commit is not set for ticket 0
-    def filtre_fun(report):
+    def filtre_fun(report: dict) -> bool:
         return (ticket.get('git_commit') == report.get('git_commit') and
                 ticket['spkgs'] == report['spkgs'] and
                 ticket['depends_on'] == report.get('deps', []) and
@@ -186,7 +188,7 @@ def branch_updates_some_package() -> bool:
     return False
 
 
-def do_or_die(cmd, exn_class=Exception):
+def do_or_die(cmd: str, exn_class=Exception):
     """
     Run a shell command and raise an exception in case of eventual failure.
     """
@@ -213,7 +215,7 @@ def comparable_version(version: str) -> list:
     """
     version = re.sub(r'([^.0-9])(\d+)', r'\1.\2', version) + '.z'
 
-    def maybe_int(s) -> tuple:
+    def maybe_int(s: str) -> tuple:
         try:
             return 1, int(s)
         except ValueError:
@@ -221,7 +223,7 @@ def comparable_version(version: str) -> list:
     return [maybe_int(s) for s in version.split('.')]
 
 
-def get_sage_version(sage_root) -> str:
+def get_sage_version(sage_root: str) -> str:
     """
     Get the sage version.
 
@@ -238,7 +240,7 @@ def get_sage_version(sage_root) -> str:
     return sage_version.split()[2].strip(',')
 
 
-def get_python_version(sage_cmd) -> str:
+def get_python_version(sage_cmd: str) -> str:
     """
     get the python version run by sage
 
@@ -255,7 +257,7 @@ def get_python_version(sage_cmd) -> str:
     return res.strip().split(" ")[1]
 
 
-def describe_branch(branch, tag_only=False):
+def describe_branch(branch: str, tag_only=False):
     """
     Return the latest tag of the branch or the full branch description.
 

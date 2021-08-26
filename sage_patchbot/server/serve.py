@@ -68,7 +68,7 @@ def latest_base(betas=True):
 app = Flask(__name__)
 
 
-def get_query(args):
+def get_query(args) -> dict:
     """
     Prepare the precise query for the database.
 
