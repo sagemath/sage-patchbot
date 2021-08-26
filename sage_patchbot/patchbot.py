@@ -1397,7 +1397,7 @@ def main(args=None):
                         help="test only a list of tickets, for example"
                              " '12345,19876'")
     parser.add_argument("--free-giga", dest="free_giga",
-                        type="float", default=4,
+                        type=float, default=4,
                         help="number of required free gigabytes (0 means "
                              "no minimum space required)")
 
