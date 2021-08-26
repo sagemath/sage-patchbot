@@ -78,7 +78,7 @@ def encode_multipart_formdata(fields, files):
         L.append(value)   # here are bytes ??
     L.append(dd + BOUNDARY + dd)
     L.append(by(u''))
-    body = CRLF.join(L)   # body is (str in py2 / bytes in py3)
+    body: bytes = CRLF.join(L)
     content_type = 'multipart/form-data; boundary={}'.format(UTF_BOUNDARY)
     return content_type, body
 

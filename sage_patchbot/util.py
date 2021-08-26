@@ -10,7 +10,7 @@ temp_build_suffix = "-sage-git-temp-"
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-def date_parser(date_string: str):
+def date_parser(date_string: str) -> datetime:
     """
     Parse a datetime string into a datetime object.
 
