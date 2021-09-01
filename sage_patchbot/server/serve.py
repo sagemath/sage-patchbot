@@ -827,9 +827,9 @@ def status_image_svg(status):
 
     This is for the 'svg' icon set.
 
-    For example, see https://patchbot.sagemath.org/blob/BuildFailed
+    For example, see https://patchbot.sagemath.org/svg/BuildFailed
 
-    or https://patchbot.sagemath.org/blob_svg/TestsPassed
+    or https://patchbot.sagemath.org/svg/TestsPassed
     """
     liste = status.split(',')
     # Only one possible status displayed. Which one to choose ?
@@ -888,14 +888,14 @@ def robots():
     return render_template("robots.txt")
 
 
-@app.route("/favicon.ico")
+@app.route("/favicon.png")
 def favicon():
     """
     Return the favicon image as a web page.
 
     This is currently a 16 x 16 png version of icon-TestsPassed.svg.
 
-    See https://patchbot.sagemath.org/favicon.ico for the result.
+    See https://patchbot.sagemath.org/favicon.png for the result.
 
     EXAMPLES::
 
