@@ -317,7 +317,7 @@ def render_ticket(ticket):
 
     try:
         info = scrape(ticket, db=db, force='force' in request.args)
-    except:
+    except Exception:
         info = tickets.find_one({'id': ticket})
 
     if info is None:
@@ -502,7 +502,7 @@ def render_ticket_base_svg(ticket):
             info = tickets.find_one({'id': ticket})
         else:
             info = scrape(ticket, db=db)
-    except:
+    except Exception:
         info = tickets.find_one({'id': ticket})
 
     if 'base' in request.args:
@@ -547,7 +547,7 @@ def render_ticket_status_svg(ticket):
             info = tickets.find_one({'id': ticket})
         else:
             info = scrape(ticket, db=db)
-    except:
+    except Exception:
         info = tickets.find_one({'id': ticket})
 
     if 'base' in request.args:
@@ -604,7 +604,7 @@ def post_report(ticket_id):
         ticket['last_activity'] = now_str()
         db.save_ticket(ticket)
         return "ok (report successfully posted)"
-    except:
+    except Exception:
         traceback.print_exc()
         return "error in posting the report"
 

@@ -1229,7 +1229,7 @@ class Patchbot(object):
                            [LOG_MAIN, LOG_MAIN_SHORT])
             traceback.print_exc()
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
-        except:
+        except Exception:
             # Do not try this again for a while.
             self.to_skip[ticket['id']] = time.time() + 12 * 60 * 60
             raise
