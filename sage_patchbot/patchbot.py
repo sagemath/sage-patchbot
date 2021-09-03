@@ -1414,6 +1414,7 @@ def main():
         print("Error: {}".format(msg))
         sys.exit(1)
 
+    tickets: None | list[int]
     if args.ticket:
         # only test the given list of tickets
         tickets = [int(t) for t in args.ticket.split(',')]
@@ -1489,6 +1490,7 @@ def main():
             break
 
         try:
+            ticket: None | int
             if tickets:
                 ticket = tickets.pop(0)
             else:

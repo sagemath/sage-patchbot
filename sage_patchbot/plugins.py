@@ -101,7 +101,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     """
     all = subprocess.check_output([sage_binary, '-coverageall'],
                                   universal_newlines=True)
-    current = {}
+    current: dict[None | str, tuple[int, int]] = {}
     total_funcs = 0
     total_docs = 0
     status = "Passed"
@@ -120,9 +120,9 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     for line in all.split('\n'):
         m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)
         if m:
-            module, docs, funcs = m.groups()
-            docs = int(docs)
-            funcs = int(funcs)
+            module, docs_str, funcs_str = m.groups()
+            docs = int(docs_str)
+            funcs = int(funcs_str)
             current[module] = docs, funcs
             total_docs += docs
             total_funcs += funcs
@@ -350,7 +350,8 @@ def pycodestyle(ticket, **kwds):
     errors = 0
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
-            filename = os.path.split(a_file)[1]
+            filename_raw = os.path.split(a_file)[1]
+            filename = filename_raw.decode()
             if not (filename == "all.py" or filename == "__init__.py" or
                     "catalog" in filename):
                 rep = style.check_files([a_file])
