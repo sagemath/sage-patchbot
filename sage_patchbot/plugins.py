@@ -245,8 +245,8 @@ def pyflakes(ticket, **kwds):
 
     same thing for files named "*catalog*.py"
     """
-    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
-    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
+    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     errors = 0
     msg_list = []

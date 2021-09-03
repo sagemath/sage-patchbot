@@ -629,19 +629,19 @@ class Patchbot(object):
                 conf[opt] = value
 
         # plugin setup
-        plugins = set(conf['plugins'])
-        plugins.update(conf.pop("plugins_enabled"))
+        plugins_set = set(conf['plugins'])
+        plugins_set.update(conf.pop("plugins_enabled"))
         # always use the pyflakes and pycodestyle plugins
-        plugins.add("pyflakes")
-        plugins.add("pycodestyle")
-        plugins.difference_update(conf.pop("plugins_disabled"))
+        plugins_set.add("pyflakes")
+        plugins_set.add("pycodestyle")
+        plugins_set.difference_update(conf.pop("plugins_disabled"))
         # for backward compatibility (allow both plugins.X and just X)
-        plugins = set(name.split('.')[-1] for name in plugins)
+        plugins_set = set(name.split('.')[-1] for name in plugins_set)
 
         if not conf['plugin_only']:
-            plugins.add("docbuild")  # docbuild is mandatory so that tests pass
+            plugins_set.add("docbuild")  # docbuild is mandatory so that tests pass
 
-        plugins = [p for p in plugins_available if p in plugins]
+        plugins = (p for p in plugins_available if p in plugins_set)
 
         def locate_plugin(name):
             plugin = getattr(__import__("sage_patchbot.plugins",
@@ -917,10 +917,10 @@ class Patchbot(object):
                     self.write_log(' rating {} after behind'.format(rating),
                                    logfile, False)
 
-                    report_uniqueness = compare_machines(report['machine'],
-                                                         self.config['machine'],
-                                                         self.config['machine_match'])
-                    report_uniqueness = tuple(int(x) for x in report_uniqueness)
+                    report_uniq_bool = compare_machines(report['machine'],
+                                                        self.config['machine'],
+                                                        self.config['machine_match'])
+                    report_uniqueness = tuple(int(x) for x in report_uniq_bool)
                     if only_in_base and not any(report_uniqueness):
                         report_uniqueness = (0, 0, 0, 0, 1)
                     uniqueness = min(uniqueness, report_uniqueness)
