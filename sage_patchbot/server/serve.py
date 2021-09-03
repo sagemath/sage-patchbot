@@ -852,6 +852,12 @@ def status_image_path(status, image_type='png'):
     For example, the result for 'TestsPassed' should be
     images/icon-TestsPassed.png
     """
+    ok = ['ApplyFailed', 'BuildFailed', 'Empty', 'New', 'NoPatch', 'Pending',
+          'PluginFailed', 'PluginOnly', 'PluginOnlyFailed', 'Spkg',
+          'SmallPluginFailed', 'SmallPluginPassed',
+          'TestsFailed', 'TestsPassed', 'TestsPassedOnRetry']
+    assert status in ok
+    assert image_type in ['svg', 'png']
     if image_type == 'png':
         return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
     else:
