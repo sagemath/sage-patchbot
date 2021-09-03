@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # global python imports
+from __future__ import annotations
+
 import os
 import bz2
 import json
@@ -7,7 +9,7 @@ import traceback
 import re
 import time
 import difflib
-from optparse import OptionParser
+from argparse import ArgumentParser
 from flask import Flask, render_template, make_response, request, Response  # type: ignore
 from datetime import datetime
 
@@ -913,7 +915,7 @@ def favicon():
     return response
 
 
-def get_ticket_status(ticket, base=None, machine=None):
+def get_ticket_status(ticket, base=None, machine=None) -> tuple[int, str, str]:
     """
     Return the status of the ticket in the database.
 
@@ -951,9 +953,9 @@ def get_ticket_status(ticket, base=None, machine=None):
 
 
 def main(args):
-    parser = OptionParser()
-    parser.add_option("-p", "--port", dest="port")
-    parser.add_option("--debug", dest="debug", action='store_true')
-    (options, args) = parser.parse_args(args)
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--port", dest="port", type=int)
+    parser.add_argument("--debug", dest="debug", action='store_true')
+    args = parser.parse_args(args)
 
-    app.run(debug=options.debug, host="0.0.0.0", port=int(options.port))
+    app.run(debug=args.debug, host="0.0.0.0", port=args.port)
