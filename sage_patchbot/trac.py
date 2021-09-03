@@ -354,7 +354,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
         if merge_failure or (not is_safe):
             raise
         else:
-            raise ConfigException(exn.message)
+            raise ConfigException(str(exn))
 
 # ===================
 

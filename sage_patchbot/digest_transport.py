@@ -95,5 +95,5 @@ class DigestTransport(SafeTransport):
             return self.parse_response(response)
         except Fault as e:
             raise TracInternalError(e)
-        except IOError as e:
-            raise TracConnectionError(e.reason)
+        except OSError as e:
+            raise TracConnectionError(e.strerror)

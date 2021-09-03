@@ -432,7 +432,7 @@ class Patchbot(object):
 
         self.trac_server = TracServer(Config())
         self.__version__ = sage_patchbot.__version__
-        self.last_pull = 0
+        self.last_pull = 0.0
         self.to_skip = {}
         self.idling = False
 
@@ -712,7 +712,7 @@ class Patchbot(object):
             os.chdir(self.sage_root)
             os.environ['SAGE_ROOT'] = self.sage_root
 
-    def check_base(self):
+    def check_base(self) -> bool:
         """
         Check that the patchbot/base is synchro with 'base_branch'.
 
@@ -1251,6 +1251,7 @@ class Patchbot(object):
         else:
             self.write_log("Error reporting #{}".format(ticket['id']), LOG_MAIN)
         maybe_temp_root = os.environ.get('SAGE_ROOT')
+        assert maybe_temp_root is not None
         if maybe_temp_root.endswith(temp_build_suffix + str(ticket['id'])):
             # Make sure we switch back to the original sage_root
             self.reset_root()
