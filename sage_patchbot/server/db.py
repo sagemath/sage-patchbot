@@ -3,8 +3,8 @@
 from __future__ import annotations
 from typing import Any
 
-import gridfs
-from pymongo.mongo_client import MongoClient
+import gridfs  # type: ignore
+from pymongo.mongo_client import MongoClient  # type: ignore
 
 mongodb = MongoClient().buildbot
 tickets = mongodb.tickets

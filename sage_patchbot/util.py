@@ -150,7 +150,7 @@ def is_git(sage_root: str) -> bool:
     return os.path.exists(sage_root + "/.git")
 
 
-def git_commit(repo: str, branch: str):
+def git_commit(repo: str, branch: str) -> str | None:
     """
     Note: see almost the same function in trac.py
 
@@ -198,7 +198,7 @@ def do_or_die(cmd: str, exn_class=Exception):
         raise exn_class("{} {}".format(res, cmd))
 
 
-def comparable_version(version: str) -> list:
+def comparable_version(version: str) -> list[tuple]:
     """
     Convert a version into something comparable.
 
@@ -257,7 +257,7 @@ def get_python_version(sage_cmd: str) -> str:
     return res.strip().split(" ")[1]
 
 
-def describe_branch(branch: str, tag_only=False):
+def describe_branch(branch: str, tag_only=False) -> str:
     """
     Return the latest tag of the branch or the full branch description.
 

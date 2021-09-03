@@ -8,7 +8,7 @@ import re
 import time
 import difflib
 from optparse import OptionParser
-from flask import Flask, render_template, make_response, request, Response
+from flask import Flask, render_template, make_response, request, Response  # type: ignore
 from datetime import datetime
 
 from io import StringIO

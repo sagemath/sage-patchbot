@@ -31,9 +31,9 @@ import json
 from .trac import do_or_die
 from .util import describe_branch
 
-from pyflakes.api import checkPath, isPythonFile
-from pyflakes.reporter import Reporter
-from pycodestyle import StyleGuide
+from pyflakes.api import checkPath, isPythonFile  # type: ignore
+from pyflakes.reporter import Reporter  # type: ignore
+from pycodestyle import StyleGuide  # type: ignore
 
 
 # hardcoded list of plugins
