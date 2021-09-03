@@ -214,15 +214,15 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     if not isinstance(regex, (list, tuple)):
         regex = [regex]
 
-    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
-    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
+    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     bad_lines = 0
     for a_file in changed_files:
         try:
             if file_condition(a_file):
-                gitdiff = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
-                gitdiff = [f.decode('utf8') for f in gitdiff]
+                git_raw = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
+                gitdiff = [f.decode('utf8') for f in git_raw]
                 for r in regex:
                     bad_lines += exclude_new_in_diff(gitdiff, r)
         except IOError:  # file has been deleted or moved
@@ -342,16 +342,15 @@ def pycodestyle(ticket, **kwds):
 
     same thing for files named "*catalog*.py"
     """
-    changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
-    changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
+    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     style = StyleGuide(select=['W605', 'E401', 'E701', 'E702',
                                'E711', 'E712'])
     errors = 0
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
-            filename_raw = os.path.split(a_file)[1]
-            filename = filename_raw.decode()
+            filename = os.path.split(a_file)[1]
             if not (filename == "all.py" or filename == "__init__.py" or
                     "catalog" in filename):
                 rep = style.check_files([a_file])
