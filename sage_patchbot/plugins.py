@@ -679,10 +679,10 @@ def startup_modules(ticket, sage_binary, baseline=None, **kwds):
     # list_command = r"print '\n'.join(sorted(u for u in sys.modules.keys()))"
     # new way:
     list_command = r"print('\n'.join(sorted(u for u, v in sys.modules.items() if v)))"
-    modules = subprocess.check_output([sage_binary,
-                                       "-c", list_command],
-                                      universal_newlines=True)
-    modules = modules.split('\n')
+    modules_raw = subprocess.check_output([sage_binary,
+                                           "-c", list_command],
+                                          universal_newlines=True)
+    modules = modules_raw.split('\n')
 
     print("Total count: {}".format(len(modules)))
     if baseline is None:

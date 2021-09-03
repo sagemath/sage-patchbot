@@ -187,10 +187,7 @@ def ticket_list():
                 ticket['reports'] = current[:10]
                 yield ticket
         all = filter_reports(all)
-        if 'pretty' in request.args:
-            indent = 4
-        else:
-            indent = None
+        indent = 4 if 'pretty' in request.args else None
         response = make_response(json.dumps(list(all), default=lambda x: None,
                                             indent=indent))
         response.headers['Content-type'] = 'text/plain; charset=utf-8'
@@ -279,7 +276,7 @@ def machines():
     else:
         authors = None
     all = filter_on_authors(tickets.find(query).limit(100), authors)
-    machines = {}
+    machines: dict[tuple, MachineStats] = {}
     for ticket in all:
         for report in ticket.get('reports', []):
             machine = tuple(report['machine'])
@@ -755,8 +752,8 @@ def get_log(log):
             header = data[:data.find('\n')]
             base = request.args.get('base')
             ticket_id = request.args.get('ticket')
-            base_data = bz2.decompress(db.logs.get(request.args.get('diff')).read())
-            base_data = base_data.decode()
+            base_data_raw = bz2.decompress(db.logs.get(request.args.get('diff')).read())
+            base_data = base_data_raw.decode()
             base_data = extract_plugin_log(base_data, plugin)
             diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
             data = '\n'.join(('' if item[0] == '@' else item)
