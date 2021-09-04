@@ -430,7 +430,7 @@ def exclude_new_in_diff(gitdiff, regex):
         elif line[:3] == '@@ ':
             pos_line = line
             pos_line_printed = False
-        elif bad.match(line):
+        elif bad.search(line):
             if not file_line_printed:
                 print(file_line)
                 file_line_printed = True
@@ -538,9 +538,7 @@ def foreign_latex(ticket, **kwds):
 
     including \over, \choose, etc
     """
-    regexps = [r'\\choose', r'\\over[^l]', r'\\atop', r'\\above',
-               r'\\overwithdelims', r'\\atopwithdelims',
-               r'\\abovewithdelims']
+    regexps = [r'\\(choose|over[^l]|atop|above|overwithdelims|atopwithdelims|abovewithdelims)']
     exclude_new(ticket, regex=regexps,
                 msg="Foreign commands in LaTeX", **kwds)
 
@@ -597,7 +595,7 @@ def blocks(ticket, **kwds):
 
     6) no "Returns" at the start of lines
     """
-    regexps = [r'\.\.SEE', r'SEE ALSO', r'SEEALSO:($|[^:])',
+    regexps = [r'\.\.SEE|SEE ALSO|SEEALSO:($|[^:])',
                r'^\s*TEST:', r'^\s*EXAMPLE:', r'^\s*NOTES:',
                r'^\s*[A-Z]*PUT::', r'^\s*[A-Z]*PUT$',
                r'^\s*[A-Z]*\s:$',
