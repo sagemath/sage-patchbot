@@ -285,8 +285,8 @@ def pyflakes(ticket, **kwds):
 def process_one_lazy_import(txt) -> Iterator:
     what = txt[12:-1]
     what = ','.join(term for term in what.split(',') if '=' not in term)
-    what = u'[' + what + u']'
-    what = json.loads(what.replace(u"'", u'"'))
+    what = '[' + what + ']'
+    what = json.loads(what.replace("'", '"'))
 
     if len(what) == 2:
         names = what[1]

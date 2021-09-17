@@ -25,7 +25,9 @@ from .cached_property import cached_property
 class DigestTransport(SafeTransport):
     """
     Handles an HTTP transaction to an XML-RPC server.
+
     EXAMPLES::
+
         sage: from sage.dev.digest_transport import DigestTransport
         sage: DigestTransport()
         <sage.dev.digest_transport.DigestTransport object at ...>
@@ -33,7 +35,9 @@ class DigestTransport(SafeTransport):
     def __init__(self):
         """
         Initialization.
+
         EXAMPLES::
+
             sage: from sage.dev.digest_transport import DigestTransport
             sage: type(DigestTransport())
             <class 'sage.dev.digest_transport.DigestTransport'>
@@ -46,7 +50,9 @@ class DigestTransport(SafeTransport):
         Create an opener object.
         By calling :meth:`add_authentication` before calling this property for
         the first time, authentication credentials can be set.
+
         EXAMPLES::
+
             sage: from sage.dev.digest_transport import DigestTransport
             sage: DigestTransport().opener
             <urllib2.OpenerDirector instance at 0x...>

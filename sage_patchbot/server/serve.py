@@ -63,8 +63,7 @@ def latest_base(betas=True):
 
     if versions:
         return versions[-1]
-    else:
-        return None
+    return None
 
 
 app = Flask(__name__)
@@ -124,7 +123,7 @@ def get_query(args) -> dict:
 
         if 'base' in args:
             base = args.get('base')
-            if base == 'latest' or base == 'develop':
+            if base in ('latest', 'develop'):
                 query['reports.base'] = latest_base()
             elif base != 'all':
                 query['reports.base'] = base
@@ -175,28 +174,29 @@ def ticket_list():
 
     order = ('last_trac_activity', -1)
     cursor = tickets.find(query, projection).sort(*order).limit(limit)
-    all = filter_on_authors(cursor, authors)
+    all_tickets = filter_on_authors(cursor, authors)
     if raw_mode is not False:
         # raw json file for communication with patchbot clients
-        def filter_reports(all):
-            for ticket in all:
+        def filter_reports(all_t):
+            for ticket in all_t:
                 current = sorted(current_reports(ticket),
                                  key=lambda report: report['time'],
                                  reverse=True)
                 # Take only the 10 latest reports
                 ticket['reports'] = current[:10]
                 yield ticket
-        all = filter_reports(all)
+        all_tickets = filter_reports(all_tickets)
         indent = 4 if 'pretty' in request.args else None
-        response = make_response(json.dumps(list(all), default=lambda x: None,
+        response = make_response(json.dumps(list(all_tickets),
+                                            default=lambda x: None,
                                             indent=indent))
         response.headers['Content-type'] = 'text/plain; charset=utf-8'
         return response
 
     summary = {key: 0 for key in status_order}
 
-    def preprocess(all):
-        for ticket in all:
+    def preprocess(all_t):
+        for ticket in all_t:
             ticket['report_count'], ticket['report_status'], ticket['report_status_composite'] = get_ticket_status(ticket, machine=machine, base=base or 'latest')
             if 'reports' in ticket:
                 ticket['pending'] = len([r for r in ticket['reports']
@@ -224,12 +224,12 @@ def ticket_list():
         versions = []
         base_status = (0, 'New', 'New')
 
-    return render_template("ticket_list.html", tickets=preprocess(all),
+    return render_template("ticket_list.html", tickets=preprocess(all_tickets),
                            summary=summary, base=base, base_status=base_status,
                            versions=versions, status_order=status_order)
 
 
-class MachineStats(object):
+class MachineStats():
     def __init__(self, name):
         self.name = name
         self.fresh_tickets = set()
@@ -275,9 +275,9 @@ def machines():
         authors = request.args.get('authors').split(':')
     else:
         authors = None
-    all = filter_on_authors(tickets.find(query).limit(100), authors)
+    all_tickets = filter_on_authors(tickets.find(query).limit(100), authors)
     machines: dict[tuple, MachineStats] = {}
-    for ticket in all:
+    for ticket in all_tickets:
         for report in ticket.get('reports', []):
             machine = tuple(report['machine'])
             if machine in machines:
@@ -311,7 +311,7 @@ def render_ticket(ticket):
     else:
         chosen_base = 'all' if ticket != 0 else 'develop'
 
-    if chosen_base == 'latest' or chosen_base == 'develop':
+    if chosen_base in ('latest', 'develop'):
         chosen_base = latest
 
     try:
@@ -365,9 +365,9 @@ def render_ticket(ticket):
             elif key == 'authors':
                 new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
             elif key == 'authors_fullnames':
-                link = u"<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
-                auths = u", ".join(link.format(a.replace(u" ", u"%20"), a)
-                                   for a in value)
+                link = "<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
+                auths = ", ".join(link.format(a.replace(" ", "%20"), a)
+                                  for a in value)
                 new_info[key] = auths
             elif key == 'participants':
                 parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
@@ -389,16 +389,14 @@ def render_ticket(ticket):
             if '-' in res:
                 tag, commits = res.split('-')[:2]
                 return "%s + %s commits" % (tag, commits)
-            elif 'commits' in res:
+            if 'commits' in res:
                 # old style
                 return res
-            else:
-                return res + " + 0 commits"
-        else:
-            return '?'
+            return res + " + 0 commits"
+        return '?'
 
-    def preprocess_reports(all):
-        for item in all:
+    def preprocess_reports(all_t):
+        for item in all_t:
             base_of_this_report = item['base']
             base_report = base_reports.get(item['base'] + "/" + "/".join(item['machine']), base_reports.get(item['base']))
             if base_report:
@@ -417,7 +415,7 @@ def render_ticket(ticket):
                 field = 'git_%s_human' % x
                 item[field] = format_git_describe(item.get(field, None))
             item['machine'] = band_aid_for_machine(item['machine'])
-            if chosen_base == 'all' or chosen_base == base_of_this_report:
+            if chosen_base in ('all', base_of_this_report):
                 yield item
 
     def band_aid_for_machine(mach):
@@ -453,7 +451,7 @@ def reports_by_machine_and_base(ticket):
     """
     reports on the given ticket
     """
-    all = {}
+    all_r = {}
 
     def sort_key(a):
         return a['time']
@@ -461,9 +459,9 @@ def reports_by_machine_and_base(ticket):
     if 'reports' in ticket:
         # oldest to newest
         for report in sorted(ticket['reports'], key=sort_key):
-            all[report['base']] = report
-            all[report['base'] + "/" + "/".join(report['machine'])] = report
-    return all
+            all_r[report['base']] = report
+            all_r[report['base'] + "/" + "/".join(report['machine'])] = report
+    return all_r
 
 
 def is_good_machine(machine):
@@ -512,7 +510,7 @@ def render_ticket_base_svg(ticket):
     if base is None:
         base = ''
 
-    base = base.replace("alpha", u'α').replace("beta", u'β')
+    base = base.replace("alpha", 'α').replace("beta", 'β')
     split_base = base.split('.')
     if len(split_base) == 2:
         v_main = base
@@ -558,7 +556,8 @@ def render_ticket_status_svg(ticket):
     path = status_image_path(status, image_type='svg')
 
     # with no base
-    response = make_response(open(path).read())
+    with open(path) as file:
+        response = make_response(file.read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'no-cache'
     return response
@@ -721,16 +720,16 @@ def extract_plugin_log(data, plugin):
     from ..patchbot import boundary
     start = boundary(plugin, 'plugin') + "\n"
     end = boundary(plugin, 'plugin_end') + "\n"
-    all = []
+    all_l = []
     include = False
     for line in StringIO(data):
         if line == start:
             include = True
         if include:
-            all.append(line)
+            all_l.append(line)
         if line == end:
             break
-    return ''.join(all)
+    return ''.join(all_l)
 
 
 @app.route("/ticket/<id>/log/<path:log>")
@@ -803,7 +802,7 @@ def create_base_image_svg():
     EXPERIMENTAL !
     """
     base = request.args.get('base', '7.2.beta8')
-    base = base.replace("alpha", u'α').replace("beta", u'β')
+    base = base.replace("alpha", 'α').replace("beta", 'β')
     split_base = base.split('.')
     if len(split_base) == 2:
         v_main = base
@@ -836,7 +835,8 @@ def status_image_svg(status):
     if len(liste) > 1:
         status = liste[0]
     path = status_image_path(status, image_type='svg')
-    response = make_response(open(path).read())
+    with open(path) as file:
+        response = make_response(file.read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
@@ -859,8 +859,7 @@ def status_image_path(status, image_type='png'):
     assert image_type in ['svg', 'png']
     if image_type == 'png':
         return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
-    else:
-        return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
+    return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
 
 
 def min_status(status_list):
@@ -907,7 +906,8 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    response = make_response(open(os.path.join(IMAGES_DIR, 'favicon.png')).read())
+    with open(os.path.join(IMAGES_DIR, 'favicon.png')) as file:
+        response = make_response(file.read())
     response.headers['Content-type'] = 'image/png'
     return response
 
@@ -930,23 +930,22 @@ def get_ticket_status(ticket, base=None, machine=None) -> tuple[int, str, str]:
 
     Note that ``Spkg``, ``NoPatch`` and ``New`` are not got from any report.
     """
-    all = current_reports(ticket, base=base)
+    all_r = current_reports(ticket, base=base)
     if machine is not None:
-        all = [r for r in all if r['machine'] == machine]
-    if all:
-        status_list = [report['status'] for report in all]
+        all_r = [r for r in all_r if r['machine'] == machine]
+    if all_r:
+        status_list = [report['status'] for report in all_r]
         if len(set(status_list)) == 1:
             composite = single = status_list[0]
         else:
             composite = ','.join(status_list)
             single = min_status(status_list)
-        return len(all), single, composite
-    elif ticket['spkgs']:
+        return len(all_r), single, composite
+    if ticket['spkgs']:
         return 0, 'Spkg', 'Spkg'
-    elif not ticket.get('git_commit'):
+    if not ticket.get('git_commit'):
         return 0, 'NoPatch', 'NoPatch'
-    else:
-        return 0, 'New', 'New'
+    return 0, 'New', 'New'
 
 
 def main(args):

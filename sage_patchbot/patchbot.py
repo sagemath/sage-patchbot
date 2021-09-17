@@ -485,9 +485,9 @@ class Patchbot(object):
 
         try:
             if date:
-                logfile.write(u"[{}] ".format(now_str()))
+                logfile.write("[{}] ".format(now_str()))
             logfile.write(msg)
-            logfile.write(u"\n")
+            logfile.write("\n")
         except AttributeError:
             raise ValueError("logfile = {} must be either None, or a string or a list or a file".format(logfile))
 
@@ -513,7 +513,7 @@ class Patchbot(object):
         EXAMPLES::
 
             In [3]: P.version()
-            Out[3]: u'2.5.3'
+            Out[3]: '2.5.3'
         """
         return self.__version__
 
@@ -530,11 +530,11 @@ class Patchbot(object):
             │░│ ──── │        version 3.0.2
             ╘═╧══════╛
         """
-        s = u'┌─┬──────┐\n'
-        s += u'│░│  ••  │        SageMath patchbot\n'
-        s += u'│░│      │\n'
-        s += u'│░│ ──── │        version {}\n'.format(self.version())
-        s += u'╘═╧══════╛'
+        s = '┌─┬──────┐\n'
+        s += '│░│  ••  │        SageMath patchbot\n'
+        s += '│░│      │\n'
+        s += '│░│ ──── │        version {}\n'.format(self.version())
+        s += '╘═╧══════╛'
         return s
 
     def load_json_from_server(self, path, retry=1):
@@ -800,9 +800,9 @@ class Patchbot(object):
         else:
             logfile = [LOG_RATING_SHORT]
         for rating, ticket in reversed(all_tickets):
-            self.write_log(u'#{:<6}{:30}{}'.format(ticket['id'],
-                                                   str(rating[:2]),
-                                                   ticket['title']),
+            self.write_log('#{:<6}{:30}{}'.format(ticket['id'],
+                                                  str(rating[:2]),
+                                                  ticket['title']),
                            logfile, date=False)
 
         if all_tickets:
@@ -843,7 +843,7 @@ class Patchbot(object):
                                           ticket['status']), logfile)
                 return
 
-            self.write_log(u"#{}: start rating".format(ticket['id']), logfile)
+            self.write_log("#{}: start rating".format(ticket['id']), logfile)
 
             if ticket['milestone'] in ('sage-duplicate/invalid/wontfix',
                                        'sage-feature', 'sage-pending',

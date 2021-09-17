@@ -14,7 +14,7 @@ def id_generator(size=26, chars=string.ascii_uppercase + string.digits) -> str:
     """
     substitute for mimetools.choose_boundary()
     """
-    return u''.join(random.choice(chars) for _ in range(size))
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 def post_multipart(url, fields, files):
@@ -59,25 +59,25 @@ def encode_multipart_formdata(fields, files):
     # BOUNDARY = mimetools.choose_boundary()
     UTF_BOUNDARY = id_generator()
     BOUNDARY = by(UTF_BOUNDARY)
-    CRLF = by(u'\r\n')
-    dd = by(u'--')
+    CRLF = by('\r\n')
+    dd = by('--')
     L = []
     if isinstance(fields, dict):
         fields = fields.items()
     for (key, value) in fields:
         L.append(dd + BOUNDARY)
-        L.append(by(u'Content-Disposition: form-data; name="{}"'.format(key)))
-        L.append(by(u''))
+        L.append(by('Content-Disposition: form-data; name="{}"'.format(key)))
+        L.append(by(''))
         L.append(by(value))
     for (key, filename, value) in files:
         L.append(dd + BOUNDARY)
-        cont = u'Content-Disposition: form-data; name="{}"; filename="{}"'
+        cont = 'Content-Disposition: form-data; name="{}"; filename="{}"'
         L.append(by(cont.format(key, filename)))
-        L.append(by(u'Content-Type: {}'.format(get_content_type(filename))))
-        L.append(by(u''))
+        L.append(by('Content-Type: {}'.format(get_content_type(filename))))
+        L.append(by(''))
         L.append(value)   # here are bytes ??
     L.append(dd + BOUNDARY + dd)
-    L.append(by(u''))
+    L.append(by(''))
     body: bytes = CRLF.join(L)
     content_type = 'multipart/form-data; boundary={}'.format(UTF_BOUNDARY)
     return content_type, body
