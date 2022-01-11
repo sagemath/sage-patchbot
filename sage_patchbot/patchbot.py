@@ -395,7 +395,7 @@ class Patchbot(object):
                       "machine_match": 5,
                       "user": getpass.getuser(),
                       "keep_open_branches": True,
-                      "base_repo": "git://github.com/sagemath/sage.git",
+                      "base_repo": "git://trac.sagemath.org/sage.git",
                       "base_branch": "develop",
                       "max_behind_commits": 0,
                       "max_behind_days": 1.0,
