@@ -136,20 +136,6 @@ def current_reports(ticket, base=None, unique=False, newer=False):
     return [rep for rep in reports if filtre_fun(rep)]
 
 
-def is_git(sage_root: str) -> bool:
-    """
-    Return ``True`` if sage_root has a .git directory.
-
-    This should now always be true.
-
-    EXAMPLES::
-
-        In [10]: is_git('/home/louis_de_funes/sage')
-        Out[10]: True
-    """
-    return os.path.exists(sage_root + "/.git")
-
-
 def git_commit(repo: str, branch: str) -> str | None:
     """
     Note: see almost the same function in trac.py

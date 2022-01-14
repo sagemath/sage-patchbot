@@ -1104,8 +1104,7 @@ class Patchbot(object):
                                 baseline = None
                             print(boundary(name, 'plugin'))
                             do_or_die("git checkout patchbot/ticket_merged")
-                            res = plugin(ticket, is_git=True,
-                                         baseline=baseline, **kwds)
+                            res = plugin(ticket, baseline=baseline, **kwds)
                             passed = True
                         except Exception:
                             traceback.print_exc()
