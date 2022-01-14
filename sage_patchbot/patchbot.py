@@ -527,7 +527,7 @@ class Patchbot(object):
             ┌─┬──────┐
             │░│  ••  │        SageMath patchbot
             │░│      │
-            │░│ ──── │        version 3.0.2
+            │░│ ──── │        version 3.0.3
             ╘═╧══════╛
         """
         s = '┌─┬──────┐\n'

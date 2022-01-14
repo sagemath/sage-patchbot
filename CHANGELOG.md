@@ -6,6 +6,8 @@
 * Remove plugins about python3 check, add plugin about deprecation number
 * Larger set of files are declared "safe"
 * Ability to handle more machine names
+* No longer using the git: protocol to pull from github
+
 
 3.0.1 (unreleased)
 ==================
