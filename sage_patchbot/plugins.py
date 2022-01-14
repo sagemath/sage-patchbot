@@ -336,7 +336,7 @@ def pycodestyle(ticket, **kwds):
     """
     run ``pycodestyle --select=...`` on the modified .py files
 
-    with --select=W605, E401, E701, E702, E711, E712
+    with --select=W605, E401, E701, E702, E703, E711, E712, E721, E722
 
     see http://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
 
@@ -349,8 +349,11 @@ def pycodestyle(ticket, **kwds):
     assert changed_raw is not None
     changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
-    style = StyleGuide(select=['W605', 'E401', 'E701', 'E702',
-                               'E711', 'E712'])
+    style = StyleGuide(select=['W605',
+                               'E401',
+                               'E701', 'E702', 'E703',
+                               'E711', 'E712',
+                               'E721', 'E722'])
     errors = 0
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
