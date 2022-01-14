@@ -214,14 +214,16 @@ def exclude_new_file_by_file(ticket, regex, file_condition, msg, **kwds):
     if not isinstance(regex, (list, tuple)):
         regex = [regex]
 
-    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_raw = subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout
+    assert changed_raw is not None
     changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     bad_lines = 0
     for a_file in changed_files:
         try:
             if file_condition(a_file):
-                git_raw = list(subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout)
+                git_raw = subprocess.Popen(['git', 'diff', 'patchbot/base..patchbot/ticket_merged', a_file], stdout=subprocess.PIPE).stdout
+                assert git_raw is not None
                 gitdiff = [f.decode('utf8') for f in git_raw]
                 for r in regex:
                     bad_lines += exclude_new_in_diff(gitdiff, r)
@@ -245,7 +247,8 @@ def pyflakes(ticket, **kwds):
 
     same thing for files named "*catalog*.py"
     """
-    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_raw = subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout
+    assert changed_raw is not None
     changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     errors = 0
@@ -342,7 +345,8 @@ def pycodestyle(ticket, **kwds):
 
     same thing for files named "*catalog*.py"
     """
-    changed_raw = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
+    changed_raw = subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout
+    assert changed_raw is not None
     changed_files = [f.decode('utf8').strip("\n") for f in changed_raw]
 
     style = StyleGuide(select=['W605', 'E401', 'E701', 'E702',
@@ -386,13 +390,13 @@ def exclude_new(ticket, regex, msg, **kwds):
                                 'patchbot/base..patchbot/ticket_merged'],
                                stdout=subprocess.PIPE,
                                universal_newlines=True).stdout
-
+    assert gitdiff is not None
     if len(regex) > 1:
-        gitdiff = list(gitdiff)
+        list_gitdiff = list(gitdiff)
 
     bad_lines = 0
     for r in regex:
-        bad_lines += exclude_new_in_diff(gitdiff, r)
+        bad_lines += exclude_new_in_diff(list_gitdiff, r)
     full_msg = "{} inserted on {} non-empty lines"
     full_msg = full_msg.format(msg, bad_lines)
     print(full_msg)
@@ -551,6 +555,7 @@ def deprecation_number(ticket, **kwds):
                                 'patchbot/base..patchbot/ticket_merged'],
                                stdout=subprocess.PIPE,
                                universal_newlines=True).stdout
+    assert gitdiff is not None
     rx = re.compile(r"\((?P<tn>[0-9]*),")
     ticket_id = ticket['id']
     bad_lines = 0

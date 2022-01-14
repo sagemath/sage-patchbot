@@ -134,7 +134,7 @@ class Tee(object):
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
         self.tee = subprocess.Popen(["tee", self.filepath],
-                                    stdin=subprocess.PIPE)
+                               stdin=subprocess.PIPE)
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
