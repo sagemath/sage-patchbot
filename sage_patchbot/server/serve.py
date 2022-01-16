@@ -2,7 +2,7 @@
 # global python imports
 from __future__ import annotations
 
-import os
+from pathlib import Path
 import bz2
 import json
 import traceback
@@ -27,7 +27,7 @@ from . import db
 from .db import tickets
 
 
-IMAGES_DIR = os.path.join(os.path.dirname(__file__), 'images')
+IMAGES_DIR = Path(__file__).parent / 'images'
 # oldest version of sage about which we still care
 # OLDEST = comparable_version('7.6')
 # see master_branch instead
@@ -556,7 +556,7 @@ def render_ticket_status_svg(ticket):
     path = status_image_path(status, image_type='svg')
 
     # with no base
-    with open(path) as file:
+    with path.open() as file:
         response = make_response(file.read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'no-cache'
@@ -835,14 +835,14 @@ def status_image_svg(status):
     if len(liste) > 1:
         status = liste[0]
     path = status_image_path(status, image_type='svg')
-    with open(path) as file:
+    with path.open() as file:
         response = make_response(file.read())
     response.headers['Content-type'] = 'image/svg+xml'
     response.headers['Cache-Control'] = 'max-age=3600'
     return response
 
 
-def status_image_path(status, image_type='png'):
+def status_image_path(status, image_type='png') -> Path:
     """
     Return the blob image address for a single status.
 
@@ -858,8 +858,8 @@ def status_image_path(status, image_type='png'):
     assert status in ok
     assert image_type in ['svg', 'png']
     if image_type == 'png':
-        return os.path.join(IMAGES_DIR, 'icon-{}.png'.format(status))
-    return os.path.join(IMAGES_DIR, 'icon-{}.svg'.format(status))
+        return IMAGES_DIR / 'icon-{}.png'.format(status)
+    return IMAGES_DIR / 'icon-{}.svg'.format(status)
 
 
 def min_status(status_list):
@@ -906,7 +906,7 @@ def favicon():
         sage: from serve import favicon
         sage: favicon()
     """
-    with open(os.path.join(IMAGES_DIR, 'favicon.png')) as file:
+    with (IMAGES_DIR / 'favicon.png').open() as file:
         response = make_response(file.read())
     response.headers['Content-type'] = 'image/png'
     return response
