@@ -1070,7 +1070,7 @@ class Patchbot(object):
                 if not is_spkg:
                     # ------------- make -------------
                     if not self.config['skip_doc_clean']:
-                        do_or_die('{} doc-clean'.format(botmake))
+                        do_or_die('{} doc-clean doc-uninstall'.format(botmake))
                     do_or_die("{} build".format(botmake))
                     do_or_die(os.path.join(self.sage_root,
                                            'build', 'bin', 'sage-starts'))
