@@ -134,7 +134,7 @@ class Tee(object):
     def __enter__(self):
         self._saved = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
         self.tee = subprocess.Popen(["tee", self.filepath],
-                               stdin=subprocess.PIPE)
+                                    stdin=subprocess.PIPE)
         os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
         os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
         if self.time:
@@ -368,50 +368,51 @@ class Patchbot(object):
     written inside the config.json file passed using --config=config.json
     """
     # hardcoded default config and bonus
-    default_config: dict[str, Any] = {"sage_root": None,
-                      "server": "https://patchbot.sagemath.org/",
-                      "idle": 300,
-                      "time_of_day": "0-0",  # midnight-midnight
-                      "parallelism": min(3, multiprocessing.cpu_count()),
-                      "timeout": 3 * 60 * 60,
-                      "plugins": ["commit_messages",
-                                  "coverage",
-                                  "deprecation_number",
-                                  "doctest_continuation",
-                                  "python3",
-                                  "python3_pyx",
-                                  "blocks",
-                                  "triple_colon",
-                                  "foreign_latex",
-                                  "trac_links",
-                                  "startup_time",
-                                  "startup_modules",
-                                  "docbuild",
-                                  "git_rev_list"],
-                      "plugins_disabled": [],
-                      "plugins_enabled": [],
-                      "bonus": {},
-                      "machine": machine_data(),
-                      "machine_match": 5,
-                      "user": getpass.getuser(),
-                      "keep_open_branches": True,
-                      "base_repo": "git://trac.sagemath.org/sage.git",
-                      "base_branch": "develop",
-                      "max_behind_commits": 0,
-                      "max_behind_days": 1.0,
-                      "use_ccache": True,
-                      "tested_files": "all",   # either 'all' or 'py3' or 'py3+changed'
-                      "test_options": None,    # transmitted to --optional
-                      # 6 options that can also be changed using sage --xx
-                      "dry_run": False,
-                      "no_banner": False,
-                      "owner": "unknown owner",
-                      "plugin_only": False,
-                      "safe_only": True,
-                      "skip_base": False,
-                      "retries": 0,
-                      "cleanup": False,
-                      "skip_doc_clean": False}
+    default_config: dict[str, Any] = {
+        "sage_root": None,
+        "server": "https://patchbot.sagemath.org/",
+        "idle": 300,
+        "time_of_day": "0-0",  # midnight-midnight
+        "parallelism": min(3, multiprocessing.cpu_count()),
+        "timeout": 3 * 60 * 60,
+        "plugins": ["commit_messages",
+                    "coverage",
+                    "deprecation_number",
+                    "doctest_continuation",
+                    "python3",
+                    "python3_pyx",
+                    "blocks",
+                    "triple_colon",
+                    "foreign_latex",
+                    "trac_links",
+                    "startup_time",
+                    "startup_modules",
+                    "docbuild",
+                    "git_rev_list"],
+        "plugins_disabled": [],
+        "plugins_enabled": [],
+        "bonus": {},
+        "machine": machine_data(),
+        "machine_match": 5,
+        "user": getpass.getuser(),
+        "keep_open_branches": True,
+        "base_repo": "git://trac.sagemath.org/sage.git",
+        "base_branch": "develop",
+        "max_behind_commits": 0,
+        "max_behind_days": 1.0,
+        "use_ccache": True,
+        "tested_files": "all",   # either 'all' or 'py3' or 'py3+changed'
+        "test_options": None,    # transmitted to --optional
+        # 6 options that can also be changed using sage --xx
+        "dry_run": False,
+        "no_banner": False,
+        "owner": "unknown owner",
+        "plugin_only": False,
+        "safe_only": True,
+        "skip_base": False,
+        "retries": 0,
+        "cleanup": False,
+        "skip_doc_clean": False}
 
     default_bonus = {"needs_review": 1000,
                      "positive_review": 500,
@@ -587,10 +588,9 @@ class Patchbot(object):
             if verbose:
                 print('data retrieved from patchbot server')
             return res[0]
-        else:
-            if verbose:
-                print('data retrieved from trac server')
-            return get_ticket_info_from_trac_server(t_id)
+        if verbose:
+            print('data retrieved from trac server')
+        return get_ticket_info_from_trac_server(t_id)
 
     def get_local_config(self):
         """
@@ -805,10 +805,7 @@ class Patchbot(object):
                                                   ticket['title']),
                            logfile, date=False)
 
-        if all_tickets:
-            return all_tickets[-1]
-        else:
-            return None
+        return all_tickets[-1] if all_tickets else None
 
     def rate_ticket(self, ticket, verbose=False):
         """
