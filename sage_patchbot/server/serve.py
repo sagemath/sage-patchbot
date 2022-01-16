@@ -775,7 +775,7 @@ def get_log(log):
 def get_plugin_data(id, plugin_name, timestamp):
     ticket = tickets.find_one({'id': int(id)})
     if ticket is None:
-        return "Unknown ticket: " + id
+        return "Unknown ticket"
     for report in ticket['reports']:
         if report['time'] == timestamp:
             for plugin in report['plugins']:
@@ -785,8 +785,8 @@ def get_plugin_data(id, plugin_name, timestamp):
                                                         indent=4))
                     response.headers['Content-type'] = 'text/plain; charset=utf-8'
                     return response
-            return "Unknown plugin: " + plugin_name
-    return "Unknown report: " + timestamp
+            return "Unknown plugin"
+    return "Unknown report"
 
 
 status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
