@@ -395,11 +395,11 @@ def exclude_new(ticket, regex, msg, **kwds):
                                universal_newlines=True).stdout
     assert gitdiff is not None
     if len(regex) > 1:
-        list_gitdiff = list(gitdiff)
+        gitdiff = list(gitdiff)
 
     bad_lines = 0
     for r in regex:
-        bad_lines += exclude_new_in_diff(list_gitdiff, r)
+        bad_lines += exclude_new_in_diff(gitdiff, r)
     full_msg = "{} inserted on {} non-empty lines"
     full_msg = full_msg.format(msg, bad_lines)
     print(full_msg)
