@@ -1,3 +1,9 @@
+3.0.4
+=====
+
+- do not use git protocol to pull branches from github
+- fix clean-up of documentation
+
 3.0.2
 =====
 
