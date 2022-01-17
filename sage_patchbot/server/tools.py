@@ -80,8 +80,8 @@ def purge_pending_in_tickets(liste: list[int]):
 
     .. WARNING:: Use with caution!
     """
-    for l in liste:
-        pending_logs = logs.find({'_id': {'$regex': f"/log/Pending/{l}/"}})
+    for la in liste:
+        pending_logs = logs.find({'_id': {'$regex': f"/log/Pending/{la}/"}})
         for ell in pending_logs:
             logs.delete(ell._file['_id'])
 
