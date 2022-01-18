@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from pathlib import Path
 
 from datetime import datetime
 
@@ -209,7 +210,7 @@ def comparable_version(version: str) -> list[tuple]:
     return [maybe_int(s) for s in version.split('.')]
 
 
-def get_sage_version(sage_root: str) -> str:
+def get_sage_version(sage_root) -> str:
     """
     Get the sage version.
 
@@ -222,7 +223,7 @@ def get_sage_version(sage_root: str) -> str:
         In [9]: get_sage_version('/home/paul_gauguin/sage')
         Out[9]: '6.6.rc0'
     """
-    sage_version = open(os.path.join(sage_root, 'VERSION.txt')).read()
+    sage_version = (Path(sage_root) / 'VERSION.txt').open().read()
     return sage_version.split()[2].strip(',')
 
 
