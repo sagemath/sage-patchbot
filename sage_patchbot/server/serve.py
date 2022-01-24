@@ -531,6 +531,26 @@ def render_ticket_base_svg(ticket):
     response.content_type = 'image/svg+xml'
     return response
 
+@app.route("/ticket/<int:ticket>/status")
+def ticket_status(ticket):
+    try:
+        if 'fast' in request.args:
+            info = tickets.find_one({'id': ticket})
+        else:
+            info = scrape(ticket, db=db)
+    except Exception:
+        info = tickets.find_one({'id': ticket})
+
+    if 'base' in request.args:
+        base = request.args.get('base')
+    else:
+        base = latest_version(info.get('reports', []))
+
+    status = get_ticket_status(info, base=base)[1]  # single status
+
+    response = make_response(status)
+    response.headers['Content-type'] = 'text/plain'
+    return response
 
 @app.route("/ticket/<int:ticket>/status.svg")
 def render_ticket_status_svg(ticket):
