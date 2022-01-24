@@ -338,7 +338,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             do_or_die("git branch -f patchbot/base remotes/origin/patchbot/base")
             do_or_die("git branch -f patchbot/ticket_upstream remotes/origin/patchbot/ticket_upstream")
             do_or_die("make configure")
-            do_or_die("./configure")
+            do_or_die("./configure --enable-download-from-upstream-url")
             if use_ccache:
                 if not os.path.exists('logs'):
                     os.mkdir('logs')
