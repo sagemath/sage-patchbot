@@ -1060,7 +1060,7 @@ class Patchbot(object):
                 # January 2022 : allow to check all tickets
                 # that update some package
                 # is_spkg = branch_updates_some_package() or ticket['spkgs']
-                is_skpg = False
+                is_spkg = False
                 if is_spkg:
                     # ------------- treatment of spkgs -------------
                     state = 'spkg'
