@@ -28,9 +28,6 @@ from .db import tickets
 
 
 IMAGES_DIR = Path(__file__).parent / 'images'
-# oldest version of sage about which we still care
-# OLDEST = comparable_version('7.6')
-# see master_branch instead
 
 # machines that are banned from posting their reports
 BLACKLIST = ['sage4', 'Gentoo Base System/2.2/x86_64/4.14.78-gentoo/sage4']
@@ -531,8 +528,12 @@ def render_ticket_base_svg(ticket):
     response.content_type = 'image/svg+xml'
     return response
 
+
 @app.route("/ticket/<int:ticket>/status")
 def ticket_status(ticket):
+    """
+    see https://trac.sagemath.org/ticket/33222 for usage
+    """
     try:
         if 'fast' in request.args:
             info = tickets.find_one({'id': ticket})
@@ -551,6 +552,7 @@ def ticket_status(ticket):
     response = make_response(status)
     response.headers['Content-type'] = 'text/plain'
     return response
+
 
 @app.route("/ticket/<int:ticket>/status.svg")
 def render_ticket_status_svg(ticket):
