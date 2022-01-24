@@ -55,7 +55,7 @@ import sage_patchbot
 from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, Config, is_closed_on_trac
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
-                   branch_updates_some_package,
+                   # branch_updates_some_package,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space, get_python_version,
                    ConfigException, SkipTicket, TestsFailed)
@@ -1057,7 +1057,10 @@ class Patchbot(object):
                     self.report_ticket(ticket, status='Pending',
                                        log=log, pending_status=state)
 
-                is_spkg = branch_updates_some_package() or ticket['spkgs']
+                # January 2022 : allow to check all tickets
+                # that update some package
+                # is_spkg = branch_updates_some_package() or ticket['spkgs']
+                is_skpg = False
                 if is_spkg:
                     # ------------- treatment of spkgs -------------
                     state = 'spkg'
