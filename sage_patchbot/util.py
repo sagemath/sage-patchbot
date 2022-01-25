@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from fnmatch import fnmatch
 from pathlib import Path
 
 from datetime import datetime
@@ -160,7 +161,7 @@ def git_commit(repo: str, branch: str) -> str | None:
 
 def branch_updates_some_package() -> bool:
     """
-    Does the ticket branch contains the update of some package ?
+    Does the ticket branch contain the update of some package ?
     """
     cmd = ["git", "diff", "--name-only",
            "patchbot/base..patchbot/ticket_merged"]
@@ -173,6 +174,25 @@ def branch_updates_some_package() -> bool:
             print(msg)
             return True
     return False
+
+
+def branch_updates_only_ci() -> bool:
+    """
+    Does the ticket branch contain only updates of files used by other CIs?
+    """
+    cmd = ["git", "diff", "--name-only",
+           "patchbot/base..patchbot/ticket_merged"]
+    for file in subprocess.check_output(cmd,
+                                        universal_newlines=True).split('\n'):
+        if not file:
+            continue
+        if (fnmatch(file, ".*")  # .github/, .gitignore, .vscode, etc.
+            or fnmatch(file, "docker/")
+            or fnmatch(file, 'build/pkgs/*/distros/*.txt')
+            or fnmatch(file, '*tox.ini')):
+            continue
+        return False
+    return True
 
 
 def do_or_die(cmd: str, exn_class=Exception):

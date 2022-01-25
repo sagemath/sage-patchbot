@@ -56,6 +56,7 @@ from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, 
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    # branch_updates_some_package,
+                   branch_updates_only_ci,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space, get_python_version,
                    ConfigException, SkipTicket, TestsFailed)
@@ -1067,7 +1068,9 @@ class Patchbot(object):
                     print("Ticket updates some package, hence not tested.")
                     self.to_skip[ticket['id']] = time.time() + 240 * 60 * 60
 
-                if not is_spkg:
+                is_ci_only = branch_updates_only_ci()
+
+                if not is_spkg and not is_ci_only:
                     # ------------- make -------------
                     if not self.config['skip_doc_clean']:
                         do_or_die('{} doc-clean doc-uninstall'.format(botmake))

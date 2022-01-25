@@ -23,6 +23,7 @@ from urllib.request import urlopen
 from .cached_property import cached_property
 from .util import (do_or_die, now_str, describe_branch,
                    temp_build_suffix, ensure_free_space,
+                   branch_updates_only_ci,
                    ConfigException, SkipTicket)
 from .trac_ticket import TracTicket, TracTicket_class
 
@@ -249,6 +250,8 @@ def inplace_safe():
 
     This must be called after the merge has succeeded.
     """
+    if branch_updates_only_ci():
+        return True
     # TODO: Are removed files sufficiently cleaned up?
     cmd = ["git", "diff", "--name-only",
            "patchbot/base..patchbot/ticket_merged"]
