@@ -1068,7 +1068,8 @@ class Patchbot(object):
                     print("Ticket updates some package, hence not tested.")
                     self.to_skip[ticket['id']] = time.time() + 240 * 60 * 60
 
-                is_ci_only = branch_updates_only_ci()
+                is_ci_only = False  # branch_updates_only_ci()
+                # desactivated for now
 
                 if not is_spkg and not is_ci_only:
                     # ------------- make -------------
