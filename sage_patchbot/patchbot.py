@@ -25,7 +25,6 @@ from typing import Iterator, Any
 
 # global python imports
 import codecs
-import hashlib
 import signal
 import getpass
 import glob
@@ -56,7 +55,7 @@ from .trac import get_ticket_info_from_trac_server, pull_from_trac, TracServer, 
 from .util import (now_str, prune_pending, do_or_die,
                    get_sage_version, current_reports, git_commit,
                    # branch_updates_some_package,
-                   branch_updates_only_ci,
+                   # branch_updates_only_ci,
                    describe_branch, comparable_version, temp_build_suffix,
                    ensure_free_space, get_python_version,
                    ConfigException, SkipTicket, TestsFailed)
@@ -289,30 +288,6 @@ def check_time_of_day(hours):
     return False
 
 
-def sha1file(path, blocksize=None):
-    """
-    Return SHA-1 of file.
-
-    This is used to check spkgs.
-
-    should now be working in py3
-
-    EXAMPLES::
-
-        In [2]: sha1file('sage/upstream/tachyon-0.98.9.tar.bz2')
-        Out[2]: '9866dc93e129115994708efa6e7ca16e20d58237'
-    """
-    if blocksize is None:
-        blocksize = 2 ** 16
-    h = hashlib.sha1()
-    with open(path, 'rb') as handle:
-        buf = handle.read(blocksize)
-        while len(buf):
-            h.update(buf)
-            buf = handle.read(blocksize)
-    return h.hexdigest()
-
-
 class OptionDict(object):
     r"""
     Fake option class built from a dictionary.
@@ -448,7 +423,6 @@ class Patchbot(object):
 
         While idling, the ``idling`` attribute is set to ``True``.
         """
-
         self.idling = True
         time.sleep(self.config['idle'])
         self.idling = False
@@ -706,7 +680,6 @@ class Patchbot(object):
         """
         Ensure that we are in the correct SAGE_ROOT.
         """
-
         # Don't do this is self.sage_root is None; we never want to set
         # SAGE_ROOT to None
         if self.sage_root is not None:
