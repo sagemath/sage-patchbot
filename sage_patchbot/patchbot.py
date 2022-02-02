@@ -728,6 +728,7 @@ class Patchbot(object):
         except Exception:
             do_or_die("git checkout -b patchbot/base")
 
+        do_or_die("git fetch --all --tags")
         do_or_die("git fetch %s +%s:patchbot/base_upstream" %
                   (self.config['base_repo'], self.config['base_branch']))
 
