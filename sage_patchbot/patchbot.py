@@ -40,7 +40,6 @@ import json
 import socket
 import pprint
 import multiprocessing
-
 import pickle
 
 from urllib.request import urlopen
@@ -48,6 +47,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 from datetime import datetime
+from pathlib import Path
 
 # imports from patchbot sources
 import sage_patchbot
@@ -449,7 +449,7 @@ class Patchbot(object):
             logfile = sys.stdout
             close = False
         elif isinstance(logfile, str):
-            filename = os.path.join(self.log_dir, logfile)
+            filename = self.log_dir / logfile
             logfile = codecs.open(filename, 'a', encoding='utf-8')
             close = True
         elif isinstance(logfile, (tuple, list)):
@@ -476,8 +476,8 @@ class Patchbot(object):
         r"""
         Delete ``logfile``
         """
-        filename = os.path.join(self.log_dir, logfile)
-        if os.path.isfile(filename):
+        filename = self.log_dir / logfile
+        if filename.is_file():
             os.remove(filename)
 
     def version(self):
@@ -657,15 +657,15 @@ class Patchbot(object):
         self.base = get_sage_version(self.sage_root)
 
         # TODO: this should be configurable
-        self.log_dir = os.path.join(self.sage_root, "logs", "patchbot")
+        self.log_dir = Path(self.sage_root) / "logs" / "patchbot"
 
         self.server = self.config["server"]
 
-        # make sure that the log directory is writable and writhe the
+        # make sure that the log directory is writable and write the
         # configuration file there
-        if not os.path.exists(self.log_dir):
+        if not self.log_dir.exists():
             os.makedirs(self.log_dir)
-        with codecs.open(os.path.join(self.log_dir, 'install.log'), 'a',
+        with codecs.open(self.log_dir / 'install.log', 'a',
                          encoding='utf8'):
             pass
 
@@ -790,7 +790,7 @@ class Patchbot(object):
         Return nothing when the ticket should not be tested.
         """
         os.chdir(self.sage_root)
-        log_rat_path = os.path.join(self.log_dir, LOG_RATING)
+        log_rat_path = self.log_dir / LOG_RATING
         with codecs.open(log_rat_path, "a", encoding="utf-8") as log_rating:
 
             if verbose:
@@ -1007,7 +1007,7 @@ class Patchbot(object):
         print(ticket['title'])
         print("score = {}".format(rating))
         print("\n\n")
-        log = os.path.join(self.log_dir, '{}-log.txt'.format(ticket['id']))
+        log = self.log_dir / '{}-log.txt'.format(ticket['id'])
         self.write_log('#{}: init phase'.format(ticket['id']), [LOG_MAIN, LOG_MAIN_SHORT])
         if not self.config['plugin_only']:
             self.report_ticket(ticket, status='Pending', log=log)
@@ -1076,8 +1076,8 @@ class Patchbot(object):
 
                     for name, plugin in self.config['plugins']:
                         try:
-                            plug0log = os.path.join(self.log_dir, '0', name)
-                            if ticket['id'] != 0 and os.path.exists(plug0log):
+                            plug0log = self.log_dir / '0' / name
+                            if ticket['id'] != 0 and plug0log.exists():
                                 baseline = pickle.load(open(plug0log, 'rb'))
                             else:
                                 baseline = None
@@ -1092,11 +1092,10 @@ class Patchbot(object):
                         finally:
                             if isinstance(res, PluginResult):
                                 if res.baseline is not None:
-                                    plugin_dir = os.path.join(self.log_dir,
-                                                              str(ticket['id']))
-                                    if not os.path.exists(plugin_dir):
+                                    plugin_dir = self.log_dir / str(ticket['id']))
+                                    if not plugin_dir.exists():
                                         os.mkdir(plugin_dir)
-                                    pickle.dump(res.baseline, open(os.path.join(plugin_dir, name), 'wb'))
+                                    pickle.dump(res.baseline, open(plugin_dir / name, 'wb'))
                                     passed = res.status == PluginResult.Passed
                                     print("{} {}".format(name, res.status))
                                     plugins_results.append((name, passed,
