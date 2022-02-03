@@ -1092,7 +1092,7 @@ class Patchbot(object):
                         finally:
                             if isinstance(res, PluginResult):
                                 if res.baseline is not None:
-                                    plugin_dir = self.log_dir / str(ticket['id']))
+                                    plugin_dir = self.log_dir / str(ticket['id'])
                                     if not plugin_dir.exists():
                                         os.mkdir(plugin_dir)
                                     pickle.dump(res.baseline, open(plugin_dir / name, 'wb'))
