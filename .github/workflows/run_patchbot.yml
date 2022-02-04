@@ -27,7 +27,7 @@ jobs:
           export PATH="/sage/build/bin:$PATH"
           eval $(sage-print-system-package-command $(sage-guess-package-system) --yes --no-install-recommends install git)
 
-      - name: Ensure git repository
+      - name: Ensure git repository with release tags
         shell: bash
         run: |
           if [ ! -d /sage/.git ]; then
@@ -36,6 +36,7 @@ jobs:
             (cd /sage && git ls-files -z -d | xargs -0 git checkout --)
             rm -Rf /sage2
           fi
+          (cd /sage && git fetch origin develop --tags)
 
       - name: Checkout patchbot
         uses: actions/checkout@v2
