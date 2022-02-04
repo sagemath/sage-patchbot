@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -d /sage/.git ]; then
-            git clone --single-branch --branch=develop git://trac.sagemath.org/sage.git /sage2
+            git clone --branch=develop git://trac.sagemath.org/sage.git /sage2
             mv /sage2/.git /sage
             (cd /sage && git ls-files -z -d | xargs -0 git checkout --)
             rm -Rf /sage2
