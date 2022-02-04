@@ -66,6 +66,7 @@ jobs:
           {
             "machine": ["ghcr.io/sagemath/sage/sage-docker-${{ github.event.inputs.platform }}-with-targets-optional:${{ github.event.inputs.docker_tag }}"],
             "machine_match": 1,
+            "safe_only": true,
             "owner": "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           }
           EOF
