@@ -70,4 +70,4 @@ jobs:
             "owner": "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           }
           EOF
-          /sage/venv/bin/python3 -m sage_patchbot.patchbot --sage-root /sage --config=config.json $options
+          /sage/venv/bin/python3 -m sage_patchbot.patchbot --sage-root /sage --config=config.json $options || /sage/venv/bin/python3 -m sage_patchbot.patchbot --sage-root /sage --config=config.json --skip-base $options
