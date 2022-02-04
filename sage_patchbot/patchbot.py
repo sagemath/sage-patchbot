@@ -1438,7 +1438,8 @@ def main():
                 print("\n\n")
                 print("Current base: {} {}".format(patchbot.config['base_repo'],
                                                    patchbot.config['base_branch']))
-                print("Warning: Failing tests in your base install.")
+                print("Failing tests in your base install: exiting.")
+                sys.exit(1)
 
     for k in range(count):
         if patchbot.config['cleanup']:
