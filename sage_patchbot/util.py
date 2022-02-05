@@ -187,9 +187,9 @@ def branch_updates_only_ci() -> bool:
         if not file:
             continue
         if (fnmatch(file, ".*")  # .github/, .gitignore, .vscode, etc.
-            or fnmatch(file, "docker/")
-            or fnmatch(file, 'build/pkgs/*/distros/*.txt')
-            or fnmatch(file, '*tox.ini')):
+                or fnmatch(file, "docker/")
+                or fnmatch(file, 'build/pkgs/*/distros/*.txt')
+                or fnmatch(file, '*tox.ini')):
             continue
         return False
     return True
