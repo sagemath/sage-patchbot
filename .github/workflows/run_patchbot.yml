@@ -51,11 +51,11 @@ jobs:
         run: |
           options=""
           shopt -s extglob
-          case "${{ github.event.inputs.patchbot_options }}" in
+          case "${{ github.event.inputs.patchbot_ticket }}" in
             "")
               ;;
             +(+([0-9]),)+([0-9]) )
-              options="$options --ticket ${{ github.event.inputs.patchbot_options }}"
+              options="$options --ticket ${{ github.event.inputs.patchbot_ticket }}"
               ;;
             *)
               echo "Invalid ticket list"
