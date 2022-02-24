@@ -11,7 +11,7 @@ on:
       docker_tag:
         description: 'Docker tag'
         required: true
-        default: '9.5'
+        default: 'dev'
       patchbot_ticket:
         description: 'Tickets to test (e.g., 12345,23456)'
         required: false
