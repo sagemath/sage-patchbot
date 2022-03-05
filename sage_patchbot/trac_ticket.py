@@ -242,10 +242,7 @@ class TracTicket_class():
 
     def grouped_comment_iter(self):
         change_iter = iter(self._change_log)
-        try:
-            change = next(change_iter)
-        except StopIteration:
-            raise
+        change = next(change_iter)
 
         def sort_key(c):
             return (-int(c.change == 'comment'), c.change)
@@ -265,7 +262,7 @@ class TracTicket_class():
                     break
             yield tuple(c[1] for c in sorted(accumulator))
             if stop:
-                raise StopIteration
+                return
 
     @property
     def author(self):

@@ -15,9 +15,9 @@ import pprint
 
 # Python 3.3+
 from xmlrpc.client import ServerProxy
-from .digest_transport import DigestTransport
 from urllib import parse as url_parse
 from urllib.request import urlopen
+from .digest_transport import DigestTransport
 
 # imports from patchbot sources
 from .cached_property import cached_property
@@ -274,10 +274,9 @@ def inplace_safe():
                          "src/bin/sage-banner",
                          "src/bin/sage-version.sh")):
             continue
-        else:
-            msg = "Unsafe file: {}".format(file)
-            print(msg)
-            return False
+        msg = "Unsafe file: {}".format(file)
+        print(msg)
+        return False
     return True
 
 
@@ -356,8 +355,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
 
         if merge_failure or (not is_safe):
             raise
-        else:
-            raise ConfigException(str(exn))
+        raise ConfigException(str(exn))
 
 # ===================
 
@@ -402,8 +400,8 @@ class TracServer():
         ticket = self.load(ticket_number)
         branch = ticket.branch
         if branch == '':
-            msg = '"Branch:" field is not set on ticket #{}'
-            raise ValueError(msg.format(ticket_number))
+            msg = f'"Branch:" field is not set on ticket #{ticket_number}'
+            raise ValueError(msg)
         return branch
 
 
@@ -416,10 +414,10 @@ if __name__ == '__main__':
         if ticket == '-f':
             force = True
             continue
-        elif ticket == '-a':
+        if ticket == '-a':
             apply = True
             continue
-        elif '-' in ticket:
+        if '-' in ticket:
             start, end = ticket.split('-')
             tickets = range(int(start), int(end) + 1)
         else:

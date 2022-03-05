@@ -272,17 +272,17 @@ def machines():
     else:
         authors = None
     all_tickets = filter_on_authors(tickets.find(query).limit(100), authors)
-    machines: dict[tuple, MachineStats] = {}
+    d_machines: dict[tuple, MachineStats] = {}
     for ticket in all_tickets:
         for report in ticket.get('reports', []):
             machine = tuple(report['machine'])
-            if machine in machines:
-                stats = machines[machine]
+            if machine in d_machines:
+                stats = d_machines[machine]
             else:
-                stats = machines[machine] = MachineStats(machine)
+                stats = d_machines[machine] = MachineStats(machine)
             stats.add_report(report, ticket)
     return render_template("machines.html",
-                           machines=reversed(sorted(machines.values())),
+                           machines=reversed(sorted(d_machines.values())),
                            len=len,
                            status=request.args.get('status', 'needs_review'))
 

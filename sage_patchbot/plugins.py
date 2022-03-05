@@ -99,8 +99,8 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
         This does not check that tests were added to existing doctests for
         new functionality.
     """
-    all = subprocess.check_output([sage_binary, '-coverageall'],
-                                  universal_newlines=True)
+    covall = subprocess.check_output([sage_binary, '-coverageall'],
+                                     universal_newlines=True)
     current: dict[None | str, tuple[int, int]] = {}
     total_funcs = 0
     total_docs = 0
@@ -116,7 +116,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             percent = ("%%0.%sf" % prec) % percent
         return f"{docs} / {funcs} = {percent}%"
 
-    for line in all.split('\n'):
+    for line in covall.split('\n'):
         m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)
         if m:
             module, docs_str, funcs_str = m.groups()
@@ -153,17 +153,17 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             msg = "Coverage went from {} to {}"
             print(msg.format(format(*baseline[None], prec=3),
                              format(*current[None], prec=3)))
-        current_set = set((key, current[key])
-                          for key in current if key is not None)
-        baseline_set = set((key, baseline[key])
-                           for key in baseline if key is not None)
+        current_set = set((key, c_key) for key, c_key in current.items()
+                          if key is not None)
+        baseline_set = set((key, baseline[key]) for key in baseline
+                           if key is not None)
         data = sorted(current_set - baseline_set)
     else:
         data = None
 
     if baseline:
         print("=" * 20)
-    print(all)
+    print(covall)
 
     return PluginResult(status, baseline=current, data=data)
 

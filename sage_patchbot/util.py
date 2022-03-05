@@ -70,8 +70,7 @@ def latest_version(reports: list):
     """
     if reports:
         return max([r['base'] for r in reports], key=comparable_version)
-    else:
-        return None
+    return None
 
 
 def current_reports(ticket, base=None, unique=False, newer=False):
@@ -105,9 +104,8 @@ def current_reports(ticket, base=None, unique=False, newer=False):
         def first(x) -> bool:
             if x in seen:
                 return False
-            else:
-                seen.add(x)
-                return True
+            seen.add(x)
+            return True
     else:
 
         def first(x) -> bool:
@@ -277,10 +275,7 @@ def describe_branch(branch: str, tag_only=False) -> str:
                                    '--match', '[0-9].[0-9]*', branch],
                                   universal_newlines=True)
     res = res.strip()
-    if tag_only:
-        return res.split('-')[0]
-    else:
-        return res
+    return res.split('-', maxsplit=1)[0] if tag_only else res
 
 
 def ensure_free_space(path, N=4):

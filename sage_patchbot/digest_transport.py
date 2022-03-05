@@ -100,6 +100,6 @@ class DigestTransport(SafeTransport):
             self.verbose = verbose
             return self.parse_response(response)
         except Fault as e:
-            raise TracInternalError(e)
+            raise TracInternalError(e) from e
         except OSError as e:
-            raise TracConnectionError(e.strerror)
+            raise TracConnectionError(e.strerror) from e

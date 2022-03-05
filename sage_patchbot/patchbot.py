@@ -46,6 +46,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 
+from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
@@ -1311,7 +1312,6 @@ def main():
     Most configuration is done in the json config file, which is
     reread between each ticket for live configuration of the patchbot.
     """
-    from argparse import ArgumentParser
     parser = ArgumentParser()
 
     # 10 options that are passed to the patchbot via the class "options"
@@ -1440,10 +1440,10 @@ def main():
                 print("Failing tests in your base install: exiting.")
                 sys.exit(1)
 
-    for k in range(count):
+    for _ in range(count):
         if patchbot.config['cleanup']:
             for path in glob.glob(os.path.join(tempfile.gettempdir(),
-                                               "*%s*" % temp_build_suffix)):
+                                               f"*{temp_build_suffix}*")):
                 patchbot.write_log("Cleaning up {}".format(path),
                                    [LOG_MAIN, LOG_MAIN_SHORT])
                 shutil.rmtree(path)
