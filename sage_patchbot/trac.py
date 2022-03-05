@@ -12,6 +12,7 @@ import traceback
 import time
 import subprocess
 import pprint
+from pathlib import Path
 
 # Python 3.3+
 from xmlrpc.client import ServerProxy
@@ -208,11 +209,11 @@ def extract_tag(sgml, tag: str):
     tag_name = tag[1:-1]
     if ' ' in tag_name:
         tag_name = tag_name[:tag_name.index(' ')]
-    end = "</%s>" % tag_name
+    end_str = f"</{tag_name}>"
     start_ix = sgml.find(tag)
     if start_ix == -1:
         return None
-    end_ix = sgml.find(end, start_ix)
+    end_ix = sgml.find(end_str, start_ix)
     if end_ix == -1:
         return None
     return sgml[start_ix + len(tag): end_ix].strip()
@@ -226,12 +227,12 @@ def extract_participants(rss) -> list[str]:
 
     This needs work ! In particular to remove people only in cc if possible!
     """
-    all = set()
+    all_them = set()
     for item in rss.split('<item>'):
         who = extract_tag(item, '<dc:creator>')
         if who:
-            all.add(who)
-    return list(all)
+            all_them.add(who)
+    return list(all_them)
 
 
 def extract_depends_on(deps_field):
@@ -259,16 +260,13 @@ def inplace_safe():
                                         universal_newlines=True).split('\n'):
         if not file:
             continue
+        suff = Path(file).suffix
         if (file.startswith("src/sage") or
                 file.startswith("src/sage_setup") or
                 file.startswith("src/doc") or
                 file.startswith("src/.tox") or
-                file.endswith('.yml') or
-                file.endswith('.txt') or
-                file.endswith('.json') or
-                file.endswith('.ini') or
-                file.endswith('.md') or
                 file.startswith("build/pkgs") or
+                suff in ['.yml', '.txt', '.json', '.ini', '.md'] or
                 file in ("src/setup.py",
                          ".gitignore",
                          "src/bin/sage-banner",
