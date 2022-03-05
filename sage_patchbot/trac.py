@@ -365,7 +365,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
 # taken from git-trac-plugin
 
 
-class Config(object):
+class Config():
 
     @property
     def server_hostname(self):
@@ -376,7 +376,7 @@ class Config(object):
         return 'xmlrpc'
 
 
-class TracServer(object):
+class TracServer():
 
     def __init__(self, config):
         self.config = config

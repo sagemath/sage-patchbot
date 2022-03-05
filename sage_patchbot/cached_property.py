@@ -20,7 +20,7 @@ A read-only cached version of @property
 ##############################################################################
 
 
-class cached_property(object):
+class cached_property():
 
     def __init__(self, method, name=None):
         self.method = method

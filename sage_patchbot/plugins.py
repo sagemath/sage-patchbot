@@ -28,12 +28,12 @@ import subprocess
 import time
 import json
 
-from .trac import do_or_die
-from .util import describe_branch
-
 from pyflakes.api import checkPath, isPythonFile  # type: ignore
 from pyflakes.reporter import Reporter  # type: ignore
 from pycodestyle import StyleGuide  # type: ignore
+
+from .trac import do_or_die
+from .util import describe_branch
 
 
 # hardcoded list of plugins
@@ -58,7 +58,7 @@ plugins_available = [
     "git_rev_list"]
 
 
-class PluginResult(object):
+class PluginResult():
     """
     Container class for the results of plugins
     """
@@ -109,13 +109,12 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     def format(docs, funcs, prec=None) -> str:
         if funcs == 0:
             return "N/A"
+        percent = 100.0 * docs / funcs
+        if prec is None:
+            percent = int(percent)
         else:
-            percent = 100.0 * docs / funcs
-            if prec is None:
-                percent = int(percent)
-            else:
-                percent = ("%%0.%sf" % prec) % percent
-            return "{} / {} = {}%".format(docs, funcs, percent)
+            percent = ("%%0.%sf" % prec) % percent
+        return f"{docs} / {funcs} = {percent}%"
 
     for line in all.split('\n'):
         m = re.match(r"(.*): .*\((\d+) of (\d+)\)", line)

@@ -9,13 +9,12 @@ import traceback
 import re
 import time
 import difflib
-from argparse import ArgumentParser
-from flask import Flask, render_template, make_response, request, Response  # type: ignore
 from datetime import datetime
-
+from argparse import ArgumentParser
 from io import StringIO
-
 from urllib.parse import quote
+
+from flask import Flask, render_template, make_response, request, Response  # type: ignore
 
 # imports from patchbot sources
 from ..trac import scrape
@@ -360,19 +359,20 @@ def render_ticket(ticket):
                     deps_status[dep['id']] = dep
                 new_info[key] = ', '.join("<img src='/ticket/%s/status.svg?fast' height=16><a href='/ticket/%s' style='%s'>%s</a>" % (a, a, deps_status[a]['style'], a) for a in value)
             elif key == 'authors':
-                new_info[key] = ', '.join("<a href='/ticket/?author=%s'>%s</a>" % (a, a) for a in value)
+                new_info[key] = ', '.join(f"<a href='/ticket/?author={a}'>{a}</a>" for a in value)
             elif key == 'authors_fullnames':
                 link = "<a href='https://git.sagemath.org/sage.git/log/?qt=author&amp;q={}'>{}</a>"
                 auths = ", ".join(link.format(a.replace(" ", "%20"), a)
                                   for a in value)
                 new_info[key] = auths
             elif key == 'participants':
-                parts = ', '.join("<a href='/ticket/?participant=%s'>%s</a>" % (a, a) for a in value)
+                parts = ', '.join(f"<a href='/ticket/?participant={a}'>{a}</a>"
+                                  for a in value)
                 new_info[key] = parts
             elif key == 'git_branch':
-                new_info[key] = '<a href="https://git.sagemath.org/sage.git/log/?h=%s">%s</a>' % (value, value)
+                new_info[key] = f'<a href="https://git.sagemath.org/sage.git/log/?h={value}">{value}</a>'
             elif key == 'component':
-                new_info[key] = '<a href="https://trac.sagemath.org/query?status=!closed&component=%s">%s</a>' % (value, value)
+                new_info[key] = f'<a href="https://trac.sagemath.org/query?status=!closed&component={value}">{value}</a>'
             elif key == 'spkgs':
                 pass
             elif isinstance(value, list):
@@ -602,15 +602,15 @@ def post_report(ticket_id):
         report = json.loads(request.form.get('report'))
         assert (isinstance(report, dict)), "report is not a dict"
         for fld in ['status', 'spkgs', 'base', 'machine', 'time']:
-            assert (fld in report), "{} missing in report".format(fld)
+            assert (fld in report), f"{fld} missing in report"
 
         # handling misbehaviour of patchbot clients
         machine_name = report['machine'][-1]
         if machine_name in BLACKLIST:
-            msg = 'machine {} is blacklisted'.format(machine_name)
+            msg = f'machine {machine_name} is blacklisted'
             raise RuntimeError(msg)
         if ticket_id != 0 and not is_good_machine(machine_name):
-            msg = 'machine {} fails on ticket 0'.format(machine_name)
+            msg = f'machine {machine_name} fails on ticket 0'
             raise RuntimeError(msg)
 
         prune_pending(ticket, report['machine'])
@@ -754,8 +754,8 @@ def extract_plugin_log(data, plugin):
     return ''.join(all_l)
 
 
-@app.route("/ticket/<id>/log/<path:log>")
-def get_ticket_log(id, log):
+@app.route("/ticket/<ide>/log/<path:log>")
+def get_ticket_log(ide, log):
     return get_log(log)
 
 
@@ -763,7 +763,7 @@ def get_ticket_log(id, log):
 def get_log(log):
     path = "/log/" + log
     if not db.logs.exists(path):
-        data = "No such log !\n{}".format(path)
+        data = f"No such log !\n{path}"
     else:
         data = bz2.decompress(db.logs.get(path).read()).decode()
     if 'plugin' in request.args:
@@ -776,7 +776,9 @@ def get_log(log):
             base_data_raw = bz2.decompress(db.logs.get(request.args.get('diff')).read())
             base_data = base_data_raw.decode()
             base_data = extract_plugin_log(base_data, plugin)
-            diff = difflib.unified_diff(base_data.split('\n'), data.split('\n'), base, "%s + #%s" % (base, ticket_id), n=0)
+            diff = difflib.unified_diff(base_data.split('\n'),
+                                        data.split('\n'), base,
+                                        f"{base} + #{ticket_id}", n=0)
             data = '\n'.join(('' if item[0] == '@' else item)
                              for item in diff)
             if not data:
@@ -793,9 +795,9 @@ def get_log(log):
     return response
 
 
-@app.route("/ticket/<id>/plugin/<plugin_name>/<timestamp>/")
-def get_plugin_data(id, plugin_name, timestamp):
-    ticket = tickets.find_one({'id': int(id)})
+@app.route("/ticket/<ide>/plugin/<plugin_name>/<timestamp>/")
+def get_plugin_data(ide, plugin_name, timestamp):
+    ticket = tickets.find_one({'id': int(ide)})
     if ticket is None:
         return "Unknown ticket"
     for report in ticket['reports']:
@@ -880,8 +882,8 @@ def status_image_path(status, image_type='png') -> Path:
     assert status in ok
     assert image_type in ['svg', 'png']
     if image_type == 'png':
-        return IMAGES_DIR / 'icon-{}.png'.format(status)
-    return IMAGES_DIR / 'icon-{}.svg'.format(status)
+        return IMAGES_DIR / f'icon-{status}.png'
+    return IMAGES_DIR / f'icon-{status}.svg'
 
 
 def min_status(status_list):

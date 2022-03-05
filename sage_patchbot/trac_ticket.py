@@ -42,6 +42,7 @@ from typing import Iterator
 
 import textwrap
 from datetime import datetime
+from xml.parsers.expat import ExpatError
 
 
 def format_trac(text: str) -> str:
@@ -70,7 +71,7 @@ def TicketChange(changelog_entry):
     return TicketChange_class(time, author, change, data=(data1, data2, data3))
 
 
-class TicketChange_class(object):
+class TicketChange_class():
 
     def __init__(self, time, author: str, change, data=None):
         self._time = make_time(time)
@@ -155,7 +156,6 @@ class TicketComment_class(TicketChange_class):
 
 
 def TracTicket(ticket_number: int, server_proxy) -> TracTicket_class:
-    from xml.parsers.expat import ExpatError
     ticket_number = int(ticket_number)
     try:
         change_log = server_proxy.ticket.changeLog(ticket_number)
@@ -167,7 +167,7 @@ def TracTicket(ticket_number: int, server_proxy) -> TracTicket_class:
     return TracTicket_class(data[0], data[1], data[2], data[3], ticket_changes)
 
 
-class TracTicket_class(object):
+class TracTicket_class():
 
     def __init__(self, number: int, ctime, mtime, data, change_log=None):
         self._number = number

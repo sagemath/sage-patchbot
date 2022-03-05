@@ -122,7 +122,7 @@ def alarm_handler(signum, frame):
     raise TimeOut
 
 
-class Tee(object):
+class Tee():
     def __init__(self, filepath, time=False, timeout=None, timer=None):
         if timeout is None:
             timeout = 60 * 60 * 24
@@ -168,7 +168,7 @@ class Tee(object):
         return False
 
 
-class Timer(object):
+class Timer():
     def __init__(self):
         self._starts = {}
         self._history = []
@@ -266,8 +266,7 @@ def parse_time_of_day(s) -> list[tuple]:
         if '-' in ss:
             start, end = ss.split('-')
             return float(start), float(end)
-        else:
-            return float(ss), float(ss) + 1
+        return float(ss), float(ss) + 1
     return [parse_interval(ss) for ss in s.split(',')]
 
 
@@ -288,7 +287,7 @@ def check_time_of_day(hours):
     return False
 
 
-class OptionDict(object):
+class OptionDict():
     r"""
     Fake option class built from a dictionary.
 
@@ -321,7 +320,7 @@ class OptionDict(object):
             setattr(self, key, value)
 
 
-class Patchbot(object):
+class Patchbot():
     """
     Main class of the patchbot.
 
