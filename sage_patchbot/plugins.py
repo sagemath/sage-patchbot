@@ -82,8 +82,8 @@ def git_rev_list(ticket, **kwds):
     if str(ticket['id']) != '0':
         base_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/ticket_upstream..patchbot/base"]))
         ticket_only = int(subprocess.check_output(["git", "rev-list", "--count", "patchbot/base..patchbot/ticket_upstream"]))
-        print("only in ticket ({})".format(ticket_only))
-        print("only in base ({})".format(base_only))
+        print(f"only in ticket ({ticket_only})")
+        print(f"only in base ({base_only})")
         base = describe_branch('patchbot/ticket_upstream', tag_only=True)
         do_or_die("git diff --stat %s..patchbot/ticket_upstream" % base)
         do_or_die("git log --oneline %s..patchbot/ticket_upstream" % base)
@@ -106,7 +106,7 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
     total_docs = 0
     status = "Passed"
 
-    def format(docs, funcs, prec=None) -> str:
+    def format_str(docs, funcs, prec=None) -> str:
         if funcs == 0:
             return "N/A"
         percent = 100.0 * docs / funcs
@@ -130,20 +130,20 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
                 if old_funcs == 0:
                     if funcs != docs:
                         msg = "Missing doctests in {}: {}"
-                        print(msg.format(module, format(docs, funcs)))
+                        print(msg.format(module, format_str(docs, funcs)))
                         status = "Failed"
                     else:
                         msg = "Full doctests in {}: {}"
-                        print(msg.format(module, format(docs, funcs)))
+                        print(msg.format(module, format_str(docs, funcs)))
                 elif funcs - docs > old_funcs - old_docs:
                     msg = "Decreased doctests in {}: from {} to {}"
-                    print(msg.format(module, format(old_docs, old_funcs),
-                                     format(docs, funcs)))
+                    print(msg.format(module, format_str(old_docs, old_funcs),
+                                     format_str(docs, funcs)))
                     status = "Failed"
                 elif funcs - docs < old_funcs - old_docs:
                     msg = "Increased doctests in {}: from {} to {}"
-                    print(msg.format(module, format(old_docs, old_funcs),
-                                     format(docs, funcs)))
+                    print(msg.format(module, format_str(old_docs, old_funcs),
+                                     format_str(docs, funcs)))
 
     current[None] = total_docs, total_funcs
     if baseline:
@@ -151,8 +151,8 @@ def coverage(ticket, sage_binary, baseline=None, **kwds):
             print("Coverage remained unchanged.")
         else:
             msg = "Coverage went from {} to {}"
-            print(msg.format(format(*baseline[None], prec=3),
-                             format(*current[None], prec=3)))
+            print(msg.format(format_str(*baseline[None], prec=3),
+                             format_str(*current[None], prec=3)))
         current_set = set((key, c_key) for key, c_key in current.items()
                           if key is not None)
         baseline_set = set((key, baseline[key]) for key in baseline
@@ -399,8 +399,7 @@ def exclude_new(ticket, regex, msg, **kwds):
     bad_lines = 0
     for r in regex:
         bad_lines += exclude_new_in_diff(gitdiff, r)
-    full_msg = "{} inserted on {} non-empty lines"
-    full_msg = full_msg.format(msg, bad_lines)
+    full_msg = f"{msg} inserted on {bad_lines} non-empty lines"
     print(full_msg)
     if bad_lines:
         raise ValueError(full_msg)
@@ -658,15 +657,16 @@ def commit_messages(ticket, patches, **kwds):
     """
     for patch_path in patches:
         patch = os.path.basename(patch_path)
-        print("Looking at {}".format(patch))
+        print(f"Looking at {patch}")
         header = []
-        for line in open(patch_path):
-            if line.startswith('diff '):
-                break
-            header.append(line)
-        else:
-            print(''.join(header[:10]))
-            raise ValueError("Not a valid patch file: " + patch)
+        with open(patch_path) as pt:
+            for line in pt:
+                if line.startswith('diff '):
+                    break
+                header.append(line)
+            else:
+                print(''.join(header[:10]))
+                raise ValueError("Not a valid patch file: " + patch)
         print(''.join(header))
     print("All patches good.")
 
@@ -732,7 +732,7 @@ def startup_time(ticket, make, sage_binary, loops=5, total_samples=50,
     def startup_times(samples):
         do_or_die(sage_binary + " -c ''")
         all_times = []
-        for k in range(samples):
+        for _ in range(samples):
             start = time.time()
             do_or_die(sage_binary + " -c ''")
             all_times.append(time.time() - start)
