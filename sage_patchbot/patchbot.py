@@ -1078,7 +1078,8 @@ class Patchbot():
                         try:
                             plug0log = self.log_dir / '0' / name
                             if ticket['id'] != 0 and plug0log.exists():
-                                baseline = pickle.load(open(plug0log, 'rb'))
+                                with open(plug0log, 'rb') as lf:
+                                    baseline = pickle.load(lf)
                             else:
                                 baseline = None
                             print(boundary(name, 'plugin'))

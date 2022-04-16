@@ -309,5 +309,5 @@ class SkipTicket(Exception):
     failure or re-trying it again for a while.
     """
     def __init__(self, msg, seconds_till_retry=float('inf')):
-        super(SkipTicket, self).__init__(msg)
+        super().__init__(msg)
         self.seconds_till_retry = seconds_till_retry
