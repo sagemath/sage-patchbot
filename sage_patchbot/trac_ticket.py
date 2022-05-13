@@ -119,11 +119,10 @@ class TicketChange_class():
     @property
     def change_action(self) -> str:
         if not self.old:
-            return 'set to {change.new}'.format(change=self)
+            return f'set to {self.new}'
         if not self.new:
-            return '{change.old} deleted'.format(change=self)
-        txt = 'changed from {change.old} to {change.new}'
-        return txt.format(change=self)
+            return f'{self.old} deleted'
+        return f'changed from {self.old} to {self.new}'
 
     def __repr__(self) -> str:
         txt = self._author + ' changed ' + self._change

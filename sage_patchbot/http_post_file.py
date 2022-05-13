@@ -66,20 +66,20 @@ def encode_multipart_formdata(fields, files):
         fields = fields.items()
     for (key, value) in fields:
         L.append(dd + BOUNDARY)
-        L.append(by('Content-Disposition: form-data; name="{}"'.format(key)))
+        L.append(by(f'Content-Disposition: form-data; name="{key}"'))
         L.append(by(''))
         L.append(by(value))
     for (key, filename, value) in files:
         L.append(dd + BOUNDARY)
-        cont = 'Content-Disposition: form-data; name="{}"; filename="{}"'
-        L.append(by(cont.format(key, filename)))
-        L.append(by('Content-Type: {}'.format(get_content_type(filename))))
+        cont = f'Content-Disposition: form-data; name="{key}"; filename="{filename}"'
+        L.append(by(cont))
+        L.append(by(f'Content-Type: {get_content_type(filename)}'))
         L.append(by(''))
         L.append(value)   # here are bytes ??
     L.append(dd + BOUNDARY + dd)
     L.append(by(''))
     body: bytes = CRLF.join(L)
-    content_type = 'multipart/form-data; boundary={}'.format(UTF_BOUNDARY)
+    content_type = f'multipart/form-data; boundary={UTF_BOUNDARY}'
     return content_type, body
 
 

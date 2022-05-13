@@ -385,7 +385,7 @@ def render_ticket(ticket):
         if res:
             if '-' in res:
                 tag, commits = res.split('-')[:2]
-                return "%s + %s commits" % (tag, commits)
+                return f"{tag} + {commits} commits"
             if 'commits' in res:
                 # old style
                 return res
@@ -409,7 +409,7 @@ def render_ticket(ticket):
             if 'git_commit_human' not in item:
                 item['git_commit_human'] = "%s new commits" % len(item['log'])
             for x in ('commit', 'base', 'merge'):
-                field = 'git_%s_human' % x
+                field = f'git_{x}_human'
                 item[field] = format_git_describe(item.get(field, None))
             item['machine'] = band_aid_for_machine(item['machine'])
             if chosen_base in ('all', base_of_this_report):

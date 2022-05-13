@@ -102,7 +102,7 @@ def get_ticket_info_from_trac_server(ticket_id: int) -> dict[str, Any]:
     authors_fullnames = list(set_authors_fullnames)
 
     # needed to extract the participants
-    rss = get_url("{}/ticket/{}?format=rss".format(TRAC_URL, ticket_id))
+    rss = get_url(f"{TRAC_URL}/ticket/{ticket_id}?format=rss")
 
     return {'id': ticket_id,
             'title': trac_info.title,
@@ -272,7 +272,7 @@ def inplace_safe():
                          "src/bin/sage-banner",
                          "src/bin/sage-version.sh")):
             continue
-        msg = "Unsafe file: {}".format(file)
+        msg = f"Unsafe file: {file}"
         print(msg)
         return False
     return True
@@ -312,9 +312,9 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             return
         branch = info['git_branch']
         repo = info['git_repo']
-        do_or_die("git fetch %s +%s:patchbot/ticket_upstream" % (repo, branch))
+        do_or_die(f"git fetch {repo} +{branch}:patchbot/ticket_upstream")
         base = describe_branch('patchbot/ticket_upstream', tag_only=True)
-        do_or_die("git rev-list --left-right --count %s..patchbot/ticket_upstream" % base)
+        do_or_die(f"git rev-list --left-right --count {base}..patchbot/ticket_upstream")
         do_or_die("git branch -f patchbot/ticket_merged patchbot/base")
         do_or_die("git checkout patchbot/ticket_merged")
         try:
@@ -331,7 +331,7 @@ def pull_from_trac(sage_root, ticket_id, branch=None, force=None,
             # create temporary dir
             temp_dir = tempfile.mkdtemp(temp_build_suffix + str(ticket_id))
             ensure_free_space(temp_dir)
-            do_or_die("git clone . '{}'".format(temp_dir))
+            do_or_die("git clone . '{temp_dir}'")
             os.chdir(temp_dir)
             os.symlink(os.path.join(sage_root, "upstream"), "upstream")
             os.environ['SAGE_ROOT'] = temp_dir
@@ -429,7 +429,7 @@ if __name__ == '__main__':
                     pull_from_trac(os.environ['SAGE_ROOT'], tick, force=True)
                 time.sleep(1)
             except Exception:
-                msg = "Error for {}".format(tick)
+                msg = f"Error for {tick}"
                 print(msg)
                 traceback.print_exc()
         force = apply = False

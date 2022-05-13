@@ -145,10 +145,10 @@ def git_commit(repo: str, branch: str) -> str | None:
         In [16]: git_commit('/home/marlon_brando/sage', 'develop')
         Out[16]: '7eb8510dacf61b691664cd8f1d2e75e5d473e5a0'
     """
-    ref = "refs/heads/{}".format(branch)
+    ref = f"refs/heads/{branch}"
     try:
         res = subprocess.check_output(["git",
-                                       "--git-dir={}/.git".format(repo),
+                                       f"--git-dir={repo}/.git",
                                        "show-ref",
                                        "--verify", ref],
                                       universal_newlines=True)
@@ -168,7 +168,7 @@ def branch_updates_some_package() -> bool:
         if not file:
             continue
         if file.startswith("build/pkgs") and file.endswith("checksums.ini"):
-            msg = "Modified package: {}".format(file)
+            msg = f"Modified package: {file}"
             print(msg)
             return True
     return False
@@ -200,7 +200,7 @@ def do_or_die(cmd: str, exn_class=Exception):
     print(cmd)
     res = os.system(cmd)
     if res:
-        raise exn_class("{} {}".format(res, cmd))
+        raise exn_class(f"{res} {cmd}")
 
 
 def comparable_version(version: str) -> list[tuple]:
