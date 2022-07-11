@@ -31,6 +31,14 @@ IMAGES_DIR = Path(__file__).parent / 'images'
 # machines that are banned from posting their reports
 BLACKLIST = ['sage4', 'Gentoo Base System/2.2/x86_64/4.14.78-gentoo/sage4']
 
+status_ok = ['ApplyFailed', 'BuildFailed', 'Empty', 'New', 'NoPatch', 'Pending',
+             'PluginFailed', 'PluginOnly', 'PluginOnlyFailed', 'Spkg',
+             'SmallPluginFailed', 'SmallPluginPassed',
+             'TestsFailed', 'TestsPassed', 'TestsPassedOnRetry']
+status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
+                'PluginFailed', 'TestsPassed', 'TestsPassedOnRetry', 'Pending',
+                'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
+
 
 def timed_cached_function(refresh_rate=60):
 
@@ -813,11 +821,6 @@ def get_plugin_data(ide, plugin_name, timestamp):
     return "Unknown report"
 
 
-status_order = ['New', 'ApplyFailed', 'BuildFailed', 'TestsFailed',
-                'PluginFailed', 'TestsPassed', 'TestsPassedOnRetry', 'Pending',
-                'PluginOnlyFailed', 'PluginOnly', 'NoPatch', 'Spkg']
-
-
 @app.route('/icon-Version.svg')
 def create_base_image_svg():
     """
@@ -853,11 +856,8 @@ def status_image_svg(status):
 
     or https://patchbot.sagemath.org/svg/TestsPassed
     """
-    liste = status.split(',')
-    # Only one possible status displayed. Which one to choose ?
-    # stupid choice for the moment
-    if len(liste) > 1:
-        status = liste[0]
+    if status not in status_ok:
+        raise ValueError
     path = status_image_path(status, image_type='svg')
     with path.open() as file:
         response = make_response(file.read())
@@ -875,11 +875,8 @@ def status_image_path(status, image_type='png') -> Path:
     For example, the result for 'TestsPassed' should be
     images/icon-TestsPassed.png
     """
-    ok = ['ApplyFailed', 'BuildFailed', 'Empty', 'New', 'NoPatch', 'Pending',
-          'PluginFailed', 'PluginOnly', 'PluginOnlyFailed', 'Spkg',
-          'SmallPluginFailed', 'SmallPluginPassed',
-          'TestsFailed', 'TestsPassed', 'TestsPassedOnRetry']
-    assert status in ok
+    if status not in status_ok:
+        raise ValueError
     assert image_type in ['svg', 'png']
     if image_type == 'png':
         return IMAGES_DIR / f'icon-{status}.png'
