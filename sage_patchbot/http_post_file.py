@@ -42,9 +42,10 @@ def by(utf_string: str) -> bytes:
 
 
 def encode_multipart_formdata(fields, files):
-    """
-    fields is a sequence of (name, value) elements for regular form
-    fields.  files is a sequence of (name, filename, value) elements
+    r"""
+    fields is a sequence of (name, value) elements for regular form fields.
+
+    files is a sequence of (name, filename, value) elements
     for data to be uploaded as files
 
     Return (content_type, body) ready for httplib.HTTP instance
@@ -54,7 +55,7 @@ def encode_multipart_formdata(fields, files):
         In [2]: encode_multipart_formdata([],[])
         Out[2]:
         ('multipart/form-data; boundary=JPS2ZAVEEIQZW6K5JVQB1IJE2W',
-         '--JPS2ZAVEEIQZW6K5JVQB1IJE2W--\r\n')
+        '--JPS2ZAVEEIQZW6K5JVQB1IJE2W--\r\n')
     """
     # BOUNDARY = mimetools.choose_boundary()
     UTF_BOUNDARY = id_generator()
@@ -71,7 +72,8 @@ def encode_multipart_formdata(fields, files):
         L.append(by(value))
     for (key, filename, value) in files:
         L.append(dd + BOUNDARY)
-        cont = f'Content-Disposition: form-data; name="{key}"; filename="{filename}"'
+        cont = 'Content-Disposition: form-data; '
+        cont += f'name="{key}"; filename="{filename}"'
         L.append(by(cont))
         L.append(by(f'Content-Type: {get_content_type(filename)}'))
         L.append(by(''))

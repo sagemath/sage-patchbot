@@ -587,19 +587,19 @@ def doctest_continuation(ticket, **kwds):
 
 def blocks(ticket, **kwds):
     """
-    some check for the blocks
+    some check for the blocks:
 
-    1) correct syntax is .. SEEALSO::
+    1) correct syntax is ``.. SEEALSO::``
 
-    2) TESTS and EXAMPLES should be plural, NOTE singular
+    2) ``TESTS`` and ``EXAMPLES`` should be plural, ``NOTE`` singular
 
-    3) no :: after INPUT and OUTPUT blocks
+    3) no ``::`` after ``INPUT`` and ``OUTPUT`` blocks
 
-    4) no :: after REFERENCE blocks
+    4) no ``::`` after ``REFERENCE`` blocks
 
-    5) no " :" at the end of lines
+    5) no `` :`` at the end of lines
 
-    6) no "Returns" at the start of lines
+    6) no ``Returns`` at the start of lines
     """
     regexps = [r'\.\.SEE|SEE ALSO|SEEALSO:($|[^:])',
                r'^\s*TEST:', r'^\s*EXAMPLE:', r'^\s*NOTES:',

@@ -809,8 +809,8 @@ class Patchbot():
                 self.write_log('#{}: no git branch'.format(ticket['id']), logfile)
                 return
 
-            if not(ticket['status'] in ('needs_review', 'positive_review',
-                                        'needs_info', 'needs_work')):
+            if ticket['status'] not in ('needs_review', 'positive_review',
+                                        'needs_info', 'needs_work'):
                 msg = '#{}: bad status (={})'
                 self.write_log(msg.format(ticket['id'],
                                           ticket['status']), logfile)
@@ -996,7 +996,7 @@ class Patchbot():
             self.write_log("warning: rating is None, testing #{} at your own risk".format(ticket['id']),
                            LOG_MAIN)
 
-        if not(ticket.get('git_branch') or ticket['id'] == 0):
+        if not (ticket.get('git_branch') or ticket['id'] == 0):
             self.write_log("no git branch for #{}, hence no testing".format(ticket['id']),
                            LOG_MAIN)
             return
@@ -1044,7 +1044,7 @@ class Patchbot():
                     self.to_skip[ticket['id']] = time.time() + 240 * 60 * 60
 
                 is_ci_only = False  # branch_updates_only_ci()
-                # desactivated for now
+                # not activated for now
 
                 if not is_spkg and not is_ci_only:
                     # ------------- make -------------
