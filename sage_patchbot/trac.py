@@ -226,6 +226,9 @@ def extract_participants(rss) -> list[str]:
     This is done using the rss feed.
 
     This needs work ! In particular to remove people only in cc if possible!
+
+    Broken since using trac 1.2 which displays full names instead of
+    login. (09/2022)
     """
     all_them = set()
     for item in rss.split('<item>'):
