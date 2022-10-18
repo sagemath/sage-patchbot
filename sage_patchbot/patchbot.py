@@ -1399,6 +1399,9 @@ def main():
     if args.sage_root == os.environ.get('SAGE_ROOT'):
         print("WARNING: Do not use this copy of sage while the patchbot is running.")
 
+    do_or_die("%s --package clean" %
+              patchbot.sage_command, exn_class=ConfigException)
+
     if args.free_giga > 0:
         ensure_free_space(patchbot.sage_root, N=args.free_giga)
 
