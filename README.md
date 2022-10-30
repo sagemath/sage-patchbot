@@ -14,5 +14,3 @@ For more documentation on running a patchbot, see [this page][1].
 # SERVER
 
 The server needs a Python with Flask and mongodb installed.
-
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sagemath/sage-patchbot.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sagemath/sage-patchbot/context:python)
